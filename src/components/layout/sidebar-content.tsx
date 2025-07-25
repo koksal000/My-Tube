@@ -19,6 +19,8 @@ import {
 } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
+import { mockUsers, currentMockUser } from "@/lib/data"
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
 
 const MyTubeLogo = () => (
     <Link href="/home" className="flex items-center gap-2 text-primary font-bold text-xl">
@@ -33,10 +35,7 @@ export default function SidebarContentComponent() {
   const pathname = usePathname()
   const isActive = (path: string) => pathname === path
 
-  const subscriptions = [
-      { id: 'user3', name: 'Gamer Girl', profilePicture: 'https://placehold.co/40x40.png' },
-      { id: 'user4', name: 'Tech Guru', profilePicture: 'https://placehold.co/40x40.png' },
-  ]
+  const subscriptions = mockUsers.filter(u => currentMockUser.subscriptions.includes(u.id));
 
   return (
     <>
@@ -100,10 +99,13 @@ export default function SidebarContentComponent() {
         <SidebarMenu>
             {subscriptions.map(sub => (
                  <SidebarMenuItem key={sub.id}>
-                    <SidebarMenuButton asChild isActive={pathname.startsWith(`/channel/${sub.id}`)} tooltip={sub.name}>
-                        <Link href={`/channel/${sub.id}`}>
-                            <img src={sub.profilePicture} alt={sub.name} className="w-6 h-6 rounded-full" data-ai-hint="person face" />
-                            <span>{sub.name}</span>
+                    <SidebarMenuButton asChild isActive={pathname.startsWith(`/channel/${sub.username}`)} tooltip={sub.displayName}>
+                        <Link href={`/channel/${sub.username}`}>
+                            <Avatar className="w-6 h-6">
+                                <AvatarImage src={sub.profilePicture} alt={sub.displayName} data-ai-hint="person face" />
+                                <AvatarFallback>{sub.displayName.charAt(0)}</AvatarFallback>
+                            </Avatar>
+                            <span>{sub.displayName}</span>
                         </Link>
                     </SidebarMenuButton>
                 </SidebarMenuItem>

@@ -5,7 +5,7 @@ import {
 } from "@/components/ui/sidebar"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Search, Bell, Plus } from "lucide-react"
+import { Search, Bell, Plus, MessageSquare } from "lucide-react"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -16,6 +16,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import Link from "next/link"
 import { useRouter } from "next/navigation";
+import { currentMockUser } from "@/lib/data"
 
 export default function Header() {
   const router = useRouter();
@@ -44,9 +45,11 @@ export default function Header() {
             />
           </div>
         </form>
-        <Button variant="ghost" size="icon" className="rounded-full">
-          <Bell className="h-5 w-5" />
-          <span className="sr-only">Toggle notifications</span>
+        <Button variant="ghost" size="icon" className="rounded-full" asChild>
+          <Link href="/notifications">
+            <Bell className="h-5 w-5" />
+            <span className="sr-only">Toggle notifications</span>
+          </Link>
         </Button>
         <Button className="gap-1 rounded-full bg-primary hover:bg-primary/90">
           <Plus className="h-4 w-4" />
@@ -56,14 +59,14 @@ export default function Header() {
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="relative h-10 w-10 rounded-full">
               <Avatar className="h-10 w-10">
-                <AvatarImage src="https://placehold.co/100x100.png" alt="@cool-creator" data-ai-hint="person face"/>
-                <AvatarFallback>CC</AvatarFallback>
+                <AvatarImage src={currentMockUser.profilePicture} alt={currentMockUser.displayName} data-ai-hint="person face"/>
+                <AvatarFallback>{currentMockUser.displayName.charAt(0)}</AvatarFallback>
               </Avatar>
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-56">
             <DropdownMenuItem asChild>
-                <Link href="/channel/cool-creator">My Channel</Link>
+                <Link href={`/channel/${currentMockUser.username}`}>My Channel</Link>
             </DropdownMenuItem>
             <DropdownMenuItem asChild>
                 <Link href="/messages">Messages</Link>
@@ -72,7 +75,7 @@ export default function Header() {
                 <Link href="/settings">Settings</Link>
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem className="text-destructive focus:text-destructive focus:bg-destructive/10">
+            <DropdownMenuItem className="text-destructive focus:text-destructive focus:bg-destructive/10" onClick={() => router.push('/login')}>
               Log out
             </DropdownMenuItem>
           </DropdownMenuContent>
