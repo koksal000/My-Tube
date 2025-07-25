@@ -8,7 +8,6 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
 import { useToast } from "@/hooks/use-toast"
-import { mockUsers } from "@/lib/data"
 import type { User } from "@/lib/types"
 import React from "react"
 
@@ -34,9 +33,9 @@ export function RegisterForm() {
     const displayName = formData.get("displayName") as string;
     const password = formData.get("password") as string;
     
-    // Get all users from localStorage, or fall back to mock data if none exist
+    // Get all users from localStorage, or start with an empty array if none exist
     const storedUsers = localStorage.getItem("myTubeUsers");
-    const allUsers: User[] = storedUsers ? JSON.parse(storedUsers) : mockUsers;
+    const allUsers: User[] = storedUsers ? JSON.parse(storedUsers) : [];
 
     // Check if username already exists
     if (allUsers.some(user => user.username === username)) {

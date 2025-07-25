@@ -16,14 +16,26 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import Link from "next/link"
 import { useRouter } from "next/navigation";
-import { mockUsers } from "@/lib/data"
+import React, { useEffect, useState } from "react"
+import type { User } from "@/lib/types"
 
 export default function Header() {
   const router = useRouter();
-  
-  // TODO: Replace with actual current user data
-  const currentMockUser = mockUsers[0];
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
 
+  useEffect(() => {
+    const storedUser = localStorage.getItem("currentUser");
+    if (storedUser) {
+      setCurrentUser(JSON.parse(storedUser));
+    } else {
+      router.push('/login');
+    }
+  }, [router]);
+  
+  const handleLogout = () => {
+    localStorage.removeItem("currentUser");
+    router.push('/login');
+  };
 
   const handleSearch = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -33,6 +45,14 @@ export default function Header() {
       router.push(`/search?query=${encodeURIComponent(query)}`);
     }
   };
+
+  if (!currentUser) {
+    return (
+       <header className="sticky top-0 z-10 flex h-16 shrink-0 items-center gap-4 border-b bg-background/80 px-4 backdrop-blur-sm md:px-6">
+        {/* Render a loading state or a slimmed-down header */}
+       </header>
+    )
+  }
 
   return (
     <header className="sticky top-0 z-10 flex h-16 shrink-0 items-center gap-4 border-b bg-background/80 px-4 backdrop-blur-sm md:px-6">
@@ -63,14 +83,14 @@ export default function Header() {
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="relative h-10 w-10 rounded-full">
               <Avatar className="h-10 w-10">
-                <AvatarImage src={currentMockUser.profilePicture} alt={currentMockUser.displayName} data-ai-hint="person face"/>
-                <AvatarFallback>{currentMockUser.displayName.charAt(0)}</AvatarFallback>
+                <AvatarImage src={currentUser.profilePicture} alt={currentUser.displayName} data-ai-hint="person face"/>
+                <AvatarFallback>{currentUser.displayName.charAt(0)}</AvatarFallback>
               </Avatar>
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-56">
             <DropdownMenuItem asChild>
-                <Link href={`/channel/${currentMockUser.username}`}>My Channel</Link>
+                <Link href={`/channel/${currentUser.username}`}>My Channel</Link>
             </DropdownMenuItem>
             <DropdownMenuItem asChild>
                 <Link href="/messages">Messages</Link>
@@ -79,7 +99,7 @@ export default function Header() {
                 <Link href="/settings">Settings</Link>
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem className="text-destructive focus:text-destructive focus:bg-destructive/10" onClick={() => router.push('/login')}>
+            <DropdownMenuItem className="text-destructive focus:text-destructive focus:bg-destructive/10" onClick={handleLogout}>
               Log out
             </DropdownMenuItem>
           </DropdownMenuContent>

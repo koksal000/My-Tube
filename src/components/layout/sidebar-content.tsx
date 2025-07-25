@@ -19,13 +19,15 @@ import {
 } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { mockUsers } from "@/lib/data"
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
+import React, { useEffect, useState } from "react"
+import type { User } from "@/lib/types"
+import { mockUsers } from "@/lib/data" // We need this to find channel info for subscriptions
 
 const MyTubeLogo = () => (
     <Link href="/home" className="flex items-center gap-2 text-primary font-bold text-xl">
         <svg className="w-8 h-8" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M19.615 3.184c-3.604-.246-11.631-.245-15.23 0-3.897.266-4.356 2.62-4.385 8.816.029 6.185.484 8.549 4.385 8.816 3.6.245 11.626.246 15.23 0 3.897-.266 4.356-2.62 4.385-8.816-.029-6.185-.484-8.549-4.385-8.816zm-10.615 12.816v-8l8 3.993-8 4.007z"/>
+            <path d="M19.615 3.184c-3.604-.246-11.631-.245-15.23 0-3.897.266-4.356 2.62-4.385 8.816.029 6.185.484 8.549 4.385 8.816 3.6.245 11.626.246 15.23 0 3.897-.266-4.356-2.62 4.385-8.816-.029-6.185-.484-8.549-4.385-8.816zm-10.615 12.816v-8l8 3.993-8 4.007z"/>
         </svg>
         <span className="group-data-[collapsible=icon]:hidden">My-Tube</span>
     </Link>
@@ -34,10 +36,25 @@ const MyTubeLogo = () => (
 export default function SidebarContentComponent() {
   const pathname = usePathname()
   const isActive = (path: string) => pathname === path
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
 
-  // TODO: Replace with actual current user data
-  const currentMockUser = mockUsers[0];
-  const subscriptions = mockUsers.filter(u => currentMockUser.subscriptions.includes(u.id));
+  useEffect(() => {
+    const storedUser = localStorage.getItem("currentUser");
+    if (storedUser) {
+      setCurrentUser(JSON.parse(storedUser));
+    }
+  }, []);
+
+  // The full user list is needed to get subscription details
+  const [allUsers, setAllUsers] = useState<User[]>([]);
+  useEffect(() => {
+    const storedUsers = localStorage.getItem("myTubeUsers");
+    const users = storedUsers ? JSON.parse(storedUsers) : mockUsers;
+    setAllUsers(users);
+  }, []);
+
+
+  const subscriptions = currentUser ? allUsers.filter(u => currentUser.subscriptions.includes(u.id)) : [];
 
   return (
     <>

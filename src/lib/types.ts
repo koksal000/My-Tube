@@ -7,6 +7,7 @@ export interface User {
   subscriptions: string[]; // array of user ids
   likedVideos: string[]; // array of video ids
   viewedVideos: string[]; // array of video ids
+  password?: string; // Only for storage, should not be exposed on client
 }
 
 export interface Video {

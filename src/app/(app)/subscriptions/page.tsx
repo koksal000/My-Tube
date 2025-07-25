@@ -1,16 +1,36 @@
+"use client"
+
 import { VideoCard } from "@/components/video-card";
 import { mockVideos, mockUsers } from "@/lib/data";
+import { useState, useEffect } from "react";
+import type { User, Video } from "@/lib/types";
+import { useRouter } from "next/navigation";
 
 export default function SubscriptionsPage() {
-  // TODO: Replace with actual current user data
-  const currentMockUser = mockUsers[0];
-  const subscribedChannelsUsernames = currentMockUser.subscriptions
-    .map(id => mockUsers.find(u => u.id === id)?.username)
-    .filter((username): username is string => !!username);
-  
-  const subscriptionVideos = mockVideos.filter(video => 
-    subscribedChannelsUsernames.includes(video.author.username)
-  ).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  const router = useRouter();
+  const [subscriptionVideos, setSubscriptionVideos] = useState<Video[]>([]);
+
+  useEffect(() => {
+    const storedUser = localStorage.getItem("currentUser");
+    const storedUsers = localStorage.getItem("myTubeUsers");
+    
+    if (storedUser) {
+      const currentUser: User = JSON.parse(storedUser);
+      const allUsers: User[] = storedUsers ? JSON.parse(storedUsers) : mockUsers;
+
+      const subscribedChannelsUsernames = currentUser.subscriptions
+        .map(id => allUsers.find(u => u.id === id)?.username)
+        .filter((username): username is string => !!username);
+      
+      const videos = mockVideos.filter(video => 
+        subscribedChannelsUsernames.includes(video.author.username)
+      ).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      
+      setSubscriptionVideos(videos);
+    } else {
+      router.push('/login');
+    }
+  }, [router]);
 
   return (
     <div>

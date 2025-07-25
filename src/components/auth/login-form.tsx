@@ -6,9 +6,9 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { mockUsers } from "@/lib/data"
 import { useToast } from "@/hooks/use-toast"
 import React from "react"
+import type { User } from "@/lib/types"
 
 const MyTubeLogo = () => (
     <div className="flex items-center justify-center space-x-2 text-primary font-bold text-2xl mb-4">
@@ -29,16 +29,13 @@ export function LoginForm() {
     const username = formData.get("username") as string;
     const password = formData.get("password") as string;
 
-    // Get all users from localStorage, or fall back to mock data if none exist
     const storedUsers = localStorage.getItem("myTubeUsers");
-    const allUsers = storedUsers ? JSON.parse(storedUsers) : mockUsers;
+    const allUsers: User[] = storedUsers ? JSON.parse(storedUsers) : [];
 
-    const user = allUsers.find((u: any) => u.username === username);
+    const user = allUsers.find((u) => u.username === username);
 
     // In a real app, passwords would be hashed. For this prototype, we're doing a simple check.
     if (user && user.password === password) {
-      // In a real app, you'd create a session. Here we'll just navigate.
-      // We can use localStorage to simulate a session for this client-only app.
       localStorage.setItem("currentUser", JSON.stringify(user));
       toast({
         title: "Giriş Başarılı!",

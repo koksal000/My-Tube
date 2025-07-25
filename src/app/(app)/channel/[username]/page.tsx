@@ -1,20 +1,43 @@
-import { mockUsers, mockVideos, mockPosts } from "@/lib/data";
+"use client"
+
+import { mockVideos, mockPosts } from "@/lib/data";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { VideoCard } from "@/components/video-card";
 import { Card, CardContent } from "@/components/ui/card";
 import Image from "next/image";
+import { useEffect, useState } from "react";
+import type { User, Video, Post } from "@/lib/types";
+import { useRouter } from "next/navigation";
 
 export default function ChannelPage({ params }: { params: { username: string } }) {
-  const user = mockUsers.find(u => u.username === params.username);
+  const router = useRouter();
+  const [user, setUser] = useState<User | null>(null);
+  const [userVideos, setUserVideos] = useState<Video[]>([]);
+  const [userPosts, setUserPosts] = useState<Post[]>([]);
+  
+  useEffect(() => {
+    const storedUsers = localStorage.getItem("myTubeUsers");
+    const allUsers: User[] = storedUsers ? JSON.parse(storedUsers) : [];
+    const channelUser = allUsers.find(u => u.username === params.username);
+    
+    if (channelUser) {
+      setUser(channelUser);
+       // In a real app, you'd fetch user-specific content. Here we filter mock data.
+       const videos = mockVideos.filter(v => v.author.username === channelUser.username);
+       const posts = mockPosts.filter(p => p.author.username === channelUser.username);
+       setUserVideos(videos);
+       setUserPosts(posts);
+    } else {
+       // Optional: handle user not found, e.g., redirect to a 404 page
+    }
+  }, [params.username]);
+
 
   if (!user) {
-    return <div className="text-center py-20">Channel not found.</div>;
+    return <div className="text-center py-20">Loading Channel...</div>;
   }
-  
-  const userVideos = mockVideos.filter(v => v.author.username === user.username);
-  const userPosts = mockPosts.filter(p => p.author.username === user.username);
 
   return (
     <div>
