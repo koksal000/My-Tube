@@ -10,6 +10,7 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { useToast } from "@/hooks/use-toast"
 import { mockUsers } from "@/lib/data"
 import type { User } from "@/lib/types"
+import React from "react"
 
 const MyTubeLogo = () => (
     <div className="flex items-center justify-center space-x-2 text-primary font-bold text-2xl mb-4">
@@ -23,6 +24,8 @@ const MyTubeLogo = () => (
 export function RegisterForm() {
   const router = useRouter()
   const { toast } = useToast();
+  const [addBanner, setAddBanner] = React.useState(false);
+
 
   const handleRegister = (event: React.FormEvent) => {
     event.preventDefault()
@@ -100,19 +103,21 @@ export function RegisterForm() {
             <Label htmlFor="profile-picture">Profile Picture</Label>
             <Input id="profile-picture" name="profile-picture" type="file" accept="image/*" />
           </div>
-           <div className="grid gap-2">
-            <Label htmlFor="banner">Channel Banner</Label>
-            <Input id="banner" name="banner" type="file" accept="image/*" />
-          </div>
           <div className="flex items-center space-x-2">
-            <Checkbox id="terms" required/>
+            <Checkbox id="add-banner" checked={addBanner} onCheckedChange={(checked) => setAddBanner(checked as boolean)} />
             <label
-              htmlFor="terms"
+              htmlFor="add-banner"
               className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
             >
               I want to add a banner.
             </label>
           </div>
+           {addBanner && (
+            <div className="grid gap-2">
+              <Label htmlFor="banner">Channel Banner</Label>
+              <Input id="banner" name="banner" type="file" accept="image/*" required={addBanner} />
+            </div>
+           )}
           <Button type="submit" className="w-full">
             Create an account
           </Button>
