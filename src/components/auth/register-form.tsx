@@ -7,11 +7,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
+import { useToast } from "@/hooks/use-toast"
+import { mockUsers } from "@/lib/data"
 
 const MyTubeLogo = () => (
     <div className="flex items-center justify-center space-x-2 text-primary font-bold text-2xl mb-4">
         <svg className="w-10 h-10" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M19.615 3.184c-3.604-.246-11.631-.245-15.23 0-3.897.266-4.356 2.62-4.385 8.816.029 6.185.484 8.549 4.385 8.816 3.6.245 11.626.246 15.23 0 3.897-.266 4.356-2.62 4.385-8.816-.029-6.185-.484-8.549-4.385-8.816zm-10.615 12.816v-8l8 3.993-8 4.007z"/>
+            <path d="M19.615 3.184c-3.604-.246-11.631-.245-15.23 0-3.897-.266-4.356 2.62-4.385 8.816.029 6.185.484 8.549 4.385 8.816 3.6.245 11.626.246 15.23 0 3.897-.266 4.356-2.62 4.385-8.816-.029-6.185-.484-8.549-4.385-8.816zm-10.615 12.816v-8l8 3.993-8 4.007z"/>
         </svg>
         <span>My-Tube Reborn</span>
     </div>
@@ -19,11 +21,36 @@ const MyTubeLogo = () => (
 
 export function RegisterForm() {
   const router = useRouter()
+  const { toast } = useToast();
 
   const handleRegister = (event: React.FormEvent) => {
     event.preventDefault()
-    // In a real app, you'd handle registration logic here.
-    // This would involve reading the files as base64 and sending to a backend.
+    const formData = new FormData(event.target as HTMLFormElement);
+    const username = formData.get("username") as string;
+    const displayName = formData.get("displayName") as string;
+    const password = formData.get("password") as string;
+    // In a real app, you would handle file uploads properly.
+    // For now, we will ignore profile picture and banner.
+
+    // Check if username already exists
+    if (mockUsers.some(user => user.username === username)) {
+      toast({
+        title: "Kayıt Başarısız",
+        description: "Bu kullanıcı adı zaten alınmış. Lütfen başka bir tane deneyin.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    // In a real app, this would send data to a server to create a new user.
+    // Since this is a client-side only prototype, we can't persist new users
+    // without a backend or connecting to a DB like IndexedDB.
+    // For now, we'll just show a success message and redirect.
+    console.log("New user would be created with:", { username, displayName, password });
+    toast({
+        title: "Kayıt Başarılı!",
+        description: "Hesabınız oluşturuldu. Şimdi giriş yapabilirsiniz.",
+    });
     router.push("/login")
   }
 
@@ -40,23 +67,23 @@ export function RegisterForm() {
         <form onSubmit={handleRegister} className="grid gap-4">
           <div className="grid gap-2">
             <Label htmlFor="username">Username</Label>
-            <Input id="username" placeholder="yourusername" required />
+            <Input id="username" name="username" placeholder="yourusername" required />
           </div>
           <div className="grid gap-2">
             <Label htmlFor="displayName">Display Name</Label>
-            <Input id="displayName" placeholder="Your Name" required />
+            <Input id="displayName" name="displayName" placeholder="Your Name" required />
           </div>
           <div className="grid gap-2">
             <Label htmlFor="password">Password</Label>
-            <Input id="password" type="password" required />
+            <Input id="password" name="password" type="password" required />
           </div>
           <div className="grid gap-2">
             <Label htmlFor="profile-picture">Profile Picture</Label>
-            <Input id="profile-picture" type="file" accept="image/*" />
+            <Input id="profile-picture" name="profile-picture" type="file" accept="image/*" />
           </div>
            <div className="grid gap-2">
             <Label htmlFor="banner">Channel Banner</Label>
-            <Input id="banner" type="file" accept="image/*" />
+            <Input id="banner" name="banner" type="file" accept="image/*" />
           </div>
           <div className="flex items-center space-x-2">
             <Checkbox id="terms" required/>

@@ -6,6 +6,9 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { mockUsers } from "@/lib/data"
+import { useToast } from "@/hooks/use-toast"
+import React from "react"
 
 const MyTubeLogo = () => (
     <div className="flex items-center justify-center space-x-2 text-primary font-bold text-2xl mb-4">
@@ -18,12 +21,29 @@ const MyTubeLogo = () => (
 
 export function LoginForm() {
   const router = useRouter()
+  const { toast } = useToast()
 
   const handleLogin = (event: React.FormEvent) => {
     event.preventDefault()
-    // In a real app, you'd handle authentication here.
-    // For now, we just navigate to the home page.
-    router.push("/home")
+    const formData = new FormData(event.target as HTMLFormElement);
+    const username = formData.get("username") as string;
+    const password = formData.get("password") as string;
+
+    const user = mockUsers.find(u => u.username === username);
+
+    // In a real app, passwords would be hashed. For this prototype, we're doing a simple check.
+    if (user && user.password === password) {
+      // In a real app, you'd create a session. Here we'll just navigate.
+      // We can use localStorage to simulate a session for this client-only app.
+      localStorage.setItem("currentUser", JSON.stringify(user));
+      router.push("/home")
+    } else {
+      toast({
+        title: "Giriş Başarısız",
+        description: "Kullanıcı adı veya şifre hatalı.",
+        variant: "destructive",
+      })
+    }
   }
 
   return (
@@ -39,13 +59,13 @@ export function LoginForm() {
         <form onSubmit={handleLogin} className="grid gap-4">
           <div className="grid gap-2">
             <Label htmlFor="username">Username</Label>
-            <Input id="username" type="text" placeholder="yourusername" required />
+            <Input id="username" name="username" type="text" placeholder="yourusername" required />
           </div>
           <div className="grid gap-2">
             <div className="flex items-center">
               <Label htmlFor="password">Password</Label>
             </div>
-            <Input id="password" type="password" required />
+            <Input id="password" name="password" type="password" required />
           </div>
           <Button type="submit" className="w-full">
             Login
