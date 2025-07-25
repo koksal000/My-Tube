@@ -2,8 +2,8 @@ import type { User, Video, Post } from './types';
 
 // Let's create some mock users
 export const mockUsers: User[] = [
-  { id: 'user1', username: 'devteam', displayName: 'Developer Team', profilePicture: 'https://placehold.co/100x100.png', subscribers: 1000, subscriptions: [], likedVideos: ['video1'], viewedVideos: ['video1'] },
-  { id: 'user2', username: 'cool-creator', displayName: 'Cool Creator', profilePicture: 'https://placehold.co/100x100.png', subscribers: 5200, subscriptions: ['user3', 'user4'], likedVideos: [], viewedVideos: ['video1'] },
+  { id: 'user1', username: 'devteam', displayName: 'Developer Team', profilePicture: 'https://placehold.co/100x100.png', subscribers: 1000, subscriptions: [], likedVideos: [], viewedVideos: [] },
+  { id: 'user2', username: 'cool-creator', displayName: 'Cool Creator', profilePicture: 'https://placehold.co/100x100.png', subscribers: 5200, subscriptions: ['user3', 'user4'], likedVideos: [], viewedVideos: [] },
   { id: 'user3', username: 'gamer-girl', displayName: 'Gamer Girl', profilePicture: 'https://placehold.co/100x100.png', subscribers: 12000, subscriptions: ['user1'], likedVideos: [], viewedVideos: [] },
   { id: 'user4', username: 'tech-guru', displayName: 'Tech Guru', profilePicture: 'https://placehold.co/100x100.png', subscribers: 8500, subscriptions: ['user1', 'user2'], likedVideos: [], viewedVideos: [] },
 ];
@@ -22,10 +22,7 @@ export const mockVideos: Video[] = [
     likes: 12000,
     dislikes: 150,
     createdAt: new Date(Date.now() - 86400000 * 2).toISOString(), // 2 days ago
-    comments: [
-      { id: 'c1', author: mockUsers[1], text: 'Awesome platform!', createdAt: new Date(Date.now() - 86400000).toISOString(), likes: 25, replies: [] },
-      { id: 'c2', author: mockUsers[2], text: 'Looks great!', createdAt: new Date(Date.now() - 3600000 * 5).toISOString(), likes: 10, replies: [] },
-    ],
+    comments: [],
   },
 ];
 
@@ -51,4 +48,4 @@ export const mockPosts: Post[] = [
 ]
 
 // Mock current user
-export const currentMockUser = mockUsers[1];
+export const currentMockUser = mockUsers[0];

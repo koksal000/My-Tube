@@ -55,7 +55,6 @@ export default function ChannelPage({ params }: { params: { username: string } }
                     {userPosts.map(post => (
                         <Card key={post.id}>
                             <CardContent className="p-4">
-                                <Image src={post.imageUrl} alt={post.caption} width={480} height={480} className="w-full rounded-md mb-4 aspect-square object-cover" data-ai-hint="lifestyle photography"/>
                                 <p>{post.caption}</p>
                             </CardContent>
                         </Card>
