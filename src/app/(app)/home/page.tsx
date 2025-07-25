@@ -1,5 +1,5 @@
 import { VideoCard } from "@/components/video-card";
-import { mockVideos, mockUsers, currentMockUser } from "@/lib/data";
+import { mockVideos, mockUsers } from "@/lib/data";
 import { generateVideoRecommendations, VideoRecommendationsInput } from "@/ai/flows/video-recommendations";
 
 // This is a server component, so we can fetch data here
@@ -16,6 +16,9 @@ export default async function HomePage() {
     dislikes: v.dislikes,
     commentCount: v.comments.length
   }));
+
+  // TODO: Replace with actual current user data
+  const currentMockUser = mockUsers[0];
 
   const recommendationInput: VideoRecommendationsInput = {
     userProfile: {

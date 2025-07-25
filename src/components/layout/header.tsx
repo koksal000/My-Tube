@@ -16,10 +16,14 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import Link from "next/link"
 import { useRouter } from "next/navigation";
-import { currentMockUser } from "@/lib/data"
+import { mockUsers } from "@/lib/data"
 
 export default function Header() {
   const router = useRouter();
+  
+  // TODO: Replace with actual current user data
+  const currentMockUser = mockUsers[0];
+
 
   const handleSearch = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();

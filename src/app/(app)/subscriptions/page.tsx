@@ -1,7 +1,9 @@
 import { VideoCard } from "@/components/video-card";
-import { mockVideos, mockUsers, currentMockUser } from "@/lib/data";
+import { mockVideos, mockUsers } from "@/lib/data";
 
 export default function SubscriptionsPage() {
+  // TODO: Replace with actual current user data
+  const currentMockUser = mockUsers[0];
   const subscribedChannelsUsernames = currentMockUser.subscriptions
     .map(id => mockUsers.find(u => u.id === id)?.username)
     .filter((username): username is string => !!username);

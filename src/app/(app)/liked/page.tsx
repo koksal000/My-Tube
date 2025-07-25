@@ -1,7 +1,9 @@
 import { VideoCard } from "@/components/video-card";
-import { mockVideos, currentMockUser } from "@/lib/data";
+import { mockVideos, mockUsers } from "@/lib/data";
 
 export default function LikedPage() {
+  // TODO: Replace with actual current user data
+  const currentMockUser = mockUsers[0];
   const likedVideos = mockVideos.filter(video => currentMockUser.likedVideos.includes(video.id));
 
   return (

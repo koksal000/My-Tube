@@ -19,7 +19,7 @@ import {
 } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { mockUsers, currentMockUser } from "@/lib/data"
+import { mockUsers } from "@/lib/data"
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
 
 const MyTubeLogo = () => (
@@ -35,6 +35,8 @@ export default function SidebarContentComponent() {
   const pathname = usePathname()
   const isActive = (path: string) => pathname === path
 
+  // TODO: Replace with actual current user data
+  const currentMockUser = mockUsers[0];
   const subscriptions = mockUsers.filter(u => currentMockUser.subscriptions.includes(u.id));
 
   return (

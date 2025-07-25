@@ -29,6 +29,3 @@ const posts: Post[] = mockPostsData.map(post => {
 export const mockUsers: User[] = users;
 export const mockVideos: Video[] = videos;
 export const mockPosts: Post[] = posts;
-
-// Mock current user - assuming the first user is the current user for now
-export const currentMockUser = users[0];
