@@ -29,7 +29,7 @@ function formatViews(views: number) {
 
 export default function VideoPage({ params }: { params: { id: string } }) {
   const video = mockVideos.find(v => v.id === params.id);
-  const recommendedVideos = mockVideos.filter(v => v.id !== params.id);
+  const recommendedVideos = mockVideos.filter(v => v.id !== params.id).sort(() => 0.5 - Math.random()).slice(0, 10);
 
   if (!video) {
     return <div className="text-center py-20">Video not found.</div>;

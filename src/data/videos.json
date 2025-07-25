@@ -1,3 +1,4 @@
+
 [
   {
     "id": "video1",
@@ -11,6 +12,48 @@
     "likes": 12000,
     "dislikes": 150,
     "createdAt": "2024-07-22T12:00:00.000Z",
+    "comments": []
+  },
+  {
+    "id": "video2",
+    "title": "My Awesome Vlog #1",
+    "description": "Check out my first ever vlog! I explore the city and try new things.",
+    "thumbnailUrl": "https://placehold.co/640x360.png",
+    "videoUrl": "https://files.catbox.moe/n0u1ot.mp4",
+    "duration": 345,
+    "authorId": "user2",
+    "views": 25000,
+    "likes": 1500,
+    "dislikes": 50,
+    "createdAt": "2024-07-21T15:30:00.000Z",
+    "comments": []
+  },
+  {
+    "id": "video3",
+    "title": "Epic Gameplay Montage",
+    "description": "10 minutes of non-stop action. You won't believe these clips!",
+    "thumbnailUrl": "https://placehold.co/640x360.png",
+    "videoUrl": "https://files.catbox.moe/igb4a7.mp4",
+    "duration": 612,
+    "authorId": "user3",
+    "views": 120000,
+    "likes": 8000,
+    "dislikes": 200,
+    "createdAt": "2024-07-20T10:00:00.000Z",
+    "comments": []
+  },
+  {
+    "id": "video4",
+    "title": "Unboxing the new SuperPhone 20X",
+    "description": "Is this the best phone of the year? Let's find out!",
+    "thumbnailUrl": "https://placehold.co/640x360.png",
+    "videoUrl": "https://files.catbox.moe/5p892f.mp4",
+    "duration": 930,
+    "authorId": "user4",
+    "views": 75000,
+    "likes": 4500,
+    "dislikes": 100,
+    "createdAt": "2024-07-19T20:00:00.000Z",
     "comments": []
   }
 ]
