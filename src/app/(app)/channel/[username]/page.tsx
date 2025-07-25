@@ -9,10 +9,11 @@ import { Card, CardContent } from "@/components/ui/card";
 import Image from "next/image";
 import { useEffect, useState } from "react";
 import type { User, Video, Post } from "@/lib/types";
-import { useRouter } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 
-export default function ChannelPage({ params }: { params: { username: string } }) {
+export default function ChannelPage() {
   const router = useRouter();
+  const params = useParams<{ username: string }>();
   const [user, setUser] = useState<User | null>(null);
   const [userVideos, setUserVideos] = useState<Video[]>([]);
   const [userPosts, setUserPosts] = useState<Post[]>([]);
