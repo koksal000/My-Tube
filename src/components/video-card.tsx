@@ -36,7 +36,7 @@ export function VideoCard({ video }: { video: Video }) {
   return (
     <div className="group">
       <Link href={`/video/${video.id}`}>
-        <div className="relative mb-2 aspect-video w-full overflow-hidden rounded-lg shadow-md transition-all duration-300 group-hover:scale-105 group-hover:shadow-xl">
+        <div className="relative mb-2 aspect-square w-full overflow-hidden rounded-lg shadow-md transition-all duration-300 group-hover:scale-105 group-hover:shadow-xl">
           <Image
             src={video.thumbnailUrl}
             alt={video.title}

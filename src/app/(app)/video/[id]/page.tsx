@@ -39,7 +39,7 @@ export default function VideoPage({ params }: { params: { id: string } }) {
     <div className="mx-auto max-w-screen-2xl">
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
         <div className="lg:col-span-2">
-          <div className="aspect-video w-full overflow-hidden rounded-xl bg-black shadow-lg">
+          <div className="aspect-square w-full overflow-hidden rounded-xl bg-black shadow-lg">
             <video
               src={video.videoUrl}
               controls
