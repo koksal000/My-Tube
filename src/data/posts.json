@@ -1,0 +1,20 @@
+[
+    {
+        "id": "post1",
+        "authorId": "user2",
+        "imageUrl": "https://placehold.co/480x480.png",
+        "caption": "Just finished filming my new vlog! It will be out tomorrow. Stay tuned!",
+        "likes": 350,
+        "createdAt": "2024-07-23T10:00:00.000Z",
+        "comments": []
+    },
+    {
+        "id": "post2",
+        "authorId": "user3",
+        "imageUrl": "https://placehold.co/480x480.png",
+        "caption": "New streaming setup is complete! What do you guys think?",
+        "likes": 890,
+        "createdAt": "2024-07-22T18:30:00.000Z",
+        "comments": []
+    }
+]

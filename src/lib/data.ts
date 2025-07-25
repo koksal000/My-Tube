@@ -1,51 +1,34 @@
 import type { User, Video, Post } from './types';
+import mockUsersData from '@/data/users.json';
+import mockVideosData from '@/data/videos.json';
+import mockPostsData from '@/data/posts.json';
 
-// Let's create some mock users
-export const mockUsers: User[] = [
-  { id: 'user1', username: 'devteam', displayName: 'Developer Team', profilePicture: 'https://placehold.co/100x100.png', subscribers: 1000, subscriptions: [], likedVideos: [], viewedVideos: [] },
-  { id: 'user2', username: 'cool-creator', displayName: 'Cool Creator', profilePicture: 'https://placehold.co/100x100.png', subscribers: 5200, subscriptions: ['user3', 'user4'], likedVideos: [], viewedVideos: [] },
-  { id: 'user3', username: 'gamer-girl', displayName: 'Gamer Girl', profilePicture: 'https://placehold.co/100x100.png', subscribers: 12000, subscriptions: ['user1'], likedVideos: [], viewedVideos: [] },
-  { id: 'user4', username: 'tech-guru', displayName: 'Tech Guru', profilePicture: 'https://placehold.co/100x100.png', subscribers: 8500, subscriptions: ['user1', 'user2'], likedVideos: [], viewedVideos: [] },
-];
+const users: User[] = mockUsersData as User[];
 
-// Let's create some mock videos
-export const mockVideos: Video[] = [
-  {
-    id: 'video1',
-    title: 'Welcome to My-Tube Reborn!',
-    description: 'This is the introductory video for our platform. Enjoy!',
-    thumbnailUrl: 'https://placehold.co/640x360.png',
-    videoUrl: 'https://files.catbox.moe/aa0k70.mp4',
-    duration: 15,
-    author: mockUsers[0],
-    views: 150000,
-    likes: 12000,
-    dislikes: 150,
-    createdAt: new Date(Date.now() - 86400000 * 2).toISOString(), // 2 days ago
-    comments: [],
-  },
-];
+const videos: Video[] = mockVideosData.map(video => {
+  const author = users.find(u => u.id === video.authorId);
+  if (!author) {
+    // In a real app, you might want to handle this case more gracefully
+    // For now, we'll throw an error or assign a default author
+    throw new Error(`Author with id ${video.authorId} not found for video ${video.id}`);
+  }
+  // The 'as any' is a temporary workaround because the imported JSON doesn't know about the author object structure yet.
+  // We are manually adding the author object to each video.
+  return { ...video, author } as any;
+});
 
-export const mockPosts: Post[] = [
-    {
-        id: 'post1',
-        author: mockUsers[1],
-        imageUrl: 'https://placehold.co/480x480.png',
-        caption: 'Just finished filming my new vlog! It will be out tomorrow. Stay tuned!',
-        likes: 350,
-        createdAt: new Date(Date.now() - 3600000 * 8).toISOString(),
-        comments: [],
-    },
-    {
-        id: 'post2',
-        author: mockUsers[2],
-        imageUrl: 'https://placehold.co/480x480.png',
-        caption: 'New streaming setup is complete! What do you guys think?',
-        likes: 890,
-        createdAt: new Date(Date.now() - 86400000 * 1).toISOString(),
-        comments: [],
+const posts: Post[] = mockPostsData.map(post => {
+    const author = users.find(u => u.id === post.authorId);
+    if(!author) {
+        throw new Error(`Author with id ${post.authorId} not found for post ${post.id}`);
     }
-]
+    return {...post, author} as any;
+});
 
-// Mock current user
-export const currentMockUser = mockUsers[0];
+
+export const mockUsers: User[] = users;
+export const mockVideos: Video[] = videos;
+export const mockPosts: Post[] = posts;
+
+// Mock current user - assuming the first user is the current user for now
+export const currentMockUser = users[0];
