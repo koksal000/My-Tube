@@ -75,9 +75,11 @@ export default function Header() {
             <span className="sr-only">Toggle notifications</span>
           </Link>
         </Button>
-        <Button className="gap-1 rounded-full bg-primary hover:bg-primary/90">
-          <Plus className="h-4 w-4" />
-          <span className="hidden sm:inline">Upload</span>
+        <Button asChild className="gap-1 rounded-full bg-primary hover:bg-primary/90">
+          <Link href="/upload">
+            <Plus className="h-4 w-4" />
+            <span className="hidden sm:inline">Upload</span>
+          </Link>
         </Button>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>

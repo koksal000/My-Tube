@@ -18,7 +18,7 @@ export interface Video {
   videoUrl: string;
   duration: number; // in seconds
   author: User;
-  authorId?: string; // Temporarily keep for mapping
+  authorId: string; // Keep for mapping
   views: number;
   likes: number;
   dislikes: number;
@@ -38,7 +38,7 @@ export interface Comment {
 export interface Post {
     id: string;
     author: User;
-    authorId?: string; // Temporarily keep for mapping
+    authorId: string; // Keep for mapping
     imageUrl: string;
     caption: string;
     likes: number;
