@@ -29,13 +29,21 @@ export function LoginForm() {
     const username = formData.get("username") as string;
     const password = formData.get("password") as string;
 
-    const user = mockUsers.find(u => u.username === username);
+    // Get all users from localStorage, or fall back to mock data if none exist
+    const storedUsers = localStorage.getItem("myTubeUsers");
+    const allUsers = storedUsers ? JSON.parse(storedUsers) : mockUsers;
+
+    const user = allUsers.find((u: any) => u.username === username);
 
     // In a real app, passwords would be hashed. For this prototype, we're doing a simple check.
     if (user && user.password === password) {
       // In a real app, you'd create a session. Here we'll just navigate.
       // We can use localStorage to simulate a session for this client-only app.
       localStorage.setItem("currentUser", JSON.stringify(user));
+      toast({
+        title: "Giriş Başarılı!",
+        description: "Ana sayfaya yönlendiriliyorsunuz.",
+      });
       router.push("/home")
     } else {
       toast({

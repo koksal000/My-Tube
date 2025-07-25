@@ -9,11 +9,12 @@ import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
 import { useToast } from "@/hooks/use-toast"
 import { mockUsers } from "@/lib/data"
+import type { User } from "@/lib/types"
 
 const MyTubeLogo = () => (
     <div className="flex items-center justify-center space-x-2 text-primary font-bold text-2xl mb-4">
         <svg className="w-10 h-10" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M19.615 3.184c-3.604-.246-11.631-.245-15.23 0-3.897-.266-4.356 2.62-4.385 8.816.029 6.185.484 8.549 4.385 8.816 3.6.245 11.626.246 15.23 0 3.897-.266 4.356-2.62 4.385-8.816-.029-6.185-.484-8.549-4.385-8.816zm-10.615 12.816v-8l8 3.993-8 4.007z"/>
+            <path d="M19.615 3.184c-3.604-.246-11.631-.245-15.23 0-3.897.266-4.356 2.62-4.385 8.816.029 6.185.484 8.549 4.385 8.816 3.6.245 11.626.246 15.23 0 3.897-.266 4.356-2.62 4.385-8.816-.029-6.185-.484-8.549-4.385-8.816zm-10.615 12.816v-8l8 3.993-8 4.007z"/>
         </svg>
         <span>My-Tube Reborn</span>
     </div>
@@ -29,11 +30,13 @@ export function RegisterForm() {
     const username = formData.get("username") as string;
     const displayName = formData.get("displayName") as string;
     const password = formData.get("password") as string;
-    // In a real app, you would handle file uploads properly.
-    // For now, we will ignore profile picture and banner.
+    
+    // Get all users from localStorage, or fall back to mock data if none exist
+    const storedUsers = localStorage.getItem("myTubeUsers");
+    const allUsers: User[] = storedUsers ? JSON.parse(storedUsers) : mockUsers;
 
     // Check if username already exists
-    if (mockUsers.some(user => user.username === username)) {
+    if (allUsers.some(user => user.username === username)) {
       toast({
         title: "Kayıt Başarısız",
         description: "Bu kullanıcı adı zaten alınmış. Lütfen başka bir tane deneyin.",
@@ -41,12 +44,28 @@ export function RegisterForm() {
       });
       return;
     }
+
+    // Create a new user object. In a real app, this would be more robust.
+    const newUser: Omit<User, 'password'> = {
+      id: `user${allUsers.length + 1}`,
+      username,
+      displayName,
+      profilePicture: "https://placehold.co/100x100.png", // default pic
+      subscribers: 0,
+      subscriptions: [],
+      likedVideos: [],
+      viewedVideos: [],
+    };
     
-    // In a real app, this would send data to a server to create a new user.
-    // Since this is a client-side only prototype, we can't persist new users
-    // without a backend or connecting to a DB like IndexedDB.
-    // For now, we'll just show a success message and redirect.
-    console.log("New user would be created with:", { username, displayName, password });
+    // Add password separately for the object to be stored
+    const newUserWithPassword = { ...newUser, password };
+
+    // Add the new user to the list
+    const updatedUsers = [...allUsers, newUserWithPassword];
+
+    // Save the updated user list to localStorage
+    localStorage.setItem("myTubeUsers", JSON.stringify(updatedUsers));
+    
     toast({
         title: "Kayıt Başarılı!",
         description: "Hesabınız oluşturuldu. Şimdi giriş yapabilirsiniz.",
