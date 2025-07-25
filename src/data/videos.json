@@ -4,7 +4,7 @@
     "id": "video1",
     "title": "Welcome to My-Tube Reborn!",
     "description": "This is the introductory video for our platform. Enjoy!",
-    "thumbnailUrl": "https://placehold.co/640x360.png",
+    "thumbnailUrl": "data:image/png;base64,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AAAACJ7gXN5H8C8lQAAAABJRU5ErkJggg==",
     "videoUrl": "https://files.catbox.moe/aa0k70.mp4",
     "duration": 15,
     "authorId": "user1",
@@ -12,48 +12,6 @@
     "likes": 12000,
     "dislikes": 150,
     "createdAt": "2024-07-22T12:00:00.000Z",
-    "comments": []
-  },
-  {
-    "id": "video2",
-    "title": "My Awesome Vlog #1",
-    "description": "Check out my first ever vlog! I explore the city and try new things.",
-    "thumbnailUrl": "https://placehold.co/640x360.png",
-    "videoUrl": "https://files.catbox.moe/n0u1ot.mp4",
-    "duration": 345,
-    "authorId": "user1",
-    "views": 25000,
-    "likes": 1500,
-    "dislikes": 50,
-    "createdAt": "2024-07-21T15:30:00.000Z",
-    "comments": []
-  },
-  {
-    "id": "video3",
-    "title": "Epic Gameplay Montage",
-    "description": "10 minutes of non-stop action. You won't believe these clips!",
-    "thumbnailUrl": "https://placehold.co/640x360.png",
-    "videoUrl": "https://files.catbox.moe/igb4a7.mp4",
-    "duration": 612,
-    "authorId": "user1",
-    "views": 120000,
-    "likes": 8000,
-    "dislikes": 200,
-    "createdAt": "2024-07-20T10:00:00.000Z",
-    "comments": []
-  },
-  {
-    "id": "video4",
-    "title": "Unboxing the new SuperPhone 20X",
-    "description": "Is this the best phone of the year? Let's find out!",
-    "thumbnailUrl": "https://placehold.co/640x360.png",
-    "videoUrl": "https://files.catbox.moe/5p892f.mp4",
-    "duration": 930,
-    "authorId": "user1",
-    "views": 75000,
-    "likes": 4500,
-    "dislikes": 100,
-    "createdAt": "2024-07-19T20:00:00.000Z",
     "comments": []
   }
 ]
