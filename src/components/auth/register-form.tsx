@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Checkbox } from "@/components/ui/checkbox"
 
 const MyTubeLogo = () => (
     <div className="flex items-center justify-center space-x-2 text-primary font-bold text-2xl mb-4">
@@ -22,7 +23,7 @@ export function RegisterForm() {
   const handleRegister = (event: React.FormEvent) => {
     event.preventDefault()
     // In a real app, you'd handle registration logic here.
-    // For now, we just navigate to the login page after "registering".
+    // This would involve reading the files as base64 and sending to a backend.
     router.push("/login")
   }
 
@@ -51,7 +52,20 @@ export function RegisterForm() {
           </div>
           <div className="grid gap-2">
             <Label htmlFor="profile-picture">Profile Picture</Label>
-            <Input id="profile-picture" type="file" />
+            <Input id="profile-picture" type="file" accept="image/*" />
+          </div>
+           <div className="grid gap-2">
+            <Label htmlFor="banner">Channel Banner</Label>
+            <Input id="banner" type="file" accept="image/*" />
+          </div>
+          <div className="flex items-center space-x-2">
+            <Checkbox id="terms" required/>
+            <label
+              htmlFor="terms"
+              className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+            >
+              I want to add a banner.
+            </label>
           </div>
           <Button type="submit" className="w-full">
             Create an account
