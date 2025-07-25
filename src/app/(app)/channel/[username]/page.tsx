@@ -43,10 +43,12 @@ export default function ChannelPage() {
   return (
     <div>
         <div className="mb-8">
-            <div className="h-48 w-full rounded-lg bg-secondary">
-                <Image src="https://placehold.co/1200x300.png" alt="Channel banner" width={1200} height={300} className="w-full h-full object-cover rounded-lg" data-ai-hint="abstract background"/>
-            </div>
-            <div className="flex items-end gap-4 px-8 -mt-16">
+            {user.banner && (
+              <div className="h-48 w-full rounded-lg bg-secondary">
+                  <Image src={user.banner} alt="Channel banner" width={1200} height={300} className="w-full h-full object-cover rounded-lg" data-ai-hint="channel banner abstract"/>
+              </div>
+            )}
+            <div className={`flex items-end gap-4 px-8 ${user.banner ? '-mt-16' : 'mt-8'}`}>
                 <Avatar className="h-32 w-32 border-4 border-background">
                     <AvatarImage src={user.profilePicture} alt={user.displayName} data-ai-hint="person face" />
                     <AvatarFallback className="text-4xl">{user.displayName.charAt(0)}</AvatarFallback>
@@ -96,3 +98,5 @@ export default function ChannelPage() {
     </div>
   );
 }
+
+    
