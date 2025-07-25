@@ -13,11 +13,21 @@ import {z} from 'genkit';
 
 const SearchContentInputSchema = z.object({
   query: z.string().describe('The search query string.'),
-  contentList: z.array(z.any()).describe('A list of content to search through.'),
+  contentList: z.array(z.object({
+      id: z.string(),
+      title: z.string(),
+      description: z.string(),
+      username: z.string(),
+  })).describe('A list of content to search through.'),
 });
 export type SearchContentInput = z.infer<typeof SearchContentInputSchema>;
 
-const SearchContentOutputSchema = z.array(z.any());
+const SearchContentOutputSchema = z.array(z.object({
+    id: z.string().describe("The ID of the content item."),
+    title: z.string().describe("The title of the content item."),
+    description: z.string().describe("The description of the content item."),
+    username: z.string().describe("The username of the author."),
+}));
 export type SearchContentOutput = z.infer<typeof SearchContentOutputSchema>;
 
 export async function searchContent(input: SearchContentInput): Promise<SearchContentOutput> {
@@ -31,7 +41,7 @@ const searchContentPrompt = ai.definePrompt({
   prompt: `You are a search assistant. Given a query and a list of content, you will return a list of content that matches the query, sorted by relevance.
 
 Query: {{{query}}}
-Content List: {{{contentList}}}`,
+Content List: {{json contentList}}`,
 });
 
 const searchContentFlow = ai.defineFlow(
