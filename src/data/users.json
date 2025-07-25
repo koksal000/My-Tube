@@ -1,2 +1,13 @@
-
-[]
+[
+    {
+        "id": "user1",
+        "username": "admin",
+        "displayName": "Developer Team",
+        "profilePicture": "https://placehold.co/100x100.png",
+        "subscribers": 999999,
+        "subscriptions": [],
+        "likedVideos": [],
+        "viewedVideos": [],
+        "password": "admin"
+    }
+]

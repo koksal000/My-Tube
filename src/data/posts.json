@@ -1,7 +1,7 @@
 [
     {
         "id": "post1",
-        "authorId": "user2",
+        "authorId": "user1",
         "imageUrl": "https://placehold.co/480x480.png",
         "caption": "Just finished filming my new vlog! It will be out tomorrow. Stay tuned!",
         "likes": 350,
@@ -10,7 +10,7 @@
     },
     {
         "id": "post2",
-        "authorId": "user3",
+        "authorId": "user1",
         "imageUrl": "https://placehold.co/480x480.png",
         "caption": "New streaming setup is complete! What do you guys think?",
         "likes": 890,
