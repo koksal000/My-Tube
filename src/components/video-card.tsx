@@ -4,7 +4,7 @@ import Link from "next/link"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 
 function formatDuration(seconds: number) {
-    if (!seconds) return '0:00';
+    if (isNaN(seconds) || seconds < 0) return '0:00';
     const mins = Math.floor(seconds / 60);
     const secs = Math.floor(seconds % 60);
     return `${mins}:${secs.toString().padStart(2, '0')}`;
@@ -38,7 +38,7 @@ export function VideoCard({ video }: { video: Video }) {
   return (
     <div className="group">
       <Link href={`/video/${video.id}`}>
-        <div className="relative mb-2 aspect-square w-full overflow-hidden rounded-lg shadow-md transition-all duration-300 group-hover:scale-105 group-hover:shadow-xl">
+        <div className="relative mb-2 aspect-video w-full overflow-hidden rounded-lg shadow-md transition-all duration-300 group-hover:scale-105 group-hover:shadow-xl">
           <Image
             src={video.thumbnailUrl}
             alt={video.title}
@@ -62,7 +62,7 @@ export function VideoCard({ video }: { video: Video }) {
               </Avatar>
           </Link>
         )}
-        <div>
+        <div className="flex flex-col">
           <h3 className="font-semibold leading-snug">
             <Link href={`/video/${video.id}`} className="line-clamp-2">
               {video.title}

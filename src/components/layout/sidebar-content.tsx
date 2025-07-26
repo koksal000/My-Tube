@@ -16,6 +16,7 @@ import {
   ThumbsUp,
   History,
   Settings,
+  Flame,
 } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
@@ -72,6 +73,14 @@ export default function SidebarContentComponent() {
               <Link href="/explore">
                 <Compass />
                 <span>Keşfet</span>
+              </Link>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+          <SidebarMenuItem>
+            <SidebarMenuButton asChild isActive={isActive('/flow')} tooltip="Akış">
+              <Link href="/flow">
+                <Flame />
+                <span>Akış</span>
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>

@@ -49,7 +49,8 @@ export default function VideoPage() {
         const videoData = await getVideoById(params.id as string);
         if (videoData) {
             setVideo(videoData);
-            const allVideos = await getAllVideos();
+             // Sadece admin olmayan videoları öner
+            const allVideos = (await getAllVideos()).filter(v => v.author.username !== 'admin');
             const recs = allVideos.filter(v => v.id !== params.id).sort(() => 0.5 - Math.random()).slice(0, 10);
             setRecommendedVideos(recs);
         }
@@ -70,7 +71,7 @@ export default function VideoPage() {
     <div className="mx-auto max-w-screen-2xl">
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
         <div className="lg:col-span-2">
-          <div className="aspect-square w-full overflow-hidden rounded-xl bg-black shadow-lg">
+          <div className="aspect-video w-full overflow-hidden rounded-xl bg-black shadow-lg">
             <video
               src={video.videoUrl}
               controls
