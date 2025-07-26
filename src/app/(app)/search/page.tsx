@@ -1,3 +1,4 @@
+
 "use client";
 
 import { Suspense, useEffect, useState } from "react";
@@ -104,7 +105,7 @@ function SearchResults({ query }: { query: string }) {
                   </Avatar>
                   <div className="flex-grow">
                     <h3 className="font-semibold text-lg cursor-pointer" onClick={() => router.push(`/channel/${channel.username}`)}>{channel.displayName}</h3>
-                    <p className="text-sm text-muted-foreground">@{channel.username} &bull; {channel.subscribers.toLocaleString()} abone</p>
+                    <p className="text-sm text-muted-foreground">@{channel.username} &bull; {(channel.subscribers || 0).toLocaleString()} abone</p>
                     <p className="text-sm text-muted-foreground line-clamp-1">{channel.about}</p>
                   </div>
                    <Button onClick={() => router.push(`/messages?to=${channel.username}`)}>Mesaj Gönder</Button>
