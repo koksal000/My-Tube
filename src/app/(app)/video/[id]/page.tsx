@@ -128,7 +128,7 @@ export default function VideoPage() {
               setIsSubscribed(loggedInUser.subscriptions.includes(videoData.author.id));
             }
 
-            const allVideos = (getAllVideos()).filter(v => v.author.username !== 'admin');
+            const allVideos = (getAllVideos()).filter(v => v.author && v.author.username !== 'admin');
             const recs = allVideos.filter(v => v.id !== params.id).sort(() => 0.5 - Math.random()).slice(0, 10);
             setRecommendedVideos(recs);
         }
