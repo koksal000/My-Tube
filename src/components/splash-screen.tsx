@@ -1,41 +1,10 @@
 "use client";
 
-import { useRouter } from 'next/navigation';
 import { useEffect, useRef } from 'react';
-import { getCurrentUser } from '@/lib/data';
 
 export function SplashScreen() {
-  const router = useRouter();
   const videoRef1 = useRef<HTMLVideoElement>(null);
   const videoRef2 = useRef<HTMLVideoElement>(null);
-  const isRedirecting = useRef(false);
-
-  useEffect(() => {
-    const checkUserAndRedirect = () => {
-      if (isRedirecting.current) return;
-      isRedirecting.current = true;
-      try {
-        const user = getCurrentUser();
-        if (user) {
-          router.push('/home');
-        } else {
-          router.push('/login');
-        }
-      } catch (error) {
-        console.error("Yönlendirme sırasında hata:", error);
-        // Hata durumunda giriş sayfasına yönlendir
-        router.push('/login');
-      }
-    };
-
-    // Animasyonun görülmesi için kısa bir süre tanıdıktan sonra kullanıcı durumunu kontrol et.
-    const timer = setTimeout(checkUserAndRedirect, 8000); // 8 saniye sonra yönlendir
-
-    return () => {
-      clearTimeout(timer);
-    };
-  }, [router]);
-
 
   useEffect(() => {
     const playVideo = (ref: React.RefObject<HTMLVideoElement>) => {
