@@ -1,9 +1,30 @@
+"use client"
+
 import { VideoCard } from "@/components/video-card";
-import { mockVideos } from "@/lib/data";
+import { getAllVideos } from "@/lib/db";
+import type { Video } from "@/lib/types";
+import { useEffect, useState } from "react";
 
 export default function ExplorePage() {
-  // In a real app, this would fetch a list of trending/random videos.
-  const exploreVideos = [...mockVideos].sort(() => 0.5 - Math.random());
+  const [exploreVideos, setExploreVideos] = useState<Video[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchVideos = async () => {
+      setLoading(true);
+      const allVideos = await getAllVideos();
+      // Shuffle the videos for exploration
+      const shuffled = [...allVideos].sort(() => 0.5 - Math.random());
+      setExploreVideos(shuffled);
+      setLoading(false);
+    }
+    fetchVideos();
+  }, []);
+
+  if (loading) {
+    return <div>Loading videos...</div>
+  }
+
   return (
     <div>
       <h1 className="text-2xl font-bold mb-6">Explore</h1>

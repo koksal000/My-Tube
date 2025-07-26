@@ -1,7 +1,7 @@
 "use client"
 
 import { VideoCard } from "@/components/video-card";
-import { mockVideos, mockUsers } from "@/lib/data";
+import { getAllVideos, getCurrentUser, getUserById } from "@/lib/db";
 import { useState, useEffect } from "react";
 import type { User, Video } from "@/lib/types";
 import { useRouter } from "next/navigation";
@@ -9,28 +9,36 @@ import { useRouter } from "next/navigation";
 export default function SubscriptionsPage() {
   const router = useRouter();
   const [subscriptionVideos, setSubscriptionVideos] = useState<Video[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const storedUser = localStorage.getItem("currentUser");
-    const storedUsers = localStorage.getItem("myTubeUsers");
-    
-    if (storedUser) {
-      const currentUser: User = JSON.parse(storedUser);
-      const allUsers: User[] = storedUsers ? JSON.parse(storedUsers) : mockUsers;
-
-      const subscribedChannelsUsernames = currentUser.subscriptions
-        .map(id => allUsers.find(u => u.id === id)?.username)
-        .filter((username): username is string => !!username);
+    const fetchSubs = async () => {
+      setLoading(true);
+      const currentUser = await getCurrentUser();
       
-      const videos = mockVideos.filter(video => 
-        subscribedChannelsUsernames.includes(video.author.username)
-      ).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-      
-      setSubscriptionVideos(videos);
-    } else {
-      router.push('/login');
+      if (currentUser) {
+        const subscribedUsers = await Promise.all(currentUser.subscriptions.map(id => getUserById(id)));
+        const subscribedChannelsUsernames = subscribedUsers
+            .filter((u): u is User => !!u)
+            .map(u => u.username);
+        
+        const allVideos = await getAllVideos();
+        const videos = allVideos.filter(video => 
+          subscribedChannelsUsernames.includes(video.author.username)
+        ).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+        
+        setSubscriptionVideos(videos);
+      } else {
+        router.push('/login');
+      }
+      setLoading(false);
     }
+    fetchSubs();
   }, [router]);
+
+  if(loading) {
+      return <div>Loading subscriptions...</div>
+  }
 
   return (
     <div>

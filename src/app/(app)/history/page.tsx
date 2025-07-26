@@ -1,7 +1,7 @@
 "use client"
 
 import { VideoCard } from "@/components/video-card";
-import { mockVideos } from "@/lib/data";
+import { getVideoById, getCurrentUser } from "@/lib/db";
 import { useState, useEffect } from "react";
 import type { User, Video } from "@/lib/types";
 import { useRouter } from "next/navigation";
@@ -9,18 +9,27 @@ import { useRouter } from "next/navigation";
 export default function HistoryPage() {
     const router = useRouter();
     const [viewedVideos, setViewedVideos] = useState<Video[]>([]);
+    const [loading, setLoading] = useState(true);
     
     useEffect(() => {
-        const storedUser = localStorage.getItem("currentUser");
-        if (storedUser) {
-            const currentUser: User = JSON.parse(storedUser);
-            // Filter all videos to find those whose IDs are in the user's viewedVideos list
-            const userViewedVideos = mockVideos.filter(video => currentUser.viewedVideos.includes(video.id));
-            setViewedVideos(userViewedVideos);
-        } else {
-            router.push('/login');
+        const fetchHistory = async () => {
+            const currentUser = await getCurrentUser();
+            if (currentUser) {
+                const userViewedVideos = await Promise.all(
+                    currentUser.viewedVideos.map(id => getVideoById(id))
+                );
+                setViewedVideos(userViewedVideos.filter((v): v is Video => !!v));
+            } else {
+                router.push('/login');
+            }
+            setLoading(false);
         }
+        fetchHistory();
     }, [router]);
+
+    if(loading) {
+        return <div>Loading history...</div>
+    }
 
     return (
         <div>

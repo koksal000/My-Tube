@@ -10,6 +10,8 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { useToast } from "@/hooks/use-toast"
 import type { User } from "@/lib/types"
 import React from "react"
+import { addUser, getUserByUsername } from "@/lib/db"
+import { Textarea } from "../ui/textarea"
 
 const MyTubeLogo = () => (
     <div className="flex items-center justify-center space-x-2 text-primary font-bold text-2xl mb-4">
@@ -39,15 +41,13 @@ export function RegisterForm() {
     const username = formData.get("username") as string;
     const displayName = formData.get("displayName") as string;
     const password = formData.get("password") as string;
+    const about = formData.get("about") as string;
     const profilePictureFile = formData.get("profile-picture") as File | null;
     const bannerFile = formData.get("banner") as File | null;
     
-    // Get all users from localStorage, or start with an empty array if none exist
-    const storedUsers = localStorage.getItem("myTubeUsers");
-    const allUsers: User[] = storedUsers ? JSON.parse(storedUsers) : [];
+    const existingUser = await getUserByUsername(username);
 
-    // Check if username already exists
-    if (allUsers.some(user => user.username === username)) {
+    if (existingUser) {
       toast({
         title: "Kayıt Başarısız",
         description: "Bu kullanıcı adı zaten alınmış. Lütfen başka bir tane deneyin.",
@@ -66,11 +66,12 @@ export function RegisterForm() {
         bannerBase64 = await toBase64(bannerFile);
     }
 
-    // Create a new user object. In a real app, this would be more robust.
-    const newUser: Omit<User, 'password'> = {
-      id: `user${allUsers.length + 1}`,
+    const newUser: User = {
+      id: `user${Date.now()}`,
       username,
       displayName,
+      password,
+      about,
       profilePicture: profilePictureBase64,
       banner: bannerBase64,
       subscribers: 0,
@@ -79,14 +80,7 @@ export function RegisterForm() {
       viewedVideos: [],
     };
     
-    // Add password separately for the object to be stored
-    const newUserWithPassword = { ...newUser, password };
-
-    // Add the new user to the list
-    const updatedUsers = [...allUsers, newUserWithPassword];
-
-    // Save the updated user list to localStorage
-    localStorage.setItem("myTubeUsers", JSON.stringify(updatedUsers));
+    await addUser(newUser);
     
     toast({
         title: "Kayıt Başarılı!",
@@ -121,6 +115,10 @@ export function RegisterForm() {
           <div className="grid gap-2">
             <Label htmlFor="profile-picture">Profile Picture</Label>
             <Input id="profile-picture" name="profile-picture" type="file" accept="image/*" />
+          </div>
+           <div className="grid gap-2">
+            <Label htmlFor="about">About</Label>
+            <Textarea id="about" name="about" placeholder="Tell everyone a little bit about yourself." />
           </div>
           <div className="flex items-center space-x-2">
             <Checkbox id="add-banner" checked={addBanner} onCheckedChange={(checked) => setAddBanner(checked as boolean)} />

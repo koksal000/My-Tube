@@ -8,6 +8,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { useToast } from "@/hooks/use-toast"
 import type { User, Video } from "@/lib/types"
 import React from "react"
+import { addVideo, getCurrentUser } from "@/lib/db"
 
 // Helper function to read file as base64
 const toBase64 = (file: File): Promise<string> => new Promise((resolve, reject) => {
@@ -32,13 +33,12 @@ export function UploadVideoForm() {
     const thumbnailFile = formData.get("thumbnail") as File;
     const videoFile = formData.get("video") as File;
     
-    const storedUser = localStorage.getItem("currentUser");
-    if (!storedUser) {
+    const currentUser = await getCurrentUser();
+    if (!currentUser) {
         toast({ title: "Error", description: "You must be logged in to upload.", variant: "destructive" });
         setIsUploading(false);
         return;
     }
-    const currentUser: User = JSON.parse(storedUser);
 
     if (!title || !thumbnailFile || !videoFile || thumbnailFile.size === 0 || videoFile.size === 0) {
         toast({ title: "Missing fields", description: "Please fill all fields and select files.", variant: "destructive" });
@@ -51,9 +51,6 @@ export function UploadVideoForm() {
         toBase64(thumbnailFile),
         toBase64(videoFile)
       ]);
-      
-      const storedVideos = localStorage.getItem("myTubeVideos");
-      const allVideos: Omit<Video, 'author'>[] = storedVideos ? JSON.parse(storedVideos) : [];
       
       const newVideo: Omit<Video, 'author'> = {
           id: `video${Date.now()}`,
@@ -70,8 +67,7 @@ export function UploadVideoForm() {
           comments: [],
       };
 
-      const updatedVideos = [...allVideos, newVideo];
-      localStorage.setItem("myTubeVideos", JSON.stringify(updatedVideos));
+      await addVideo(newVideo);
 
       toast({
           title: "Upload Successful!",
@@ -81,11 +77,7 @@ export function UploadVideoForm() {
 
     } catch (error) {
       console.error("Upload failed", error);
-      if (error instanceof DOMException && error.name === 'QuotaExceededError') {
-          toast({ title: "Upload Failed", description: "The video file is too large. Please choose a smaller file.", variant: "destructive" });
-      } else {
-        toast({ title: "Upload Failed", description: "Could not process the file.", variant: "destructive" });
-      }
+      toast({ title: "Upload Failed", description: "An error occurred during upload. The file might be too large.", variant: "destructive" });
     } finally {
       setIsUploading(false);
     }

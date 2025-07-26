@@ -1,9 +1,14 @@
-import { mockVideos, mockUsers } from "@/lib/data";
+"use client"
+
+import { getVideoById, getAllVideos } from "@/lib/db";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { ThumbsUp, ThumbsDown, Share2, BellPlus } from "lucide-react";
 import { VideoCard } from "@/components/video-card";
 import Image from "next/image";
+import { useParams } from "next/navigation";
+import { useEffect, useState } from "react";
+import type { Video } from "@/lib/types";
 
 function timeAgo(dateString: string) {
     const date = new Date(dateString);
@@ -27,9 +32,32 @@ function formatViews(views: number) {
     return `${views} views`;
 }
 
-export default function VideoPage({ params }: { params: { id: string } }) {
-  const video = mockVideos.find(v => v.id === params.id);
-  const recommendedVideos = mockVideos.filter(v => v.id !== params.id).sort(() => 0.5 - Math.random()).slice(0, 10);
+export default function VideoPage() {
+  const params = useParams<{ id: string }>();
+  const [video, setVideo] = useState<Video | null>(null);
+  const [recommendedVideos, setRecommendedVideos] = useState<Video[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchVideoData = async () => {
+        if (!params.id) return;
+        setLoading(true);
+
+        const videoData = await getVideoById(params.id as string);
+        if (videoData) {
+            setVideo(videoData);
+            const allVideos = await getAllVideos();
+            const recs = allVideos.filter(v => v.id !== params.id).sort(() => 0.5 - Math.random()).slice(0, 10);
+            setRecommendedVideos(recs);
+        }
+        setLoading(false);
+    }
+    fetchVideoData();
+  }, [params.id]);
+
+  if (loading) {
+    return <div className="text-center py-20">Loading video...</div>;
+  }
 
   if (!video) {
     return <div className="text-center py-20">Video not found.</div>;

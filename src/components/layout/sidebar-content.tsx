@@ -22,7 +22,7 @@ import { usePathname } from "next/navigation"
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
 import React, { useEffect, useState } from "react"
 import type { User } from "@/lib/types"
-import { mockUsers } from "@/lib/data" // We need this to find channel info for subscriptions
+import { getAllUsers, getCurrentUser, getUserById } from "@/lib/db"
 
 const MyTubeLogo = () => (
     <Link href="/home" className="flex items-center gap-2 text-primary font-bold text-xl">
@@ -37,24 +37,20 @@ export default function SidebarContentComponent() {
   const pathname = usePathname()
   const isActive = (path: string) => pathname === path
   const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [subscriptions, setSubscriptions] = useState<User[]>([]);
 
   useEffect(() => {
-    const storedUser = localStorage.getItem("currentUser");
-    if (storedUser) {
-      setCurrentUser(JSON.parse(storedUser));
-    }
-  }, []);
+    const fetchUserAndSubs = async () => {
+      const user = await getCurrentUser();
+      if (user) {
+        setCurrentUser(user);
+        const subUsers = await Promise.all(user.subscriptions.map(id => getUserById(id)));
+        setSubscriptions(subUsers.filter((u): u is User => !!u));
+      }
+    };
+    fetchUserAndSubs();
+  }, [pathname]); // Re-fetch on path change to keep data fresh
 
-  // The full user list is needed to get subscription details
-  const [allUsers, setAllUsers] = useState<User[]>([]);
-  useEffect(() => {
-    const storedUsers = localStorage.getItem("myTubeUsers");
-    const users = storedUsers ? JSON.parse(storedUsers) : mockUsers;
-    setAllUsers(users);
-  }, []);
-
-
-  const subscriptions = currentUser ? allUsers.filter(u => currentUser.subscriptions.includes(u.id)) : [];
 
   return (
     <>

@@ -4,6 +4,7 @@ export interface User {
   displayName: string;
   profilePicture: string;
   banner?: string; // Optional banner image
+  about?: string; // Optional about text
   subscribers: number;
   subscriptions: string[]; // array of user ids
   likedVideos: string[]; // array of video ids
@@ -46,5 +47,3 @@ export interface Post {
     createdAt: string;
     comments: Comment[];
 }
-
-    

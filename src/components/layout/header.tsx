@@ -18,23 +18,28 @@ import Link from "next/link"
 import { useRouter } from "next/navigation";
 import React, { useEffect, useState } from "react"
 import type { User } from "@/lib/types"
+import { getCurrentUser, logout } from "@/lib/db"
 
 export default function Header() {
   const router = useRouter();
   const [currentUser, setCurrentUser] = useState<User | null>(null);
 
   useEffect(() => {
-    const storedUser = localStorage.getItem("currentUser");
-    if (storedUser) {
-      setCurrentUser(JSON.parse(storedUser));
-    } else {
-      router.push('/login');
-    }
+    const fetchUser = async () => {
+      const user = await getCurrentUser();
+      if (user) {
+        setCurrentUser(user);
+      } else {
+        router.push('/login');
+      }
+    };
+    fetchUser();
   }, [router]);
   
-  const handleLogout = () => {
-    localStorage.removeItem("currentUser");
+  const handleLogout = async () => {
+    await logout();
     router.push('/login');
+    router.refresh(); // To update sidebar etc.
   };
 
   const handleSearch = (event: React.FormEvent<HTMLFormElement>) => {

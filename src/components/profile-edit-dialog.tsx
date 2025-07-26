@@ -15,6 +15,9 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useToast } from "@/hooks/use-toast"
 import type { User } from "@/lib/types"
+import { Textarea } from "./ui/textarea"
+import { Checkbox } from "./ui/checkbox"
+import { getUserByUsername, updateUser } from "@/lib/db"
 
 interface EditProfileDialogProps {
   user: User;
@@ -33,14 +36,25 @@ export function EditProfileDialog({ user, onProfileUpdate }: EditProfileDialogPr
     const [isOpen, setIsOpen] = React.useState(false);
     const [username, setUsername] = React.useState(user.username);
     const [displayName, setDisplayName] = React.useState(user.displayName);
+    const [about, setAbout] = React.useState(user.about || "");
+    const [newProfilePicture, setNewProfilePicture] = React.useState<File | null>(null);
     const [newBanner, setNewBanner] = React.useState<File | null>(null);
+    const [removeBanner, setRemoveBanner] = React.useState(!user.banner);
+
+    React.useEffect(() => {
+        if (isOpen) {
+            setUsername(user.username);
+            setDisplayName(user.displayName);
+            setAbout(user.about || "");
+            setRemoveBanner(!user.banner);
+            setNewProfilePicture(null);
+            setNewBanner(null);
+        }
+    }, [isOpen, user]);
 
     const handleSaveChanges = async () => {
-        const storedUsers = localStorage.getItem("myTubeUsers");
-        const allUsers: User[] = storedUsers ? JSON.parse(storedUsers) : [];
-
-        // Check if new username is already taken by someone else
-        if (username !== user.username && allUsers.some(u => u.username === username)) {
+        const existingUser = await getUserByUsername(username);
+        if (username !== user.username && existingUser) {
             toast({
                 title: "Username taken",
                 description: "This username is already in use. Please choose another one.",
@@ -49,17 +63,28 @@ export function EditProfileDialog({ user, onProfileUpdate }: EditProfileDialogPr
             return;
         }
 
+        let profilePictureBase64: string = user.profilePicture;
+        if (newProfilePicture) {
+            profilePictureBase64 = await toBase64(newProfilePicture);
+        }
+
         let bannerBase64: string | undefined = user.banner;
-        if (newBanner) {
+        if (removeBanner) {
+            bannerBase64 = undefined;
+        } else if (newBanner) {
             bannerBase64 = await toBase64(newBanner);
         }
         
-        const updatedUser = {
+        const updatedUser: User = {
             ...user,
             username,
             displayName,
+            about,
+            profilePicture: profilePictureBase64,
             banner: bannerBase64,
         };
+
+        await updateUser(updatedUser);
 
         onProfileUpdate(updatedUser);
         toast({
@@ -105,6 +130,30 @@ export function EditProfileDialog({ user, onProfileUpdate }: EditProfileDialogPr
             />
           </div>
           <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="about" className="text-right">
+              About
+            </Label>
+            <Textarea
+              id="about"
+              value={about}
+              onChange={(e) => setAbout(e.target.value)}
+              className="col-span-3"
+              placeholder="Tell everyone about your channel."
+            />
+          </div>
+           <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="profile-picture" className="text-right">
+              Profile Picture
+            </Label>
+            <Input
+              id="profile-picture"
+              type="file"
+              accept="image/*"
+              onChange={(e) => e.target.files && setNewProfilePicture(e.target.files[0])}
+              className="col-span-3"
+            />
+          </div>
+          <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="banner" className="text-right">
               Banner
             </Label>
@@ -112,9 +161,18 @@ export function EditProfileDialog({ user, onProfileUpdate }: EditProfileDialogPr
               id="banner"
               type="file"
               accept="image/*"
+              disabled={removeBanner}
               onChange={(e) => e.target.files && setNewBanner(e.target.files[0])}
               className="col-span-3"
             />
+          </div>
+           <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="remove-banner" className="text-right">
+            </Label>
+            <div className="col-span-3 flex items-center space-x-2">
+                <Checkbox id="remove-banner" checked={removeBanner} onCheckedChange={(checked) => setRemoveBanner(checked as boolean)} />
+                <label htmlFor="remove-banner" className="text-sm font-medium leading-none">Remove banner</label>
+            </div>
           </div>
         </div>
         <DialogFooter>

@@ -1,6 +1,6 @@
 "use client"
 
-import { mockVideos, mockPosts } from "@/lib/data";
+import { getVideoByAuthor, getPostsByAuthor } from "@/lib/db";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -11,6 +11,7 @@ import { useEffect, useState } from "react";
 import type { User, Video, Post } from "@/lib/types";
 import { useParams, useRouter } from "next/navigation";
 import { EditProfileDialog } from "@/components/profile-edit-dialog";
+import { getCurrentUser, getUserByUsername } from "@/lib/db";
 
 export default function ChannelPage() {
   const router = useRouter();
@@ -22,49 +23,38 @@ export default function ChannelPage() {
   const [isOwnProfile, setIsOwnProfile] = useState(false);
   
   useEffect(() => {
-    const storedUsers = localStorage.getItem("myTubeUsers");
-    const allUsers: User[] = storedUsers ? JSON.parse(storedUsers) : [];
-    const foundChannelUser = allUsers.find(u => u.username === params.username);
-    
-    if (foundChannelUser) {
-      setChannelUser(foundChannelUser);
-       // In a real app, you'd fetch user-specific content. Here we filter mock data.
-       const videos = mockVideos.filter(v => v.author.username === foundChannelUser.username);
-       const posts = mockPosts.filter(p => p.author.username === foundChannelUser.username);
-       setUserVideos(videos);
-       setUserPosts(posts);
-    } else {
-       // Optional: handle user not found, e.g., redirect to a 404 page
-    }
-    
-    const storedCurrentUser = localStorage.getItem("currentUser");
-    if(storedCurrentUser){
-      const loggedInUser: User = JSON.parse(storedCurrentUser);
-      setCurrentUser(loggedInUser);
-      if(loggedInUser.username === params.username) {
-        setIsOwnProfile(true);
+    const init = async () => {
+      if(!params.username) return;
+
+      const foundChannelUser = await getUserByUsername(params.username as string);
+      
+      if (foundChannelUser) {
+        setChannelUser(foundChannelUser);
+         const videos = await getVideoByAuthor(foundChannelUser.id);
+         const posts = await getPostsByAuthor(foundChannelUser.id);
+         setUserVideos(videos);
+         setUserPosts(posts);
+      } else {
+         // Optional: handle user not found, e.g., redirect to a 404 page
+      }
+      
+      const loggedInUser = await getCurrentUser();
+      if(loggedInUser){
+        setCurrentUser(loggedInUser);
+        if(loggedInUser.username === params.username) {
+          setIsOwnProfile(true);
+        }
       }
     }
+    init();
     
-  }, [params.username]);
+  }, [params.username, router]);
 
   const handleProfileUpdate = (updatedUser: User) => {
     setChannelUser(updatedUser);
     setCurrentUser(updatedUser); // also update the current user state if it's the same person
     if (updatedUser.username !== params.username) {
       router.push(`/channel/${updatedUser.username}`);
-    }
-    
-    // update current user in local storage
-    localStorage.setItem('currentUser', JSON.stringify(updatedUser));
-
-    // update user list in local storage
-    const storedUsers = localStorage.getItem("myTubeUsers");
-    const allUsers: User[] = storedUsers ? JSON.parse(storedUsers) : [];
-    const userIndex = allUsers.findIndex(u => u.id === updatedUser.id);
-    if(userIndex !== -1){
-      allUsers[userIndex] = updatedUser;
-      localStorage.setItem('myTubeUsers', JSON.stringify(allUsers));
     }
   }
 
@@ -127,7 +117,7 @@ export default function ChannelPage() {
              <TabsContent value="about">
                 <Card>
                     <CardContent className="p-6">
-                        <p>Welcome to the official channel of {channelUser.displayName}! More info coming soon.</p>
+                        <p className="whitespace-pre-wrap">{channelUser.about || `Welcome to the official channel of ${channelUser.displayName}!`}</p>
                     </CardContent>
                 </Card>
             </TabsContent>

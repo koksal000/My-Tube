@@ -2,26 +2,32 @@
 
 import { useRouter } from 'next/navigation';
 import { useEffect, useRef } from 'react';
+import { getCurrentUser } from '@/lib/db';
 
 export function SplashScreen() {
   const router = useRouter();
   const videoRef1 = useRef<HTMLVideoElement>(null);
   const videoRef2 = useRef<HTMLVideoElement>(null);
+  const isRedirecting = useRef(false);
 
   useEffect(() => {
-    const checkUserAndRedirect = () => {
-      const storedUser = localStorage.getItem("currentUser");
-      if (storedUser) {
+    const checkUserAndRedirect = async () => {
+      if (isRedirecting.current) return;
+      isRedirecting.current = true;
+      const user = await getCurrentUser();
+      if (user) {
         router.push('/home');
       } else {
         router.push('/login');
       }
     };
 
-    // Give a moment for the video to be visible before redirecting
-    const timer = setTimeout(checkUserAndRedirect, 2000); // 2 seconds delay
+    // Use a timeout to ensure the redirect logic runs, giving the video a moment to play.
+    const timer = setTimeout(checkUserAndRedirect, 2000); // Redirect after 2 seconds
 
-    return () => clearTimeout(timer);
+    return () => {
+      clearTimeout(timer);
+    };
   }, [router]);
 
 

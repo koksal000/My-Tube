@@ -1,31 +1,30 @@
 "use client"
 import { VideoCard } from "@/components/video-card";
-import { mockVideos, mockUsers } from "@/lib/data";
 import { generateVideoRecommendations, VideoRecommendationsInput } from "@/ai/flows/video-recommendations";
 import React, { useEffect, useState } from "react";
 import type { User, Video } from "@/lib/types";
 import { useRouter } from "next/navigation";
+import { getAllUsers, getAllVideos, getCurrentUser } from "@/lib/db";
 
-// This is now a client component to handle user state
 export default function HomePage() {
   const router = useRouter();
-  const [recommendedVideos, setRecommendedVideos] = useState<Video[]>(mockVideos);
+  const [recommendedVideos, setRecommendedVideos] = useState<Video[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchRecommendations = async () => {
-      const storedUser = localStorage.getItem("currentUser");
-      const storedUsers = localStorage.getItem("myTubeUsers");
+      setLoading(true);
+      const currentUser = await getCurrentUser();
       
-      if (!storedUser) {
+      if (!currentUser) {
         router.push('/login');
         return;
       }
-
-      const currentUser: User = JSON.parse(storedUser);
-      const allUsers: User[] = storedUsers ? JSON.parse(storedUsers) : mockUsers;
       
-      const allVideosForAI = mockVideos.map(v => ({
+      const allDBVideos = await getAllVideos();
+      const allUsers = await getAllUsers();
+      
+      const allVideosForAI = allDBVideos.map(v => ({
         id: v.id,
         title: v.title,
         description: v.description,
@@ -51,14 +50,13 @@ export default function HomePage() {
       try {
         const recommendations = await generateVideoRecommendations(recommendationInput);
         const recommendedVideoIds = recommendations.map(rec => rec.id);
-        const sortedVideos = mockVideos.filter(v => recommendedVideoIds.includes(v.id))
+        const sortedVideos = allDBVideos.filter(v => recommendedVideoIds.includes(v.id))
                                       .sort((a, b) => recommendedVideoIds.indexOf(a.id) - recommendedVideoIds.indexOf(b.id));
-        setRecommendedVideos(sortedVideos);
+        setRecommendedVideos(sortedVideos.length > 0 ? sortedVideos : allDBVideos);
 
       } catch(e) {
-        console.error("AI recommendation failed, falling back to mock data", e)
-        // Fallback to all videos if AI fails
-        setRecommendedVideos(mockVideos);
+        console.error("AI recommendation failed, falling back to all videos", e)
+        setRecommendedVideos(allDBVideos);
       } finally {
         setLoading(false);
       }

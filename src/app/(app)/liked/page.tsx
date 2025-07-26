@@ -1,7 +1,7 @@
 "use client"
 
 import { VideoCard } from "@/components/video-card";
-import { mockVideos } from "@/lib/data";
+import { getVideoById, getCurrentUser } from "@/lib/db";
 import { useState, useEffect } from "react";
 import type { User, Video } from "@/lib/types";
 import { useRouter } from "next/navigation";
@@ -9,18 +9,27 @@ import { useRouter } from "next/navigation";
 export default function LikedPage() {
   const router = useRouter();
   const [likedVideos, setLikedVideos] = useState<Video[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const storedUser = localStorage.getItem("currentUser");
-    if (storedUser) {
-      const currentUser: User = JSON.parse(storedUser);
-      // Filter all videos to find those whose IDs are in the user's likedVideos list
-      const userLikedVideos = mockVideos.filter(video => currentUser.likedVideos.includes(video.id));
-      setLikedVideos(userLikedVideos);
-    } else {
-      router.push('/login');
-    }
+    const fetchLikedVideos = async () => {
+      const currentUser = await getCurrentUser();
+      if (currentUser) {
+        const userLikedVideos = await Promise.all(
+          currentUser.likedVideos.map(id => getVideoById(id))
+        );
+        setLikedVideos(userLikedVideos.filter((v): v is Video => !!v));
+      } else {
+        router.push('/login');
+      }
+      setLoading(false);
+    };
+    fetchLikedVideos();
   }, [router]);
+
+  if (loading) {
+      return <div>Loading liked videos...</div>
+  }
 
   return (
     <div>
