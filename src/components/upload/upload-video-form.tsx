@@ -81,7 +81,11 @@ export function UploadVideoForm() {
 
     } catch (error) {
       console.error("Upload failed", error);
-      toast({ title: "Upload Failed", description: "Could not process the file.", variant: "destructive" });
+      if (error instanceof DOMException && error.name === 'QuotaExceededError') {
+          toast({ title: "Upload Failed", description: "The video file is too large. Please choose a smaller file.", variant: "destructive" });
+      } else {
+        toast({ title: "Upload Failed", description: "Could not process the file.", variant: "destructive" });
+      }
     } finally {
       setIsUploading(false);
     }
