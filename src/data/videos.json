@@ -15,29 +15,6 @@
     "comments": []
   },
   {
-    "id": "video2",
-    "title": "Norveç Fiyortlarında Unutulmaz Bir Macera",
-    "description": "Norveç'in nefes kesen fiyortlarında yaptığım 10 günlük geziyi ve inanılmaz manzaraları bu videoda topladım.",
-    "thumbnailUrl": "https://images.unsplash.com/photo-1531575472363-d3434a50e564?q=80&w=1974&auto=format&fit=crop",
-    "videoUrl": "https://files.catbox.moe/k2r87w.mp4",
-    "duration": 582,
-    "authorId": "user2",
-    "views": 235000,
-    "likes": 21000,
-    "dislikes": 340,
-    "createdAt": "2024-07-25T15:00:00.000Z",
-    "comments": [
-       {
-        "id": "comment1",
-        "authorId": "user3",
-        "text": "İnanılmaz görüntüler! Sanki oradaymışım gibi hissettim.",
-        "createdAt": "2024-07-25T16:00:00.000Z",
-        "likes": 150,
-        "replies": []
-      }
-    ]
-  },
-  {
     "id": "video3",
     "title": "Akustik Cover: 'Bohemian Rhapsody' (Queen)",
     "description": "Efsanevi Queen şarkısı Bohemian Rhapsody'yi kendi akustik yorumumla seslendirdim. Umarım beğenirsiniz!",

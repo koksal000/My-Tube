@@ -14,9 +14,9 @@ export default function FlowPage() {
     const fetchVideos = async () => {
       setLoading(true);
       const allVideos = getAllVideos();
-      // "admin" videosunu ve süresi olmayanları filtrele
+      // "admin" videosunu, yazarı veya videoURL'i olmayanları ve süresi olmayanları filtrele
       const flowVideos = allVideos
-        .filter(v => v.author.username !== 'admin' && v.duration > 0)
+        .filter(v => v.author && v.videoUrl && v.author.username !== 'admin' && v.duration > 0)
         .sort(() => 0.5 - Math.random()); // Rastgele sırala
       setVideos(flowVideos);
       setLoading(false);
