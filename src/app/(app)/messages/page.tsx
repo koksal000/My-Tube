@@ -50,7 +50,7 @@ export default function MessagesPage() {
                setSelectedUser(conversations[0])
            }
         }
-    }, [routerUser]);
+    }, [routerUser, conversations.length]);
 
 
     const messages = selectedUser ? [

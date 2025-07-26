@@ -26,7 +26,7 @@ export default function ChannelPage() {
   const [isOwnProfile, setIsOwnProfile] = useState(false);
   
   useEffect(() => {
-    const init = async () => {
+    const init = () => {
       if(!params.username) return;
 
       const foundChannelUser = getUserByUsername(params.username as string);
@@ -68,7 +68,7 @@ export default function ChannelPage() {
     }
   }
 
-  const handleSubscription = async () => {
+  const handleSubscription = () => {
     if (!currentUser || !channelUser || isOwnProfile) return;
 
     let updatedSubscriptions = [...currentUser.subscriptions];

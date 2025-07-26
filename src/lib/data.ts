@@ -22,7 +22,12 @@ function linkData() {
         if (author) {
             item.author = author;
             if (item.comments) {
-                item.comments.forEach(hydrateAuthor);
+                item.comments.forEach(comment => {
+                    const commentAuthor = userMap.get(comment.authorId);
+                    if (commentAuthor) {
+                        comment.author = commentAuthor;
+                    }
+                });
             }
         }
         return item;
@@ -39,7 +44,9 @@ linkData();
 // --- User Functions ---
 
 export function addUser(user: User): void {
-  mockUsers.push(user);
+  // Ensure new users don't have a password property in the mock DB for security simulation
+  const { password, ...userToSave } = user;
+  mockUsers.push(userToSave as User);
 }
 
 export function updateUser(user: User): void {
@@ -54,7 +61,13 @@ export function updateUser(user: User): void {
 }
 
 export function getUserByUsername(username: string): User | undefined {
-  return mockUsers.find(u => u.username === username);
+  const user = mockUsers.find(u => u.username === username);
+  if (user) {
+    // In a real app, you'd never send the password hash. For the prototype's login check, we find the original user data.
+    const originalUser = (usersData as User[]).find(u => u.username === username);
+    return { ...user, password: originalUser?.password };
+  }
+  return undefined;
 }
 
 export function getUserById(id: string): User | undefined {
@@ -84,7 +97,7 @@ export function addVideo(video: Omit<Video, 'author'>): void {
     const author = getUserById(video.authorId);
     if (author) {
         const newVideo: Video = { ...video, author };
-        mockVideos.push(newVideo);
+        mockVideos.unshift(newVideo); // Add to the beginning of the list
     }
 }
 
@@ -102,13 +115,13 @@ export function addPost(post: Omit<Post, 'author'>): void {
      const author = getUserById(post.authorId);
     if (author) {
         const newPost: Post = { ...post, author };
-        mockPosts.push(newPost);
+        mockPosts.unshift(newPost);
     }
 }
 
 
 // --- Comment Functions ---
-export function addCommentToVideo(videoId: string, comment: Omit<Comment, 'author'>): void {
+export function addCommentToVideo(videoId: string, comment: Omit<Comment, 'author' | 'replies'>): void {
     const video = getVideoById(videoId);
     const author = getUserById(comment.authorId);
     if (video && author) {
@@ -124,7 +137,11 @@ export function setCurrentUser(user: User): void {
     currentUser = user;
     // Persist user session in localStorage
     if (typeof window !== 'undefined') {
-        localStorage.setItem(CURRENT_USER_STORAGE_KEY, user.id);
+        try {
+            localStorage.setItem(CURRENT_USER_STORAGE_KEY, user.id);
+        } catch (error) {
+            console.error("Could not save user to localStorage", error);
+        }
     }
 }
 
@@ -136,13 +153,18 @@ export function getCurrentUser(): User | null {
 
     // Otherwise, try to load from localStorage
     if (typeof window !== 'undefined') {
-        const userId = localStorage.getItem(CURRENT_USER_STORAGE_KEY);
-        if (userId) {
-            const userFromStorage = getUserById(userId);
-            if (userFromStorage) {
-                currentUser = userFromStorage;
-                return currentUser;
+        try {
+            const userId = localStorage.getItem(CURRENT_USER_STORAGE_KEY);
+            if (userId) {
+                const userFromStorage = getUserById(userId);
+                if (userFromStorage) {
+                    currentUser = userFromStorage;
+                    return currentUser;
+                }
             }
+        } catch (error) {
+            console.error("Could not read user from localStorage", error);
+            return null;
         }
     }
 
@@ -153,6 +175,10 @@ export function logout(): void {
     currentUser = null;
     // Clear user session from localStorage
     if (typeof window !== 'undefined') {
-        localStorage.removeItem(CURRENT_USER_STORAGE_KEY);
+       try {
+            localStorage.removeItem(CURRENT_USER_STORAGE_KEY);
+        } catch (error) {
+            console.error("Could not remove user from localStorage", error);
+        }
     }
 }

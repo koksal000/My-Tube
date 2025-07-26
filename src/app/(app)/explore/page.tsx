@@ -10,7 +10,7 @@ export default function ExplorePage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchVideos = async () => {
+    const fetchVideos = () => {
       setLoading(true);
       const allVideos = getAllVideos();
       // admin videosunu keşfetten çıkar ve yazarı olmayan videoları filtrele

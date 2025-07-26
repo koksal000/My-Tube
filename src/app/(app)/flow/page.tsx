@@ -11,7 +11,7 @@ export default function FlowPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchVideos = async () => {
+    const fetchVideos = () => {
       setLoading(true);
       const allVideos = getAllVideos();
       // "admin" videosunu, yazarı veya videoURL'i olmayanları ve süresi olmayanları filtrele

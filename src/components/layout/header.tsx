@@ -5,7 +5,7 @@ import {
 } from "@/components/ui/sidebar"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Search, Bell, Plus, MessageSquare } from "lucide-react"
+import { Search, Bell, Plus } from "lucide-react"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -25,19 +25,18 @@ export default function Header() {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
 
   useEffect(() => {
-    const fetchUser = async () => {
-      const user = getCurrentUser();
-      if (user) {
-        setCurrentUser(user);
-      } else {
-        router.push('/login');
-      }
-    };
-    fetchUser();
+    const user = getCurrentUser();
+    if (user) {
+      setCurrentUser(user);
+    } else {
+      // Don't redirect here, let individual pages handle it
+      // This prevents redirect loops on public pages if we ever have them
+    }
   }, [router]);
   
-  const handleLogout = async () => {
+  const handleLogout = () => {
     logout();
+    setCurrentUser(null);
     router.push('/login');
     router.refresh(); // To update sidebar etc.
   };
@@ -54,7 +53,7 @@ export default function Header() {
   if (!currentUser) {
     return (
        <header className="sticky top-0 z-10 flex h-16 shrink-0 items-center gap-4 border-b bg-background/80 px-4 backdrop-blur-sm md:px-6">
-        {/* Render a loading state or a slimmed-down header */}
+        {/* Render a loading state or a slimmed-down header for logged-out users */}
        </header>
     )
   }

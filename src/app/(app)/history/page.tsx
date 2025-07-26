@@ -3,7 +3,7 @@
 import { VideoCard } from "@/components/video-card";
 import { getVideoById, getCurrentUser } from "@/lib/data";
 import { useState, useEffect } from "react";
-import type { User, Video } from "@/lib/types";
+import type { Video } from "@/lib/types";
 import { useRouter } from "next/navigation";
 
 export default function HistoryPage() {
@@ -12,7 +12,7 @@ export default function HistoryPage() {
     const [loading, setLoading] = useState(true);
     
     useEffect(() => {
-        const fetchHistory = async () => {
+        const fetchHistory = () => {
             const currentUser = getCurrentUser();
             if (currentUser) {
                 const userViewedVideos = currentUser.viewedVideos.map(id => getVideoById(id));

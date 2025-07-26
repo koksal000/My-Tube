@@ -3,7 +3,7 @@
 import { VideoCard } from "@/components/video-card";
 import { getVideoById, getCurrentUser } from "@/lib/data";
 import { useState, useEffect } from "react";
-import type { User, Video } from "@/lib/types";
+import type { Video } from "@/lib/types";
 import { useRouter } from "next/navigation";
 
 export default function LikedPage() {
@@ -12,7 +12,7 @@ export default function LikedPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchLikedVideos = async () => {
+    const fetchLikedVideos = () => {
       const currentUser = getCurrentUser();
       if (currentUser) {
         const userLikedVideos = currentUser.likedVideos.map(id => getVideoById(id));

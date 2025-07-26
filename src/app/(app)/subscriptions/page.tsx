@@ -12,7 +12,7 @@ export default function SubscriptionsPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchSubs = async () => {
+    const fetchSubs = () => {
       setLoading(true);
       const currentUser = getCurrentUser();
       
@@ -24,7 +24,7 @@ export default function SubscriptionsPage() {
         
         const allVideos = getAllVideos();
         const videos = allVideos.filter(video => 
-          subscribedChannelsUsernames.includes(video.author.username)
+          video.author && subscribedChannelsUsernames.includes(video.author.username)
         ).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
         
         setSubscriptionVideos(videos);

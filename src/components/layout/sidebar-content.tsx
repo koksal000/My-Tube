@@ -23,7 +23,7 @@ import { usePathname } from "next/navigation"
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
 import React, { useEffect, useState } from "react"
 import type { User } from "@/lib/types"
-import { getAllUsers, getCurrentUser, getUserById } from "@/lib/data"
+import { getCurrentUser, getUserById } from "@/lib/data"
 
 const MyTubeLogo = () => (
     <Link href="/home" className="flex items-center gap-2 text-primary font-bold text-xl">
@@ -41,7 +41,7 @@ export default function SidebarContentComponent() {
   const [subscriptions, setSubscriptions] = useState<User[]>([]);
 
   useEffect(() => {
-    const fetchUserAndSubs = async () => {
+    const fetchUserAndSubs = () => {
       const user = getCurrentUser();
       if (user) {
         setCurrentUser(user);
@@ -115,11 +115,13 @@ export default function SidebarContentComponent() {
           </SidebarMenuItem>
         </SidebarMenu>
         
-        <Separator className="my-4" />
+        {subscriptions.length > 0 && <Separator className="my-4" />}
         
-        <div className="px-2 mb-2 text-sm font-medium text-muted-foreground group-data-[collapsible=icon]:hidden">
-            Abonelikler
-        </div>
+        {subscriptions.length > 0 && (
+          <div className="px-2 mb-2 text-sm font-medium text-muted-foreground group-data-[collapsible=icon]:hidden">
+              Abonelikler
+          </div>
+        )}
         <SidebarMenu>
             {subscriptions.map(sub => (
                  <SidebarMenuItem key={sub.id}>

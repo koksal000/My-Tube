@@ -67,7 +67,7 @@ export function RegisterForm() {
     }
 
     const newUser: User = {
-      id: `user${Date.now()}`,
+      id: `user-${Date.now()}`,
       username,
       displayName,
       password,

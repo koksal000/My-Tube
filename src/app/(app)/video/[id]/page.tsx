@@ -46,7 +46,7 @@ const GiphyViewer = ({ onSelectGif, onSelectEmoji }: { onSelectGif: (url: string
         <div className="p-2 border rounded-lg bg-background w-full">
             <h3 className="text-sm font-semibold mb-2">GIF'ler</h3>
             <div className="flex gap-2 mb-2">
-                {gifs.map(gif => <img key={gif} src={gif} onClick={() => onSelectGif(gif)} className="w-16 h-16 object-cover cursor-pointer rounded" />)}
+                {gifs.map(gif => <img key={gif} src={gif} onClick={() => onSelectGif(gif)} className="w-16 h-16 object-cover cursor-pointer rounded" alt="gif" />)}
             </div>
             <h3 className="text-sm font-semibold mb-2">Emojiler</h3>
             <div className="flex gap-2">
@@ -109,7 +109,7 @@ export default function VideoPage() {
   const isIntroVideo = video?.author?.username === 'admin';
 
   useEffect(() => {
-    const fetchVideoData = async () => {
+    const fetchVideoData = () => {
         if (!params.id) return;
         setLoading(true);
 
@@ -197,13 +197,12 @@ export default function VideoPage() {
   const handleAddComment = (text: string) => {
     if (!currentUser || !video || !text.trim()) return;
 
-    const newCommentOmitAuthor: Omit<Comment, 'author'> = {
+    const newCommentOmitAuthor: Omit<Comment, 'author' | 'replies'> = {
       id: `comment-${Date.now()}`,
       authorId: currentUser.id,
       text: text,
       createdAt: new Date().toISOString(),
       likes: 0,
-      replies: [],
     };
     
     try {
@@ -251,7 +250,7 @@ export default function VideoPage() {
 
           <div className="py-4">
             <h1 className="text-2xl font-bold">{video.title}</h1>
-            {!isIntroVideo && (
+            {!isIntroVideo && video.author && (
                 <div className="mt-2 flex flex-wrap items-center justify-between gap-4">
                 <div className="flex items-center gap-4">
                     <Avatar className="h-12 w-12">
@@ -292,7 +291,7 @@ export default function VideoPage() {
             <p className="mt-2 whitespace-pre-wrap">{video.description}</p>
           </div>
 
-          {!isIntroVideo && (
+          {!isIntroVideo && currentUser && (
             <div className="mt-8">
               <h2 className="text-xl font-bold mb-4">{video.comments.length} Yorum</h2>
               <div className="flex gap-4 mb-6">

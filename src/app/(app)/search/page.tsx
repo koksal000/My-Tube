@@ -24,7 +24,7 @@ function SearchResults({ query }: { query: string }) {
       const allDBUsers = getAllUsers();
       
       const allContentForAI = [
-        ...allDBVideos.map(v => ({ id: v.id, title: v.title, description: v.description, username: v.author.username, type: 'video' })),
+        ...allDBVideos.filter(v => v.author).map(v => ({ id: v.id, title: v.title, description: v.description, username: v.author.username, type: 'video' })),
         ...allDBUsers.map(u => ({ id: u.id, title: u.displayName, description: u.about || '', username: u.username, type: 'channel' }))
       ];
 
@@ -51,9 +51,10 @@ function SearchResults({ query }: { query: string }) {
         const lowerCaseQuery = query.toLowerCase();
         const filteredVideos = allDBVideos.filter(
             (video) =>
-            video.title.toLowerCase().includes(lowerCaseQuery) ||
+            video.author &&
+            (video.title.toLowerCase().includes(lowerCaseQuery) ||
             video.description.toLowerCase().includes(lowerCaseQuery) ||
-            video.author.displayName.toLowerCase().includes(lowerCaseQuery)
+            video.author.displayName.toLowerCase().includes(lowerCaseQuery))
         );
          const filteredChannels = allDBUsers.filter(
             (user) => user.username !== 'admin' &&
