@@ -10,55 +10,92 @@ import Image from "next/image";
 import { useEffect, useState } from "react";
 import type { User, Video, Post } from "@/lib/types";
 import { useParams, useRouter } from "next/navigation";
+import { EditProfileDialog } from "@/components/profile-edit-dialog";
 
 export default function ChannelPage() {
   const router = useRouter();
   const params = useParams<{ username: string }>();
-  const [user, setUser] = useState<User | null>(null);
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [channelUser, setChannelUser] = useState<User | null>(null);
   const [userVideos, setUserVideos] = useState<Video[]>([]);
   const [userPosts, setUserPosts] = useState<Post[]>([]);
+  const [isOwnProfile, setIsOwnProfile] = useState(false);
   
   useEffect(() => {
     const storedUsers = localStorage.getItem("myTubeUsers");
     const allUsers: User[] = storedUsers ? JSON.parse(storedUsers) : [];
-    const channelUser = allUsers.find(u => u.username === params.username);
+    const foundChannelUser = allUsers.find(u => u.username === params.username);
     
-    if (channelUser) {
-      setUser(channelUser);
+    if (foundChannelUser) {
+      setChannelUser(foundChannelUser);
        // In a real app, you'd fetch user-specific content. Here we filter mock data.
-       const videos = mockVideos.filter(v => v.author.username === channelUser.username);
-       const posts = mockPosts.filter(p => p.author.username === channelUser.username);
+       const videos = mockVideos.filter(v => v.author.username === foundChannelUser.username);
+       const posts = mockPosts.filter(p => p.author.username === foundChannelUser.username);
        setUserVideos(videos);
        setUserPosts(posts);
     } else {
        // Optional: handle user not found, e.g., redirect to a 404 page
     }
+    
+    const storedCurrentUser = localStorage.getItem("currentUser");
+    if(storedCurrentUser){
+      const loggedInUser: User = JSON.parse(storedCurrentUser);
+      setCurrentUser(loggedInUser);
+      if(loggedInUser.username === params.username) {
+        setIsOwnProfile(true);
+      }
+    }
+    
   }, [params.username]);
 
+  const handleProfileUpdate = (updatedUser: User) => {
+    setChannelUser(updatedUser);
+    setCurrentUser(updatedUser); // also update the current user state if it's the same person
+    if (updatedUser.username !== params.username) {
+      router.push(`/channel/${updatedUser.username}`);
+    }
+    
+    // update current user in local storage
+    localStorage.setItem('currentUser', JSON.stringify(updatedUser));
 
-  if (!user) {
+    // update user list in local storage
+    const storedUsers = localStorage.getItem("myTubeUsers");
+    const allUsers: User[] = storedUsers ? JSON.parse(storedUsers) : [];
+    const userIndex = allUsers.findIndex(u => u.id === updatedUser.id);
+    if(userIndex !== -1){
+      allUsers[userIndex] = updatedUser;
+      localStorage.setItem('myTubeUsers', JSON.stringify(allUsers));
+    }
+  }
+
+
+  if (!channelUser) {
     return <div className="text-center py-20">Loading Channel...</div>;
   }
 
   return (
     <div>
         <div className="mb-8">
-            {user.banner && (
+            {channelUser.banner && (
               <div className="h-48 w-full rounded-lg bg-secondary">
-                  <Image src={user.banner} alt="Channel banner" width={1200} height={300} className="w-full h-full object-cover rounded-lg" data-ai-hint="channel banner abstract"/>
+                  <Image src={channelUser.banner} alt="Channel banner" width={1200} height={300} className="w-full h-full object-cover rounded-lg" data-ai-hint="channel banner abstract"/>
               </div>
             )}
-            <div className={`flex items-end gap-4 px-8 ${user.banner ? '-mt-16' : 'mt-8'}`}>
+            <div className={`flex items-end gap-4 px-8 ${channelUser.banner ? '-mt-16' : 'mt-8'}`}>
                 <Avatar className="h-32 w-32 border-4 border-background">
-                    <AvatarImage src={user.profilePicture} alt={user.displayName} data-ai-hint="person face" />
-                    <AvatarFallback className="text-4xl">{user.displayName.charAt(0)}</AvatarFallback>
+                    <AvatarImage src={channelUser.profilePicture} alt={channelUser.displayName} data-ai-hint="person face" />
+                    <AvatarFallback className="text-4xl">{channelUser.displayName.charAt(0)}</AvatarFallback>
                 </Avatar>
                 <div className="pb-4 flex-grow">
-                    <h1 className="text-3xl font-bold">{user.displayName}</h1>
-                    <p className="text-muted-foreground">@{user.username} &bull; {user.subscribers.toLocaleString()} subscribers</p>
+                    <h1 className="text-3xl font-bold">{channelUser.displayName}</h1>
+                    <p className="text-muted-foreground">@{channelUser.username} &bull; {channelUser.subscribers.toLocaleString()} subscribers</p>
                 </div>
                 <div className="pb-4">
+                  {isOwnProfile ? (
+                     <EditProfileDialog user={channelUser} onProfileUpdate={handleProfileUpdate} />
+                  ) : (
                     <Button size="lg" className="rounded-full">Subscribe</Button>
+                  )}
                 </div>
             </div>
         </div>
@@ -90,7 +127,7 @@ export default function ChannelPage() {
              <TabsContent value="about">
                 <Card>
                     <CardContent className="p-6">
-                        <p>Welcome to the official channel of {user.displayName}! More info coming soon.</p>
+                        <p>Welcome to the official channel of {channelUser.displayName}! More info coming soon.</p>
                     </CardContent>
                 </Card>
             </TabsContent>
@@ -98,5 +135,3 @@ export default function ChannelPage() {
     </div>
   );
 }
-
-    
