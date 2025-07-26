@@ -13,8 +13,8 @@ export default function ExplorePage() {
     const fetchVideos = async () => {
       setLoading(true);
       const allVideos = getAllVideos();
-      // admin videosunu keşfetten çıkar
-      const filteredVideos = allVideos.filter(v => v.author.username !== 'admin');
+      // admin videosunu keşfetten çıkar ve yazarı olmayan videoları filtrele
+      const filteredVideos = allVideos.filter(v => v.author && v.author.username !== 'admin');
       // Videoları karıştır
       const shuffled = [...filteredVideos].sort(() => 0.5 - Math.random());
       setExploreVideos(shuffled);
