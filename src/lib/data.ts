@@ -4,13 +4,12 @@ import videosData from '@/data/videos.json';
 import postsData from '@/data/posts.json';
 
 // In-memory simulation of a database. In a real app, this would be a database.
-// Changes here are not persisted across page reloads in this prototype.
 let mockUsers: User[] = usersData as User[];
 let mockVideos: Video[] = videosData as any[]; // Use 'as any' to bypass initial strict type checking for author
 let mockPosts: Post[] = postsData as any[];
 
 let currentUser: User | null = null;
-
+const CURRENT_USER_STORAGE_KEY = 'myTube-currentUser';
 
 // --- Hydration and Data Linking ---
 
@@ -49,7 +48,7 @@ export function updateUser(user: User): void {
         mockUsers[index] = user;
         // If the current user is updated, update the currentUser variable as well
         if (currentUser && currentUser.id === user.id) {
-            currentUser = user;
+            setCurrentUser(user);
         }
     }
 }
@@ -123,12 +122,37 @@ export function addCommentToVideo(videoId: string, comment: Omit<Comment, 'autho
 
 export function setCurrentUser(user: User): void {
     currentUser = user;
+    // Persist user session in localStorage
+    if (typeof window !== 'undefined') {
+        localStorage.setItem(CURRENT_USER_STORAGE_KEY, user.id);
+    }
 }
 
 export function getCurrentUser(): User | null {
-    return currentUser;
+    // If currentUser is already in memory, return it
+    if (currentUser) {
+        return currentUser;
+    }
+
+    // Otherwise, try to load from localStorage
+    if (typeof window !== 'undefined') {
+        const userId = localStorage.getItem(CURRENT_USER_STORAGE_KEY);
+        if (userId) {
+            const userFromStorage = getUserById(userId);
+            if (userFromStorage) {
+                currentUser = userFromStorage;
+                return currentUser;
+            }
+        }
+    }
+
+    return null;
 }
 
 export function logout(): void {
     currentUser = null;
+    // Clear user session from localStorage
+    if (typeof window !== 'undefined') {
+        localStorage.removeItem(CURRENT_USER_STORAGE_KEY);
+    }
 }
