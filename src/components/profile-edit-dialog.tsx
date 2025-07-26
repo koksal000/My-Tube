@@ -53,14 +53,16 @@ export function EditProfileDialog({ user, onProfileUpdate }: EditProfileDialogPr
     }, [isOpen, user]);
 
     const handleSaveChanges = async () => {
-        const existingUser = await getUserByUsername(username);
-        if (username !== user.username && existingUser) {
-            toast({
-                title: "Username taken",
-                description: "This username is already in use. Please choose another one.",
-                variant: "destructive",
-            });
-            return;
+        if (username !== user.username) {
+            const existingUser = await getUserByUsername(username);
+            if (existingUser) {
+                toast({
+                    title: "Username taken",
+                    description: "This username is already in use. Please choose another one.",
+                    variant: "destructive",
+                });
+                return;
+            }
         }
 
         let profilePictureBase64: string = user.profilePicture;
@@ -87,10 +89,12 @@ export function EditProfileDialog({ user, onProfileUpdate }: EditProfileDialogPr
         await updateUser(updatedUser);
 
         onProfileUpdate(updatedUser);
+        
         toast({
             title: "Profile Updated",
             description: "Your profile information has been successfully updated.",
         });
+        
         setIsOpen(false);
     };
 
