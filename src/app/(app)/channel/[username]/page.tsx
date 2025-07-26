@@ -121,7 +121,7 @@ export default function ChannelPage() {
                   <Image src={channelUser.banner} alt="Kanal banner'ı" layout="fill" className="w-full h-full object-cover rounded-lg" data-ai-hint="channel banner abstract"/>
               </div>
             )}
-            <div className={`flex items-end gap-4 px-8 ${channelUser.banner ? '-mt-16' : 'mt-8'}`}>
+            <div className={`relative z-10 flex items-end gap-4 px-8 ${channelUser.banner ? '-mt-16' : 'mt-8'}`}>
                 <Avatar className="h-32 w-32 border-4 border-background">
                     <AvatarImage src={channelUser.profilePicture} alt={channelUser.displayName} data-ai-hint="person face" />
                     <AvatarFallback className="text-4xl">{channelUser.displayName.charAt(0)}</AvatarFallback>
