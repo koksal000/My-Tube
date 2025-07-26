@@ -33,6 +33,8 @@ function formatViews(views: number) {
 }
 
 export function VideoCard({ video }: { video: Video }) {
+  const isIntroVideo = video.author?.username === 'admin';
+
   return (
     <div className="group">
       <Link href={`/video/${video.id}`}>
@@ -44,32 +46,40 @@ export function VideoCard({ video }: { video: Video }) {
             className="object-cover transition-transform duration-300"
             data-ai-hint="video thumbnail"
           />
-          <div className="absolute bottom-1 right-1 rounded bg-black/75 px-1.5 py-0.5 text-xs font-semibold text-white">
-            {formatDuration(video.duration)}
-          </div>
+          {!isIntroVideo && (
+            <div className="absolute bottom-1 right-1 rounded bg-black/75 px-1.5 py-0.5 text-xs font-semibold text-white">
+                {formatDuration(video.duration)}
+            </div>
+          )}
         </div>
       </Link>
       <div className="flex gap-3">
-        <Link href={`/channel/${video.author.username}`}>
-            <Avatar>
-            <AvatarImage src={video.author.profilePicture} alt={video.author.displayName} data-ai-hint="person face" />
-            <AvatarFallback>{video.author.displayName.charAt(0)}</AvatarFallback>
-            </Avatar>
-        </Link>
+        {!isIntroVideo && (
+          <Link href={`/channel/${video.author.username}`}>
+              <Avatar>
+              <AvatarImage src={video.author.profilePicture} alt={video.author.displayName} data-ai-hint="person face" />
+              <AvatarFallback>{video.author.displayName.charAt(0)}</AvatarFallback>
+              </Avatar>
+          </Link>
+        )}
         <div>
           <h3 className="font-semibold leading-snug">
             <Link href={`/video/${video.id}`} className="line-clamp-2">
               {video.title}
             </Link>
           </h3>
-          <p className="text-sm text-muted-foreground">
-            <Link href={`/channel/${video.author.username}`} className="hover:text-foreground">
-              {video.author.displayName}
-            </Link>
-          </p>
-          <p className="text-sm text-muted-foreground">
-            {formatViews(video.views)} &bull; {timeAgo(video.createdAt)}
-          </p>
+          {!isIntroVideo && (
+            <>
+                <p className="text-sm text-muted-foreground">
+                    <Link href={`/channel/${video.author.username}`} className="hover:text-foreground">
+                    {video.author.displayName}
+                    </Link>
+                </p>
+                <p className="text-sm text-muted-foreground">
+                    {formatViews(video.views)} &bull; {timeAgo(video.createdAt)}
+                </p>
+            </>
+          )}
         </div>
       </div>
     </div>

@@ -82,46 +82,44 @@ export default function VideoPage() {
 
           <div className="py-4">
             <h1 className="text-2xl font-bold">{video.title}</h1>
-            <div className="mt-2 flex flex-wrap items-center justify-between gap-4">
-              <div className="flex items-center gap-4">
-                <Avatar className="h-12 w-12">
-                  <AvatarImage src={video.author.profilePicture} alt={video.author.displayName} data-ai-hint="person face" />
-                  <AvatarFallback>{video.author.displayName.charAt(0)}</AvatarFallback>
-                </Avatar>
-                <div>
-                  <p className="font-semibold">{video.author.displayName}</p>
-                  {!isIntroVideo && (
+            {!isIntroVideo && (
+                <div className="mt-2 flex flex-wrap items-center justify-between gap-4">
+                <div className="flex items-center gap-4">
+                    <Avatar className="h-12 w-12">
+                    <AvatarImage src={video.author.profilePicture} alt={video.author.displayName} data-ai-hint="person face" />
+                    <AvatarFallback>{video.author.displayName.charAt(0)}</AvatarFallback>
+                    </Avatar>
+                    <div>
+                    <p className="font-semibold">{video.author.displayName}</p>
                     <p className="text-sm text-muted-foreground">{video.author.subscribers.toLocaleString()} abone</p>
-                  )}
-                </div>
-                 {!isIntroVideo && (
+                    </div>
                     <Button variant="default" className="rounded-full bg-foreground text-background hover:bg-foreground/80">
-                      <BellPlus className="mr-2 h-4 w-4" /> Abone Ol
+                        <BellPlus className="mr-2 h-4 w-4" /> Abone Ol
                     </Button>
-                  )}
-              </div>
+                </div>
 
-              {!isIntroVideo && (
                 <div className="flex items-center gap-2">
-                  <div className="flex items-center rounded-full bg-secondary">
+                    <div className="flex items-center rounded-full bg-secondary">
                     <Button variant="ghost" className="rounded-l-full gap-2 pl-4 pr-3">
-                      <ThumbsUp className="h-5 w-5" /> {video.likes.toLocaleString()}
+                        <ThumbsUp className="h-5 w-5" /> {video.likes.toLocaleString()}
                     </Button>
                     <div className="h-6 w-px bg-border"></div>
                     <Button variant="ghost" className="rounded-r-full pl-3 pr-4">
-                      <ThumbsDown className="h-5 w-5" />
+                        <ThumbsDown className="h-5 w-5" />
                     </Button>
-                  </div>
-                  <Button variant="ghost" className="rounded-full gap-2">
+                    </div>
+                    <Button variant="ghost" className="rounded-full gap-2">
                     <Share2 className="h-5 w-5" /> Paylaş
-                  </Button>
+                    </Button>
                 </div>
-              )}
-            </div>
+                </div>
+            )}
           </div>
           
           <div className="mt-4 rounded-xl bg-secondary p-4">
-            <p className="font-semibold">{formatViews(video.views)} &bull; {timeAgo(video.createdAt)}</p>
+            {!isIntroVideo && (
+                <p className="font-semibold">{formatViews(video.views)} &bull; {timeAgo(video.createdAt)}</p>
+            )}
             <p className="mt-2 whitespace-pre-wrap">{video.description}</p>
           </div>
 
