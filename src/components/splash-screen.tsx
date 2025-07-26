@@ -11,7 +11,7 @@ export function SplashScreen() {
   const isRedirecting = useRef(false);
 
   useEffect(() => {
-    const checkUserAndRedirect = async () => {
+    const checkUserAndRedirect = () => {
       if (isRedirecting.current) return;
       isRedirecting.current = true;
       try {
@@ -23,13 +23,13 @@ export function SplashScreen() {
         }
       } catch (error) {
         console.error("Yönlendirme sırasında hata:", error);
-        // Fallback to login page on error
+        // Hata durumunda giriş sayfasına yönlendir
         router.push('/login');
       }
     };
 
-    // Give a brief moment for the animation to be seen before checking the user state.
-    const timer = setTimeout(checkUserAndRedirect, 8000); // Redirect after 8 seconds
+    // Animasyonun görülmesi için kısa bir süre tanıdıktan sonra kullanıcı durumunu kontrol et.
+    const timer = setTimeout(checkUserAndRedirect, 8000); // 8 saniye sonra yönlendir
 
     return () => {
       clearTimeout(timer);
