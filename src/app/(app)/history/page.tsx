@@ -1,7 +1,7 @@
 "use client"
 
 import { VideoCard } from "@/components/video-card";
-import { getVideoById, getCurrentUser } from "@/lib/db";
+import { getVideoById, getCurrentUser } from "@/lib/data";
 import { useState, useEffect } from "react";
 import type { User, Video } from "@/lib/types";
 import { useRouter } from "next/navigation";
@@ -13,11 +13,9 @@ export default function HistoryPage() {
     
     useEffect(() => {
         const fetchHistory = async () => {
-            const currentUser = await getCurrentUser();
+            const currentUser = getCurrentUser();
             if (currentUser) {
-                const userViewedVideos = await Promise.all(
-                    currentUser.viewedVideos.map(id => getVideoById(id))
-                );
+                const userViewedVideos = currentUser.viewedVideos.map(id => getVideoById(id));
                 setViewedVideos(userViewedVideos.filter((v): v is Video => !!v));
             } else {
                 router.push('/login');

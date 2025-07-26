@@ -17,7 +17,7 @@ import { useToast } from "@/hooks/use-toast"
 import type { User } from "@/lib/types"
 import { Textarea } from "./ui/textarea"
 import { Checkbox } from "./ui/checkbox"
-import { getUserByUsername, updateUser } from "@/lib/db"
+import { getUserByUsername, updateUser } from "@/lib/data"
 
 interface EditProfileDialogProps {
   user: User;
@@ -54,7 +54,7 @@ export function EditProfileDialog({ user, onProfileUpdate }: EditProfileDialogPr
 
     const handleSaveChanges = async () => {
         if (username !== user.username) {
-            const existingUser = await getUserByUsername(username);
+            const existingUser = getUserByUsername(username);
             if (existingUser) {
                 toast({
                     title: "Kullanıcı adı alınmış",
@@ -86,7 +86,7 @@ export function EditProfileDialog({ user, onProfileUpdate }: EditProfileDialogPr
             banner: bannerBase64,
         };
 
-        await updateUser(updatedUser);
+        updateUser(updatedUser);
 
         onProfileUpdate(updatedUser);
         

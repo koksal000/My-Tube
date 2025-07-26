@@ -1,6 +1,6 @@
 "use client"
 
-import { getVideoByAuthor, getPostsByAuthor, updateUser, getCurrentUser, getUserByUsername } from "@/lib/db";
+import { getVideoByAuthor, getPostsByAuthor, updateUser, getCurrentUser, getUserByUsername } from "@/lib/data";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -28,8 +28,8 @@ export default function ChannelPage() {
     const init = async () => {
       if(!params.username) return;
 
-      const foundChannelUser = await getUserByUsername(params.username as string);
-      const loggedInUser = await getCurrentUser();
+      const foundChannelUser = getUserByUsername(params.username as string);
+      const loggedInUser = getCurrentUser();
       
       if (!loggedInUser) {
         router.push('/login');
@@ -39,8 +39,8 @@ export default function ChannelPage() {
 
       if (foundChannelUser) {
         setChannelUser(foundChannelUser);
-         const videos = await getVideoByAuthor(foundChannelUser.id);
-         const posts = await getPostsByAuthor(foundChannelUser.id);
+         const videos = getVideoByAuthor(foundChannelUser.id);
+         const posts = getPostsByAuthor(foundChannelUser.id);
          setUserVideos(videos);
          setUserPosts(posts);
 
@@ -61,7 +61,7 @@ export default function ChannelPage() {
 
   const handleProfileUpdate = (updatedUser: User) => {
     setChannelUser(updatedUser);
-    setCurrentUser(updatedUser); 
+    setCurrentUser(updatedUser); // Update currentUser in state as well
     if (updatedUser.username !== params.username) {
       router.push(`/channel/${updatedUser.username}`);
     }
@@ -87,8 +87,8 @@ export default function ChannelPage() {
     const updatedChannelUser: User = { ...channelUser, subscribers: updatedSubscribers };
 
     try {
-      await updateUser(updatedCurrentUser);
-      await updateUser(updatedChannelUser);
+      updateUser(updatedCurrentUser);
+      updateUser(updatedChannelUser);
       
       setCurrentUser(updatedCurrentUser);
       setChannelUser(updatedChannelUser);
@@ -99,7 +99,7 @@ export default function ChannelPage() {
         description: isSubscribed ? `${channelUser.displayName} kanalından aboneliğinizi kaldırdınız.` : `${channelUser.displayName} kanalına başarıyla abone oldunuz.`,
       });
 
-      // Force header/sidebar refresh
+      // Force header/sidebar refresh by navigating, even to the same page
       router.refresh();
 
     } catch (error) {
@@ -117,7 +117,7 @@ export default function ChannelPage() {
         <div className="mb-8">
             {channelUser.banner && (
               <div className="relative h-48 w-full rounded-lg bg-secondary">
-                  <Image src={channelUser.banner} alt="Kanal banner'ı" fill className="w-full h-full object-cover rounded-lg" data-ai-hint="channel banner abstract"/>
+                  <Image src={channelUser.banner} alt="Kanal banner'ı" layout="fill" className="w-full h-full object-cover rounded-lg" data-ai-hint="channel banner abstract"/>
               </div>
             )}
             <div className={`flex items-end gap-4 px-8 ${channelUser.banner ? '-mt-16' : 'mt-8'}`}>
@@ -185,5 +185,3 @@ export default function ChannelPage() {
     </div>
   );
 }
-
-    

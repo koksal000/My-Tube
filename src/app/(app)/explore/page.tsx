@@ -1,7 +1,7 @@
 "use client"
 
 import { VideoCard } from "@/components/video-card";
-import { getAllVideos } from "@/lib/db";
+import { getAllVideos } from "@/lib/data";
 import type { Video } from "@/lib/types";
 import { useEffect, useState } from "react";
 
@@ -12,7 +12,7 @@ export default function ExplorePage() {
   useEffect(() => {
     const fetchVideos = async () => {
       setLoading(true);
-      const allVideos = await getAllVideos();
+      const allVideos = getAllVideos();
       // admin videosunu keşfetten çıkar
       const filteredVideos = allVideos.filter(v => v.author.username !== 'admin');
       // Videoları karıştır

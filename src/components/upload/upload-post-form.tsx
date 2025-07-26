@@ -8,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { useToast } from "@/hooks/use-toast"
 import type { User, Post } from "@/lib/types"
 import React from "react"
-import { addPost, getCurrentUser } from "@/lib/db"
+import { addPost, getCurrentUser } from "@/lib/data"
 
 // Helper function to read file as base64 and compress image
 const toBase64 = (file: File): Promise<string> => new Promise((resolve, reject) => {
@@ -63,7 +63,7 @@ export function UploadPostForm() {
     const caption = formData.get("caption") as string;
     const imageFile = formData.get("image") as File;
     
-    const currentUser = await getCurrentUser();
+    const currentUser = getCurrentUser();
     if (!currentUser) {
         toast({ title: "Hata", description: "Gönderi oluşturmak için giriş yapmalısınız.", variant: "destructive" });
         setIsUploading(false);
@@ -89,7 +89,7 @@ export function UploadPostForm() {
             comments: [],
         };
 
-        await addPost(newPost);
+        addPost(newPost);
 
         toast({
             title: "Gönderi Oluşturuldu!",

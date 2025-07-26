@@ -18,7 +18,7 @@ import Link from "next/link"
 import { useRouter } from "next/navigation";
 import React, { useEffect, useState } from "react"
 import type { User } from "@/lib/types"
-import { getCurrentUser, logout } from "@/lib/db"
+import { getCurrentUser, logout } from "@/lib/data"
 
 export default function Header() {
   const router = useRouter();
@@ -26,7 +26,7 @@ export default function Header() {
 
   useEffect(() => {
     const fetchUser = async () => {
-      const user = await getCurrentUser();
+      const user = getCurrentUser();
       if (user) {
         setCurrentUser(user);
       } else {
@@ -37,7 +37,7 @@ export default function Header() {
   }, [router]);
   
   const handleLogout = async () => {
-    await logout();
+    logout();
     router.push('/login');
     router.refresh(); // To update sidebar etc.
   };

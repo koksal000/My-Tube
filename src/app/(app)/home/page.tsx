@@ -1,10 +1,11 @@
 "use client"
+
 import { VideoCard } from "@/components/video-card";
 import { generateVideoRecommendations, VideoRecommendationsInput } from "@/ai/flows/video-recommendations";
 import React, { useEffect, useState } from "react";
 import type { User, Video } from "@/lib/types";
 import { useRouter } from "next/navigation";
-import { getAllUsers, getAllVideos, getCurrentUser } from "@/lib/db";
+import { getAllUsers, getAllVideos, getCurrentUser } from "@/lib/data";
 
 export default function HomePage() {
   const router = useRouter();
@@ -14,15 +15,15 @@ export default function HomePage() {
   useEffect(() => {
     const fetchRecommendations = async () => {
       setLoading(true);
-      const currentUser = await getCurrentUser();
+      const currentUser = getCurrentUser();
       
       if (!currentUser) {
         router.push('/login');
         return;
       }
       
-      const allDBVideos = await getAllVideos();
-      const allUsers = await getAllUsers();
+      const allDBVideos = getAllVideos();
+      const allUsers = getAllUsers();
       
       const allVideosForAI = allDBVideos.map(v => ({
         id: v.id,

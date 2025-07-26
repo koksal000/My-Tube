@@ -23,7 +23,7 @@ import { usePathname } from "next/navigation"
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
 import React, { useEffect, useState } from "react"
 import type { User } from "@/lib/types"
-import { getAllUsers, getCurrentUser, getUserById } from "@/lib/db"
+import { getAllUsers, getCurrentUser, getUserById } from "@/lib/data"
 
 const MyTubeLogo = () => (
     <Link href="/home" className="flex items-center gap-2 text-primary font-bold text-xl">
@@ -42,10 +42,10 @@ export default function SidebarContentComponent() {
 
   useEffect(() => {
     const fetchUserAndSubs = async () => {
-      const user = await getCurrentUser();
+      const user = getCurrentUser();
       if (user) {
         setCurrentUser(user);
-        const subUsers = await Promise.all(user.subscriptions.map(id => getUserById(id)));
+        const subUsers = user.subscriptions.map(id => getUserById(id));
         setSubscriptions(subUsers.filter((u): u is User => !!u));
       }
     };

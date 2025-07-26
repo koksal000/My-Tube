@@ -10,7 +10,7 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { useToast } from "@/hooks/use-toast"
 import type { User } from "@/lib/types"
 import React from "react"
-import { addUser, getUserByUsername } from "@/lib/db"
+import { addUser, getUserByUsername } from "@/lib/data"
 import { Textarea } from "../ui/textarea"
 
 const MyTubeLogo = () => (
@@ -45,7 +45,7 @@ export function RegisterForm() {
     const profilePictureFile = formData.get("profile-picture") as File | null;
     const bannerFile = formData.get("banner") as File | null;
     
-    const existingUser = await getUserByUsername(username);
+    const existingUser = getUserByUsername(username);
 
     if (existingUser) {
       toast({
@@ -80,7 +80,7 @@ export function RegisterForm() {
       viewedVideos: [],
     };
     
-    await addUser(newUser);
+    addUser(newUser);
     
     toast({
         title: "Kayıt Başarılı!",

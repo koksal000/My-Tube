@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from 'react';
-import { getAllVideos } from '@/lib/db';
+import { getAllVideos } from '@/lib/data';
 import type { Video } from '@/lib/types';
 import FlowPlayer from '@/components/flow-player';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -13,7 +13,7 @@ export default function FlowPage() {
   useEffect(() => {
     const fetchVideos = async () => {
       setLoading(true);
-      const allVideos = await getAllVideos();
+      const allVideos = getAllVideos();
       // "admin" videosunu ve süresi olmayanları filtrele
       const flowVideos = allVideos
         .filter(v => v.author.username !== 'admin' && v.duration > 0)

@@ -8,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { useToast } from "@/hooks/use-toast"
 import type { User, Video } from "@/lib/types"
 import React from "react"
-import { addVideo, getCurrentUser } from "@/lib/db"
+import { addVideo, getCurrentUser } from "@/lib/data"
 
 // Helper function to read file as base64
 const toBase64 = (file: File): Promise<string> => new Promise((resolve, reject) => {
@@ -33,7 +33,7 @@ export function UploadVideoForm() {
     const thumbnailFile = formData.get("thumbnail") as File;
     const videoFile = formData.get("video") as File;
     
-    const currentUser = await getCurrentUser();
+    const currentUser = getCurrentUser();
     if (!currentUser) {
         toast({ title: "Hata", description: "Yükleme yapmak için giriş yapmalısınız.", variant: "destructive" });
         setIsUploading(false);
@@ -47,6 +47,9 @@ export function UploadVideoForm() {
     }
     
     try {
+      // In a real app, you would upload to a CDN and get URLs.
+      // Here, we convert to base64, which is not suitable for large files (like videos)
+      // and will hit browser storage limits. This is a prototype limitation.
       const [thumbnailUrl, videoUrl] = await Promise.all([
         toBase64(thumbnailFile),
         toBase64(videoFile)
@@ -67,7 +70,7 @@ export function UploadVideoForm() {
           comments: [],
       };
 
-      await addVideo(newVideo);
+      addVideo(newVideo);
 
       toast({
           title: "Yükleme Başarılı!",

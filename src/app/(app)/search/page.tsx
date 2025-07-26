@@ -1,7 +1,7 @@
 "use client";
 
 import { VideoCard } from "@/components/video-card";
-import { getAllVideos } from "@/lib/db";
+import { getAllVideos } from "@/lib/data";
 import { searchContent, SearchContentInput } from "@/ai/flows/contextual-search";
 import { Suspense, useEffect, useState } from "react";
 import type { Video } from "@/lib/types";
@@ -81,7 +81,7 @@ function SearchPageClient() {
     useEffect(() => {
         const fetchAllVideos = async () => {
             setLoading(true);
-            const videos = await getAllVideos();
+            const videos = getAllVideos();
             setAllVideos(videos);
             setLoading(false);
         };

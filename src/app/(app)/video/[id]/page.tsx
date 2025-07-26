@@ -1,6 +1,6 @@
 "use client"
 
-import { getVideoById, getAllVideos, getCurrentUser, updateUser, addCommentToVideo } from "@/lib/db";
+import { getVideoById, getAllVideos, getCurrentUser, updateUser, addCommentToVideo, addVideo } from "@/lib/data";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { ThumbsUp, ThumbsDown, Share2, BellPlus } from "lucide-react";
@@ -54,20 +54,22 @@ export default function VideoPage() {
         if (!params.id) return;
         setLoading(true);
 
-        const loggedInUser = await getCurrentUser();
+        const loggedInUser = getCurrentUser();
         if (!loggedInUser) {
           router.push('/login');
           return;
         }
         setCurrentUser(loggedInUser);
 
-        const videoData = await getVideoById(params.id as string);
+        const videoData = getVideoById(params.id as string);
         if (videoData) {
             setVideo(videoData);
             setIsLiked(loggedInUser.likedVideos.includes(videoData.id));
-            setIsSubscribed(loggedInUser.subscriptions.includes(videoData.author.id));
+            if (videoData.author) {
+              setIsSubscribed(loggedInUser.subscriptions.includes(videoData.author.id));
+            }
 
-            const allVideos = (await getAllVideos()).filter(v => v.author.username !== 'admin');
+            const allVideos = (getAllVideos()).filter(v => v.author.username !== 'admin');
             const recs = allVideos.filter(v => v.id !== params.id).sort(() => 0.5 - Math.random()).slice(0, 10);
             setRecommendedVideos(recs);
         }
@@ -80,22 +82,22 @@ export default function VideoPage() {
     if (!currentUser || !video) return;
 
     let updatedLikedVideos = [...currentUser.likedVideos];
-    let updatedLikes = video.likes;
-
+    let videoToUpdate = {...video};
+    
     if (isLiked) {
       updatedLikedVideos = updatedLikedVideos.filter(id => id !== video.id);
-      updatedLikes--;
+      videoToUpdate.likes--;
     } else {
       updatedLikedVideos.push(video.id);
-      updatedLikes++;
+      videoToUpdate.likes++;
     }
 
     try {
-      await updateUser({ ...currentUser, likedVideos: updatedLikedVideos });
-      await addVideo({ ...video, likes: updatedLikes, author: undefined! }); // DB function expects Omit<Video, 'author'>
-      
-      setCurrentUser({ ...currentUser, likedVideos: updatedLikedVideos });
-      setVideo({ ...video, likes: updatedLikes });
+      const updatedUser = { ...currentUser, likedVideos: updatedLikedVideos };
+      updateUser(updatedUser);
+      // The video data is also "updated" in memory
+      setVideo(videoToUpdate); 
+      setCurrentUser(updatedUser);
       setIsLiked(!isLiked);
     } catch (e) {
       toast({ title: "Hata", description: "Beğenme işlemi sırasında bir sorun oluştu.", variant: "destructive" });
@@ -104,14 +106,39 @@ export default function VideoPage() {
 
   const handleSubscription = async () => {
      if (!currentUser || !video?.author) return;
-     // Logic is now in channel page, this could be a shared component later
-     router.push(`/channel/${video.author.username}`);
+     
+     let updatedSubscriptions = [...currentUser.subscriptions];
+     let updatedChannelUser = {...video.author};
+
+     if (isSubscribed) {
+        updatedSubscriptions = updatedSubscriptions.filter(id => id !== video.author.id);
+        updatedChannelUser.subscribers--;
+     } else {
+        updatedSubscriptions.push(video.author.id);
+        updatedChannelUser.subscribers++;
+     }
+    
+     const updatedCurrentUser = {...currentUser, subscriptions: updatedSubscriptions};
+     
+     updateUser(updatedCurrentUser);
+     updateUser(updatedChannelUser);
+
+     setCurrentUser(updatedCurrentUser);
+     setIsSubscribed(!isSubscribed);
+     setVideo({...video, author: updatedChannelUser}); // update video state with new author data
+     
+     toast({
+        title: isSubscribed ? "Abonelikten Çıkıldı" : "Abone Olundu!",
+        description: isSubscribed ? `${video.author.displayName} kanalından aboneliğinizi kaldırdınız.` : `${video.author.displayName} kanalına başarıyla abone oldunuz.`,
+      });
+      
+      router.refresh();
   };
 
   const handleAddComment = async () => {
     if (!currentUser || !video || !commentText.trim()) return;
 
-    const newComment: Omit<Comment, 'author'> = {
+    const newCommentOmitAuthor: Omit<Comment, 'author'> = {
       id: `comment-${Date.now()}`,
       authorId: currentUser.id,
       text: commentText,
@@ -121,10 +148,10 @@ export default function VideoPage() {
     };
     
     try {
-        await addCommentToVideo(video.id, newComment);
+        addCommentToVideo(video.id, newCommentOmitAuthor);
         
         // Optimistically update UI
-        const hydratedComment: Comment = { ...newComment, author: currentUser };
+        const hydratedComment: Comment = { ...newCommentOmitAuthor, author: currentUser, replies: [] };
         setVideo({ ...video, comments: [hydratedComment, ...video.comments] });
         setCommentText("");
 
@@ -147,7 +174,7 @@ export default function VideoPage() {
     <div className="mx-auto max-w-screen-2xl">
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
         <div className="lg:col-span-2">
-          <div className="aspect-video w-full overflow-hidden rounded-xl bg-black shadow-lg">
+          <div className="aspect-square w-full overflow-hidden rounded-xl bg-black shadow-lg">
             <video
               src={video.videoUrl}
               controls
@@ -253,5 +280,3 @@ export default function VideoPage() {
     </div>
   );
 }
-
-    

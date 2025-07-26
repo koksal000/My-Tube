@@ -2,7 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import { useEffect, useRef } from 'react';
-import { getCurrentUser } from '@/lib/db';
+import { getCurrentUser } from '@/lib/data';
 
 export function SplashScreen() {
   const router = useRouter();
@@ -15,7 +15,7 @@ export function SplashScreen() {
       if (isRedirecting.current) return;
       isRedirecting.current = true;
       try {
-        const user = await getCurrentUser();
+        const user = getCurrentUser();
         if (user) {
           router.push('/home');
         } else {
