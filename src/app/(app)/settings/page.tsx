@@ -1,8 +1,29 @@
+"use client"
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { useEffect, useState } from "react";
 
 export default function SettingsPage() {
+  const [showGifs, setShowGifs] = useState(true);
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+    const savedSetting = localStorage.getItem('myTube-showGifs');
+    setShowGifs(savedSetting ? JSON.parse(savedSetting) : true);
+  }, []);
+
+  const handleShowGifsChange = (checked: boolean) => {
+    setShowGifs(checked);
+    localStorage.setItem('myTube-showGifs', JSON.stringify(checked));
+  };
+  
+  if (!isMounted) {
+    return null; // or a loading skeleton
+  }
+
   return (
     <div>
       <h1 className="text-2xl font-bold mb-6">Ayarlar</h1>
@@ -37,7 +58,11 @@ export default function SettingsPage() {
                         Bunu devre dışı bırakmak performansı artırabilir.
                     </span>
                 </Label>
-                <Switch id="show-gifs" defaultChecked />
+                <Switch 
+                  id="show-gifs" 
+                  checked={showGifs} 
+                  onCheckedChange={handleShowGifsChange} 
+                />
             </div>
         </CardContent>
       </Card>

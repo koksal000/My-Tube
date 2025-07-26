@@ -26,7 +26,16 @@
     "likes": 21000,
     "dislikes": 340,
     "createdAt": "2024-07-25T15:00:00.000Z",
-    "comments": []
+    "comments": [
+       {
+        "id": "comment1",
+        "authorId": "user3",
+        "text": "İnanılmaz görüntüler! Sanki oradaymışım gibi hissettim.",
+        "createdAt": "2024-07-25T16:00:00.000Z",
+        "likes": 150,
+        "replies": []
+      }
+    ]
   },
   {
     "id": "video3",

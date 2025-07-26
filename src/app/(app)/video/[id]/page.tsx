@@ -1,9 +1,9 @@
 "use client"
 
-import { getVideoById, getAllVideos, getCurrentUser, updateUser, addCommentToVideo, addVideo } from "@/lib/data";
+import { getVideoById, getAllVideos, getCurrentUser, updateUser, addCommentToVideo } from "@/lib/data";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { ThumbsUp, ThumbsDown, Share2, BellPlus } from "lucide-react";
+import { ThumbsUp, ThumbsDown, Share2, BellPlus, Send, Smile, Film } from "lucide-react";
 import { VideoCard } from "@/components/video-card";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -34,6 +34,64 @@ function formatViews(views: number) {
     return `${views} izlenme`;
 }
 
+const GiphyViewer = ({ onSelectGif, onSelectEmoji }: { onSelectGif: (url: string) => void, onSelectEmoji: (emoji: string) => void }) => {
+    const gifs = [
+        'https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExaWFjZHVrZG5lYjZzeXNlM3B4MnRxaXJ0bWJqaXE3enp6eG5sNm5hayZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/3o72FfM5HJydzafgUE/giphy.gif',
+        'https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExaG9tbnFjN2YwZWU5a3hpaHQyZzlha3h1aDBlb3FqNmt1ajQzNXplZCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/8Odq0zzKM596g/giphy.gif',
+        'https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExdzY5aWZ2aTNjMnRoNjR2aTZjMWhnaGU0ZGk5bWVmcTN1c3h2d294biZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/cXblnKZRjFnOE/giphy.gif',
+    ];
+    const emojis = ['😂', '😍', '👍', '🔥', '❤️', '🤔'];
+
+    return (
+        <div className="p-2 border rounded-lg bg-background w-full">
+            <h3 className="text-sm font-semibold mb-2">GIF'ler</h3>
+            <div className="flex gap-2 mb-2">
+                {gifs.map(gif => <img key={gif} src={gif} onClick={() => onSelectGif(gif)} className="w-16 h-16 object-cover cursor-pointer rounded" />)}
+            </div>
+            <h3 className="text-sm font-semibold mb-2">Emojiler</h3>
+            <div className="flex gap-2">
+                {emojis.map(emoji => <span key={emoji} onClick={() => onSelectEmoji(emoji)} className="text-2xl cursor-pointer">{emoji}</span>)}
+            </div>
+        </div>
+    )
+}
+
+const CommentDisplay = ({ comment }: { comment: Comment }) => {
+    const [showGifs, setShowGifs] = useState(true);
+     useEffect(() => {
+        const savedSetting = localStorage.getItem('myTube-showGifs');
+        setShowGifs(savedSetting ? JSON.parse(savedSetting) : true);
+    }, []);
+
+    const isGif = comment.text.startsWith('https://media.giphy.com');
+
+    return (
+        <div className="flex gap-3">
+            <Avatar>
+                 <AvatarImage src={comment.author.profilePicture} alt={comment.author.displayName} data-ai-hint="person face" />
+                <AvatarFallback>{comment.author.displayName.charAt(0)}</AvatarFallback>
+            </Avatar>
+            <div>
+                <div className="flex items-center gap-2">
+                    <p className="font-semibold text-sm">@{comment.author.username}</p>
+                    <p className="text-xs text-muted-foreground">{timeAgo(comment.createdAt)}</p>
+                </div>
+                {isGif ? (
+                    showGifs ? (
+                        <img src={comment.text} alt="Yorum GIF'i" className="mt-2 rounded-lg max-w-xs" />
+                    ) : (
+                        <div className="mt-2 p-2 border rounded-md bg-secondary text-muted-foreground text-sm flex items-center gap-2">
+                           <Film className="h-4 w-4" /> GIF
+                        </div>
+                    )
+                ) : (
+                    <p>{comment.text}</p>
+                )}
+            </div>
+        </div>
+    )
+}
+
 export default function VideoPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
@@ -46,6 +104,7 @@ export default function VideoPage() {
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [loading, setLoading] = useState(true);
   const [commentText, setCommentText] = useState("");
+  const [showGiphy, setShowGiphy] = useState(false);
 
   const isIntroVideo = video?.author?.username === 'admin';
 
@@ -135,13 +194,13 @@ export default function VideoPage() {
       router.refresh();
   };
 
-  const handleAddComment = () => {
-    if (!currentUser || !video || !commentText.trim()) return;
+  const handleAddComment = (text: string) => {
+    if (!currentUser || !video || !text.trim()) return;
 
     const newCommentOmitAuthor: Omit<Comment, 'author'> = {
       id: `comment-${Date.now()}`,
       authorId: currentUser.id,
-      text: commentText,
+      text: text,
       createdAt: new Date().toISOString(),
       likes: 0,
       replies: [],
@@ -154,6 +213,7 @@ export default function VideoPage() {
         const hydratedComment: Comment = { ...newCommentOmitAuthor, author: currentUser, replies: [] };
         setVideo({ ...video, comments: [hydratedComment, ...video.comments] });
         setCommentText("");
+        setShowGiphy(false);
 
         toast({ title: "Yorum Eklendi", description: "Yorumunuz başarıyla gönderildi." });
 
@@ -169,6 +229,10 @@ export default function VideoPage() {
   if (!video) {
     return <div className="text-center py-20">Video bulunamadı.</div>;
   }
+  
+  if (!video.videoUrl) {
+    return <div className="text-center py-20">Video kaynağı bulunamadı veya bozuk.</div>
+  }
 
   return (
     <div className="mx-auto max-w-screen-2xl">
@@ -176,6 +240,7 @@ export default function VideoPage() {
         <div className="lg:col-span-2">
           <div className="aspect-video w-full overflow-hidden rounded-xl bg-black shadow-lg">
             <video
+              key={video.id}
               src={video.videoUrl}
               controls
               autoPlay
@@ -236,32 +301,33 @@ export default function VideoPage() {
                     <AvatarFallback>{currentUser?.displayName.charAt(0)}</AvatarFallback>
                 </Avatar>
                 <div className="flex-grow space-y-2">
-                    <Textarea 
-                        placeholder="Yorum ekle..." 
-                        value={commentText}
-                        onChange={(e) => setCommentText(e.target.value)}
-                    />
-                    <div className="flex justify-end gap-2">
-                        <Button variant="ghost" onClick={() => setCommentText("")}>İptal</Button>
-                        <Button onClick={handleAddComment} disabled={!commentText.trim()}>Yorum Yap</Button>
+                    <div className="relative">
+                        <Textarea 
+                            placeholder="Yorum ekle..." 
+                            value={commentText}
+                            onChange={(e) => setCommentText(e.target.value)}
+                            className="pr-20"
+                        />
+                        <div className="absolute top-1/2 right-2 -translate-y-1/2 flex items-center gap-1">
+                            <Button variant="ghost" size="icon" onClick={() => setShowGiphy(!showGiphy)}>
+                                <Smile className="h-5 w-5" />
+                            </Button>
+                             <Button variant="ghost" size="icon" onClick={() => handleAddComment(commentText)} disabled={!commentText.trim()}>
+                                <Send className="h-5 w-5" />
+                            </Button>
+                        </div>
                     </div>
+                     {showGiphy && (
+                        <GiphyViewer 
+                            onSelectGif={(url) => handleAddComment(url)}
+                            onSelectEmoji={(emoji) => setCommentText(prev => prev + emoji)}
+                        />
+                    )}
                 </div>
               </div>
               <div className="space-y-6">
                 {video.comments.map(comment => (
-                    <div key={comment.id} className="flex gap-3">
-                        <Avatar>
-                             <AvatarImage src={comment.author.profilePicture} alt={comment.author.displayName} data-ai-hint="person face" />
-                            <AvatarFallback>{comment.author.displayName.charAt(0)}</AvatarFallback>
-                        </Avatar>
-                        <div>
-                            <div className="flex items-center gap-2">
-                                <p className="font-semibold text-sm">@{comment.author.username}</p>
-                                <p className="text-xs text-muted-foreground">{timeAgo(comment.createdAt)}</p>
-                            </div>
-                            <p>{comment.text}</p>
-                        </div>
-                    </div>
+                    <CommentDisplay key={comment.id} comment={comment} />
                 ))}
               </div>
             </div>

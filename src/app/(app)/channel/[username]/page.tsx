@@ -12,6 +12,7 @@ import type { User, Video, Post } from "@/lib/types";
 import { useParams, useRouter } from "next/navigation";
 import { EditProfileDialog } from "@/components/profile-edit-dialog";
 import { useToast } from "@/hooks/use-toast";
+import { MessageSquare } from "lucide-react";
 
 export default function ChannelPage() {
   const router = useRouter();
@@ -129,13 +130,18 @@ export default function ChannelPage() {
                     <h1 className="text-3xl font-bold">{channelUser.displayName}</h1>
                     <p className="text-muted-foreground">@{channelUser.username} &bull; {channelUser.subscribers.toLocaleString()} abone</p>
                 </div>
-                <div className="pb-4">
+                <div className="pb-4 flex items-center gap-2">
                   {isOwnProfile ? (
                      <EditProfileDialog user={channelUser} onProfileUpdate={handleProfileUpdate} />
                   ) : (
-                    <Button size="lg" className="rounded-full" onClick={handleSubscription} variant={isSubscribed ? 'secondary' : 'default'}>
-                      {isSubscribed ? 'Abonelikten Çık' : 'Abone Ol'}
-                    </Button>
+                    <>
+                      <Button size="lg" className="rounded-full" onClick={handleSubscription} variant={isSubscribed ? 'secondary' : 'default'}>
+                        {isSubscribed ? 'Abonelikten Çık' : 'Abone Ol'}
+                      </Button>
+                      <Button size="lg" variant="outline" className="rounded-full" onClick={() => router.push(`/messages?to=${channelUser.username}`)}>
+                        <MessageSquare className="h-5 w-5 mr-2" /> Mesaj Gönder
+                      </Button>
+                    </>
                   )}
                 </div>
             </div>
