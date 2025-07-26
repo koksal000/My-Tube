@@ -25,15 +25,17 @@ export default function HomePage() {
       const allDBVideos = getAllVideos();
       const allUsers = getAllUsers();
       
-      const allVideosForAI = allDBVideos.map(v => ({
-        id: v.id,
-        title: v.title,
-        description: v.description,
-        username: v.author.username,
-        views: v.views,
-        likes: v.likes,
-        dislikes: v.dislikes,
-        commentCount: v.comments.length
+      const allVideosForAI = allDBVideos
+        .filter(v => v.author) // Filter out videos without an author
+        .map(v => ({
+          id: v.id,
+          title: v.title,
+          description: v.description,
+          username: v.author.username,
+          views: v.views,
+          likes: v.likes,
+          dislikes: v.dislikes,
+          commentCount: v.comments.length
       }));
 
       const recommendationInput: VideoRecommendationsInput = {
@@ -53,11 +55,11 @@ export default function HomePage() {
         const recommendedVideoIds = recommendations.map(rec => rec.id);
         const sortedVideos = allDBVideos.filter(v => recommendedVideoIds.includes(v.id))
                                       .sort((a, b) => recommendedVideoIds.indexOf(a.id) - recommendedVideoIds.indexOf(b.id));
-        setRecommendedVideos(sortedVideos.length > 0 ? sortedVideos : allDBVideos);
+        setRecommendedVideos(sortedVideos.length > 0 ? sortedVideos : allDBVideos.filter(v => v.author));
 
       } catch(e) {
         console.error("AI recommendation failed, falling back to all videos", e)
-        setRecommendedVideos(allDBVideos);
+        setRecommendedVideos(allDBVideos.filter(v => v.author));
       } finally {
         setLoading(false);
       }
