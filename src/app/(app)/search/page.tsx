@@ -52,7 +52,7 @@ function SearchResults({ query, allVideos }: { query: string, allVideos: Video[]
   }, [query, allVideos]);
 
   if (loading) {
-    return <div className="text-center py-20">Loading search results...</div>;
+    return <div className="text-center py-20">Arama sonuçları yükleniyor...</div>;
   }
 
   return (
@@ -65,7 +65,7 @@ function SearchResults({ query, allVideos }: { query: string, allVideos: Video[]
         </div>
       ) : (
         <div className="text-center text-muted-foreground py-20">
-          <p className="text-lg">No results found for &quot;{query}&quot;</p>
+          <p className="text-lg">&quot;{query}&quot; için sonuç bulunamadı</p>
         </div>
       )}
     </>
@@ -89,12 +89,12 @@ function SearchPageClient() {
     }, []);
 
     if (loading && !allVideos.length) {
-        return <div className="text-center py-20">Loading...</div>;
+        return <div className="text-center py-20">Yükleniyor...</div>;
     }
 
     return (
         <div>
-            <h1 className="text-2xl font-bold mb-6">Search results for &quot;{query}&quot;</h1>
+            <h1 className="text-2xl font-bold mb-6">&quot;{query}&quot; için arama sonuçları</h1>
             <SearchResults query={query} allVideos={allVideos} />
         </div>
     )
@@ -103,7 +103,7 @@ function SearchPageClient() {
 
 export default function SearchPage() {
   return (
-    <Suspense fallback={<div className="text-center py-20">Loading search...</div>}>
+    <Suspense fallback={<div className="text-center py-20">Arama yükleniyor...</div>}>
       <SearchPageClient />
     </Suspense>
   )

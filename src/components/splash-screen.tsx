@@ -14,16 +14,22 @@ export function SplashScreen() {
     const checkUserAndRedirect = async () => {
       if (isRedirecting.current) return;
       isRedirecting.current = true;
-      const user = await getCurrentUser();
-      if (user) {
-        router.push('/home');
-      } else {
+      try {
+        const user = await getCurrentUser();
+        if (user) {
+          router.push('/home');
+        } else {
+          router.push('/login');
+        }
+      } catch (error) {
+        console.error("Yönlendirme sırasında hata:", error);
+        // Fallback to login page on error
         router.push('/login');
       }
     };
 
-    // Use a timeout to ensure the redirect logic runs, giving the video a moment to play.
-    const timer = setTimeout(checkUserAndRedirect, 2000); // Redirect after 2 seconds
+    // Give a brief moment for the animation to be seen before checking the user state.
+    const timer = setTimeout(checkUserAndRedirect, 1000); // Redirect after 1 second
 
     return () => {
       clearTimeout(timer);
@@ -35,7 +41,7 @@ export function SplashScreen() {
     const playVideo = (ref: React.RefObject<HTMLVideoElement>) => {
       if (ref.current) {
         ref.current.play().catch(error => {
-          console.error("Video play failed:", error);
+          console.error("Video oynatılamadı:", error);
         });
       }
     };

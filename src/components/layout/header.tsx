@@ -69,7 +69,7 @@ export default function Header() {
             <Input
               type="search"
               name="search"
-              placeholder="Search videos and channels..."
+              placeholder="Video ve kanal ara..."
               className="rounded-full pl-8 sm:w-[300px] md:w-[200px] lg:w-[300px]"
             />
           </div>
@@ -77,13 +77,13 @@ export default function Header() {
         <Button variant="ghost" size="icon" className="rounded-full" asChild>
           <Link href="/notifications">
             <Bell className="h-5 w-5" />
-            <span className="sr-only">Toggle notifications</span>
+            <span className="sr-only">Bildirimleri aç/kapat</span>
           </Link>
         </Button>
         <Button asChild className="gap-1 rounded-full bg-primary hover:bg-primary/90">
           <Link href="/upload">
             <Plus className="h-4 w-4" />
-            <span className="hidden sm:inline">Upload</span>
+            <span className="hidden sm:inline">Yükle</span>
           </Link>
         </Button>
         <DropdownMenu>
@@ -97,17 +97,17 @@ export default function Header() {
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-56">
             <DropdownMenuItem asChild>
-                <Link href={`/channel/${currentUser.username}`}>My Channel</Link>
+                <Link href={`/channel/${currentUser.username}`}>Kanalım</Link>
             </DropdownMenuItem>
             <DropdownMenuItem asChild>
-                <Link href="/messages">Messages</Link>
+                <Link href="/messages">Mesajlar</Link>
             </DropdownMenuItem>
             <DropdownMenuItem asChild>
-                <Link href="/settings">Settings</Link>
+                <Link href="/settings">Ayarlar</Link>
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem className="text-destructive focus:text-destructive focus:bg-destructive/10" onClick={handleLogout}>
-              Log out
+              Çıkış Yap
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

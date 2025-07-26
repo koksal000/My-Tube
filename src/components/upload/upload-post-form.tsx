@@ -65,13 +65,13 @@ export function UploadPostForm() {
     
     const currentUser = await getCurrentUser();
     if (!currentUser) {
-        toast({ title: "Error", description: "You must be logged in to post.", variant: "destructive" });
+        toast({ title: "Hata", description: "Gönderi oluşturmak için giriş yapmalısınız.", variant: "destructive" });
         setIsUploading(false);
         return;
     }
 
     if (!imageFile || imageFile.size === 0) {
-        toast({ title: "Missing Image", description: "Please select an image file.", variant: "destructive" });
+        toast({ title: "Eksik Resim", description: "Lütfen bir resim dosyası seçin.", variant: "destructive" });
         setIsUploading(false);
         return;
     }
@@ -92,14 +92,14 @@ export function UploadPostForm() {
         await addPost(newPost);
 
         toast({
-            title: "Post Created!",
-            description: "Your new post is now live.",
+            title: "Gönderi Oluşturuldu!",
+            description: "Yeni gönderiniz şimdi yayında.",
         });
         router.push(`/channel/${currentUser.username}`);
 
     } catch (error) {
         console.error("Upload failed", error);
-        toast({ title: "Upload Failed", description: "Could not process the image file.", variant: "destructive" });
+        toast({ title: "Yükleme Başarısız", description: "Resim dosyası işlenemedi.", variant: "destructive" });
     } finally {
         setIsUploading(false);
     }
@@ -108,15 +108,15 @@ export function UploadPostForm() {
   return (
     <form onSubmit={handlePostUpload} className="grid gap-4">
       <div className="grid gap-2">
-        <Label htmlFor="caption">Caption</Label>
-        <Textarea id="caption" name="caption" placeholder="What's on your mind?" disabled={isUploading} />
+        <Label htmlFor="caption">Açıklama</Label>
+        <Textarea id="caption" name="caption" placeholder="Aklınızda ne var?" disabled={isUploading} />
       </div>
       <div className="grid gap-2">
-        <Label htmlFor="image">Image</Label>
+        <Label htmlFor="image">Resim</Label>
         <Input id="image" name="image" type="file" accept="image/*" required disabled={isUploading} />
       </div>
       <Button type="submit" className="w-full" disabled={isUploading}>
-        {isUploading ? 'Posting...' : 'Create Post'}
+        {isUploading ? 'Gönderiliyor...' : 'Gönderi Oluştur'}
       </Button>
     </form>
   )

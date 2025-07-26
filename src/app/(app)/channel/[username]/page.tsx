@@ -60,7 +60,7 @@ export default function ChannelPage() {
 
 
   if (!channelUser) {
-    return <div className="text-center py-20">Loading Channel...</div>;
+    return <div className="text-center py-20">Kanal Yükleniyor...</div>;
   }
 
   return (
@@ -68,7 +68,7 @@ export default function ChannelPage() {
         <div className="mb-8">
             {channelUser.banner && (
               <div className="h-48 w-full rounded-lg bg-secondary">
-                  <Image src={channelUser.banner} alt="Channel banner" width={1200} height={300} className="w-full h-full object-cover rounded-lg" data-ai-hint="channel banner abstract"/>
+                  <Image src={channelUser.banner} alt="Kanal banner'ı" width={1200} height={300} className="w-full h-full object-cover rounded-lg" data-ai-hint="channel banner abstract"/>
               </div>
             )}
             <div className={`flex items-end gap-4 px-8 ${channelUser.banner ? '-mt-16' : 'mt-8'}`}>
@@ -78,13 +78,13 @@ export default function ChannelPage() {
                 </Avatar>
                 <div className="pb-4 flex-grow">
                     <h1 className="text-3xl font-bold">{channelUser.displayName}</h1>
-                    <p className="text-muted-foreground">@{channelUser.username} &bull; {channelUser.subscribers.toLocaleString()} subscribers</p>
+                    <p className="text-muted-foreground">@{channelUser.username} &bull; {channelUser.subscribers.toLocaleString()} abone</p>
                 </div>
                 <div className="pb-4">
                   {isOwnProfile ? (
                      <EditProfileDialog user={channelUser} onProfileUpdate={handleProfileUpdate} />
                   ) : (
-                    <Button size="lg" className="rounded-full">Subscribe</Button>
+                    <Button size="lg" className="rounded-full">Abone Ol</Button>
                   )}
                 </div>
             </div>
@@ -92,9 +92,9 @@ export default function ChannelPage() {
 
         <Tabs defaultValue="videos" className="w-full">
             <TabsList className="mb-6 grid w-full grid-cols-3">
-                <TabsTrigger value="videos">Videos</TabsTrigger>
-                <TabsTrigger value="posts">Posts</TabsTrigger>
-                <TabsTrigger value="about">About</TabsTrigger>
+                <TabsTrigger value="videos">Videolar</TabsTrigger>
+                <TabsTrigger value="posts">Gönderiler</TabsTrigger>
+                <TabsTrigger value="about">Hakkında</TabsTrigger>
             </TabsList>
             <TabsContent value="videos">
                 <div className="grid grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
@@ -117,7 +117,7 @@ export default function ChannelPage() {
              <TabsContent value="about">
                 <Card>
                     <CardContent className="p-6">
-                        <p className="whitespace-pre-wrap">{channelUser.about || `Welcome to the official channel of ${channelUser.displayName}!`}</p>
+                        <p className="whitespace-pre-wrap">{channelUser.about || `${channelUser.displayName} kanalına hoş geldiniz!`}</p>
                     </CardContent>
                 </Card>
             </TabsContent>

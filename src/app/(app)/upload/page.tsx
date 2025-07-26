@@ -11,15 +11,15 @@ export default function UploadPage() {
         <div className="max-w-2xl mx-auto">
             <Tabs defaultValue="video" className="w-full">
                 <TabsList className="grid w-full grid-cols-2">
-                    <TabsTrigger value="video">Upload Video</TabsTrigger>
-                    <TabsTrigger value="post">Create Post</TabsTrigger>
+                    <TabsTrigger value="video">Video Yükle</TabsTrigger>
+                    <TabsTrigger value="post">Gönderi Oluştur</TabsTrigger>
                 </TabsList>
                 <TabsContent value="video">
                     <Card>
                         <CardHeader>
-                            <CardTitle>Upload a new video</CardTitle>
+                            <CardTitle>Yeni bir video yükle</CardTitle>
                             <CardDescription>
-                                Share your latest creation with the community. Please provide a title, description, and the video file.
+                                En son eserinizi toplulukla paylaşın. Lütfen bir başlık, açıklama ve video dosyası sağlayın.
                             </CardDescription>
                         </CardHeader>
                         <CardContent>
@@ -30,9 +30,9 @@ export default function UploadPage() {
                 <TabsContent value="post">
                     <Card>
                         <CardHeader>
-                            <CardTitle>Create a new post</CardTitle>
+                            <CardTitle>Yeni bir gönderi oluştur</CardTitle>
                             <CardDescription>
-                                Share an image and a caption with your followers.
+                                Takipçilerinizle bir resim ve bir başlık paylaşın.
                             </CardDescription>
                         </CardHeader>
                         <CardContent>

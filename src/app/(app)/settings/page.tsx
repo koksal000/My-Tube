@@ -5,36 +5,36 @@ import { Switch } from "@/components/ui/switch";
 export default function SettingsPage() {
   return (
     <div>
-      <h1 className="text-2xl font-bold mb-6">Settings</h1>
+      <h1 className="text-2xl font-bold mb-6">Ayarlar</h1>
       <Card>
         <CardHeader>
-          <CardTitle>Preferences</CardTitle>
-          <CardDescription>Manage your application settings.</CardDescription>
+          <CardTitle>Tercihler</CardTitle>
+          <CardDescription>Uygulama ayarlarınızı yönetin.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
             <div className="flex items-center justify-between space-x-2">
                 <Label htmlFor="notifications" className="flex flex-col space-y-1">
-                    <span>Email Notifications</span>
+                    <span>E-posta Bildirimleri</span>
                     <span className="font-normal leading-snug text-muted-foreground">
-                        Receive notifications about new content and replies.
+                        Yeni içerikler ve yanıtlar hakkında bildirim alın.
                     </span>
                 </Label>
                 <Switch id="notifications" defaultChecked />
             </div>
             <div className="flex items-center justify-between space-x-2">
                 <Label htmlFor="autoplay" className="flex flex-col space-y-1">
-                    <span>Autoplay</span>
+                    <span>Otomatik Oynatma</span>
                     <span className="font-normal leading-snug text-muted-foreground">
-                        Automatically play the next video.
+                        Bir sonraki videoyu otomatik olarak oynatın.
                     </span>
                 </Label>
                 <Switch id="autoplay" defaultChecked />
             </div>
             <div className="flex items-center justify-between space-x-2">
                 <Label htmlFor="show-gifs" className="flex flex-col space-y-1">
-                    <span>Show GIFs in comments</span>
+                    <span>Yorumlarda GIF'leri göster</span>
                     <span className="font-normal leading-snug text-muted-foreground">
-                        Disabling this can improve performance.
+                        Bunu devre dışı bırakmak performansı artırabilir.
                     </span>
                 </Label>
                 <Switch id="show-gifs" defaultChecked />

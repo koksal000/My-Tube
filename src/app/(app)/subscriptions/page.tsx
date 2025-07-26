@@ -37,12 +37,12 @@ export default function SubscriptionsPage() {
   }, [router]);
 
   if(loading) {
-      return <div>Loading subscriptions...</div>
+      return <div>Abonelikler yükleniyor...</div>
   }
 
   return (
     <div>
-      <h1 className="text-2xl font-bold mb-6">Subscriptions</h1>
+      <h1 className="text-2xl font-bold mb-6">Abonelikler</h1>
       {subscriptionVideos.length > 0 ? (
         <div className="grid grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {subscriptionVideos.map(video => (
@@ -51,8 +51,8 @@ export default function SubscriptionsPage() {
         </div>
       ) : (
         <div className="text-center text-muted-foreground py-20">
-          <p className="text-lg">You haven't subscribed to any channels yet.</p>
-          <p>Videos from channels you subscribe to will appear here.</p>
+          <p className="text-lg">Henüz hiçbir kanala abone olmadınız.</p>
+          <p>Abone olduğunuz kanalların videoları burada görünecek.</p>
         </div>
       )}
     </div>

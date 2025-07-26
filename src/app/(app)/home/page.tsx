@@ -66,7 +66,7 @@ export default function HomePage() {
   }, [router]);
 
   if (loading) {
-    return <div>Loading recommendations...</div>
+    return <div>Öneriler yükleniyor...</div>
   }
   
   return (

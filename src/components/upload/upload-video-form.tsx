@@ -35,13 +35,13 @@ export function UploadVideoForm() {
     
     const currentUser = await getCurrentUser();
     if (!currentUser) {
-        toast({ title: "Error", description: "You must be logged in to upload.", variant: "destructive" });
+        toast({ title: "Hata", description: "Yükleme yapmak için giriş yapmalısınız.", variant: "destructive" });
         setIsUploading(false);
         return;
     }
 
     if (!title || !thumbnailFile || !videoFile || thumbnailFile.size === 0 || videoFile.size === 0) {
-        toast({ title: "Missing fields", description: "Please fill all fields and select files.", variant: "destructive" });
+        toast({ title: "Eksik alanlar", description: "Lütfen tüm alanları doldurun ve dosyaları seçin.", variant: "destructive" });
         setIsUploading(false);
         return;
     }
@@ -70,14 +70,14 @@ export function UploadVideoForm() {
       await addVideo(newVideo);
 
       toast({
-          title: "Upload Successful!",
-          description: "Your video has been uploaded and is now available.",
+          title: "Yükleme Başarılı!",
+          description: "Videonuz yüklendi ve şimdi mevcut.",
       });
       router.push(`/video/${newVideo.id}`);
 
     } catch (error) {
       console.error("Upload failed", error);
-      toast({ title: "Upload Failed", description: "An error occurred during upload. The file might be too large.", variant: "destructive" });
+      toast({ title: "Yükleme Başarısız", description: "Yükleme sırasında bir hata oluştu. Dosya çok büyük olabilir.", variant: "destructive" });
     } finally {
       setIsUploading(false);
     }
@@ -86,15 +86,15 @@ export function UploadVideoForm() {
   return (
     <form onSubmit={handleVideoUpload} className="grid gap-4">
       <div className="grid gap-2">
-        <Label htmlFor="title">Title</Label>
-        <Input id="title" name="title" placeholder="My awesome video" required disabled={isUploading} />
+        <Label htmlFor="title">Başlık</Label>
+        <Input id="title" name="title" placeholder="Harika videom" required disabled={isUploading} />
       </div>
        <div className="grid gap-2">
-        <Label htmlFor="description">Description</Label>
-        <Textarea id="description" name="description" placeholder="A short description of your video." required disabled={isUploading} />
+        <Label htmlFor="description">Açıklama</Label>
+        <Textarea id="description" name="description" placeholder="Videonuzun kısa bir açıklaması." required disabled={isUploading} />
       </div>
       <div className="grid gap-2">
-        <Label htmlFor="thumbnail">Thumbnail</Label>
+        <Label htmlFor="thumbnail">Küçük Resim</Label>
         <Input id="thumbnail" name="thumbnail" type="file" accept="image/*" required disabled={isUploading} />
       </div>
        <div className="grid gap-2">
@@ -102,7 +102,7 @@ export function UploadVideoForm() {
         <Input id="video" name="video" type="file" accept="video/*" required disabled={isUploading}/>
       </div>
       <Button type="submit" className="w-full" disabled={isUploading}>
-        {isUploading ? 'Uploading...' : 'Upload Video'}
+        {isUploading ? 'Yükleniyor...' : 'Video Yükle'}
       </Button>
     </form>
   )

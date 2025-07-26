@@ -60,26 +60,26 @@ export default function SidebarContentComponent() {
       <SidebarContent className="p-2">
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton asChild isActive={isActive('/home')} tooltip="Home">
+            <SidebarMenuButton asChild isActive={isActive('/home')} tooltip="Ana Sayfa">
               <Link href="/home">
                 <Home />
-                <span>Home</span>
+                <span>Ana Sayfa</span>
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
           <SidebarMenuItem>
-            <SidebarMenuButton asChild isActive={isActive('/explore')} tooltip="Explore">
+            <SidebarMenuButton asChild isActive={isActive('/explore')} tooltip="Keşfet">
               <Link href="/explore">
                 <Compass />
-                <span>Explore</span>
+                <span>Keşfet</span>
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
           <SidebarMenuItem>
-            <SidebarMenuButton asChild isActive={isActive('/subscriptions')} tooltip="Subscriptions">
+            <SidebarMenuButton asChild isActive={isActive('/subscriptions')} tooltip="Abonelikler">
               <Link href="/subscriptions">
                 <Youtube />
-                <span>Subscriptions</span>
+                <span>Abonelikler</span>
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
@@ -89,18 +89,18 @@ export default function SidebarContentComponent() {
 
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton asChild isActive={isActive('/liked')} tooltip="Liked Videos">
+            <SidebarMenuButton asChild isActive={isActive('/liked')} tooltip="Beğenilenler">
               <Link href="/liked">
                 <ThumbsUp />
-                <span>Liked Videos</span>
+                <span>Beğenilenler</span>
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
           <SidebarMenuItem>
-            <SidebarMenuButton asChild isActive={isActive('/history')} tooltip="History">
+            <SidebarMenuButton asChild isActive={isActive('/history')} tooltip="Geçmiş">
               <Link href="/history">
                 <History />
-                <span>History</span>
+                <span>Geçmiş</span>
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
@@ -109,7 +109,7 @@ export default function SidebarContentComponent() {
         <Separator className="my-4" />
         
         <div className="px-2 mb-2 text-sm font-medium text-muted-foreground group-data-[collapsible=icon]:hidden">
-            Subscriptions
+            Abonelikler
         </div>
         <SidebarMenu>
             {subscriptions.map(sub => (
@@ -131,10 +131,10 @@ export default function SidebarContentComponent() {
       <SidebarFooter className="p-2">
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton asChild isActive={isActive('/settings')} tooltip="Settings">
+            <SidebarMenuButton asChild isActive={isActive('/settings')} tooltip="Ayarlar">
               <Link href="/settings">
                 <Settings />
-                <span>Settings</span>
+                <span>Ayarlar</span>
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>

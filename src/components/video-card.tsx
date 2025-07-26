@@ -14,22 +14,22 @@ function timeAgo(dateString: string) {
     const date = new Date(dateString);
     const seconds = Math.floor((new Date().getTime() - date.getTime()) / 1000);
     let interval = seconds / 31536000;
-    if (interval > 1) return Math.floor(interval) + " years ago";
+    if (interval > 1) return Math.floor(interval) + " yıl önce";
     interval = seconds / 2592000;
-    if (interval > 1) return Math.floor(interval) + " months ago";
+    if (interval > 1) return Math.floor(interval) + " ay önce";
     interval = seconds / 86400;
-    if (interval > 1) return Math.floor(interval) + " days ago";
+    if (interval > 1) return Math.floor(interval) + " gün önce";
     interval = seconds / 3600;
-    if (interval > 1) return Math.floor(interval) + " hours ago";
+    if (interval > 1) return Math.floor(interval) + " saat önce";
     interval = seconds / 60;
-    if (interval > 1) return Math.floor(interval) + " minutes ago";
-    return "just now";
+    if (interval > 1) return Math.floor(interval) + " dakika önce";
+    return "az önce";
 }
 
 function formatViews(views: number) {
-    if (views >= 1000000) return `${(views / 1000000).toFixed(1)}M views`;
-    if (views >= 1000) return `${(views / 1000).toFixed(0)}K views`;
-    return `${views} views`;
+    if (views >= 1000000) return `${(views / 1000000).toFixed(1)}M izlenme`;
+    if (views >= 1000) return `${(views / 1000).toFixed(0)}B izlenme`;
+    return `${views} izlenme`;
 }
 
 export function VideoCard({ video }: { video: Video }) {

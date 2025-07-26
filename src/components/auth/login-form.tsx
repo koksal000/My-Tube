@@ -53,31 +53,31 @@ export function LoginForm() {
     <Card className="mx-auto max-w-sm border-2 border-primary/20 shadow-xl shadow-primary/10">
       <CardHeader>
         <MyTubeLogo />
-        <CardTitle className="text-2xl text-center">Login</CardTitle>
+        <CardTitle className="text-2xl text-center">Giriş Yap</CardTitle>
         <CardDescription className="text-center">
-          Enter your username below to login to your account
+          Hesabınıza giriş yapmak için kullanıcı adınızı girin
         </CardDescription>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleLogin} className="grid gap-4">
           <div className="grid gap-2">
-            <Label htmlFor="username">Username</Label>
-            <Input id="username" name="username" type="text" placeholder="yourusername" required />
+            <Label htmlFor="username">Kullanıcı Adı</Label>
+            <Input id="username" name="username" type="text" placeholder="kullanıcıadınız" required />
           </div>
           <div className="grid gap-2">
             <div className="flex items-center">
-              <Label htmlFor="password">Password</Label>
+              <Label htmlFor="password">Şifre</Label>
             </div>
             <Input id="password" name="password" type="password" required />
           </div>
           <Button type="submit" className="w-full">
-            Login
+            Giriş Yap
           </Button>
         </form>
         <div className="mt-4 text-center text-sm">
-          Don&apos;t have an account?{" "}
+          Hesabınız yok mu?{" "}
           <Link href="/register" className="underline text-accent">
-            Sign up
+            Kayıt Ol
           </Link>
         </div>
       </CardContent>

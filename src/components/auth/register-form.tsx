@@ -93,32 +93,32 @@ export function RegisterForm() {
     <Card className="mx-auto max-w-sm border-2 border-primary/20 shadow-xl shadow-primary/10">
       <CardHeader>
         <MyTubeLogo />
-        <CardTitle className="text-2xl text-center">Sign Up</CardTitle>
+        <CardTitle className="text-2xl text-center">Kayıt Ol</CardTitle>
         <CardDescription className="text-center">
-            Create your account to start sharing and watching videos.
+            Video paylaşmaya ve izlemeye başlamak için hesabınızı oluşturun.
         </CardDescription>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleRegister} className="grid gap-4">
           <div className="grid gap-2">
-            <Label htmlFor="username">Username</Label>
-            <Input id="username" name="username" placeholder="yourusername" required />
+            <Label htmlFor="username">Kullanıcı Adı</Label>
+            <Input id="username" name="username" placeholder="kullanıcıadınız" required />
           </div>
           <div className="grid gap-2">
-            <Label htmlFor="displayName">Display Name</Label>
-            <Input id="displayName" name="displayName" placeholder="Your Name" required />
+            <Label htmlFor="displayName">Görünen Ad</Label>
+            <Input id="displayName" name="displayName" placeholder="Adınız" required />
           </div>
           <div className="grid gap-2">
-            <Label htmlFor="password">Password</Label>
+            <Label htmlFor="password">Şifre</Label>
             <Input id="password" name="password" type="password" required />
           </div>
           <div className="grid gap-2">
-            <Label htmlFor="profile-picture">Profile Picture</Label>
+            <Label htmlFor="profile-picture">Profil Resmi</Label>
             <Input id="profile-picture" name="profile-picture" type="file" accept="image/*" />
           </div>
            <div className="grid gap-2">
-            <Label htmlFor="about">About</Label>
-            <Textarea id="about" name="about" placeholder="Tell everyone a little bit about yourself." />
+            <Label htmlFor="about">Hakkında</Label>
+            <Textarea id="about" name="about" placeholder="Herkese kendinizden biraz bahsedin." />
           </div>
           <div className="flex items-center space-x-2">
             <Checkbox id="add-banner" checked={addBanner} onCheckedChange={(checked) => setAddBanner(checked as boolean)} />
@@ -126,23 +126,23 @@ export function RegisterForm() {
               htmlFor="add-banner"
               className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
             >
-              I want to add a banner.
+              Bir banner eklemek istiyorum.
             </label>
           </div>
            {addBanner && (
             <div className="grid gap-2">
-              <Label htmlFor="banner">Channel Banner</Label>
+              <Label htmlFor="banner">Kanal Banner'ı</Label>
               <Input id="banner" name="banner" type="file" accept="image/*" required={addBanner} />
             </div>
            )}
           <Button type="submit" className="w-full">
-            Create an account
+            Hesap Oluştur
           </Button>
         </form>
         <div className="mt-4 text-center text-sm">
-          Already have an account?{" "}
+          Zaten bir hesabınız var mı?{" "}
           <Link href="/login" className="underline text-accent">
-            Log in
+            Giriş Yap
           </Link>
         </div>
       </CardContent>

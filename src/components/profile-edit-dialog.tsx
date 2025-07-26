@@ -57,8 +57,8 @@ export function EditProfileDialog({ user, onProfileUpdate }: EditProfileDialogPr
             const existingUser = await getUserByUsername(username);
             if (existingUser) {
                 toast({
-                    title: "Username taken",
-                    description: "This username is already in use. Please choose another one.",
+                    title: "Kullanıcı adı alınmış",
+                    description: "Bu kullanıcı adı zaten kullanılıyor. Lütfen başka bir tane seçin.",
                     variant: "destructive",
                 });
                 return;
@@ -91,8 +91,8 @@ export function EditProfileDialog({ user, onProfileUpdate }: EditProfileDialogPr
         onProfileUpdate(updatedUser);
         
         toast({
-            title: "Profile Updated",
-            description: "Your profile information has been successfully updated.",
+            title: "Profil Güncellendi",
+            description: "Profil bilgileriniz başarıyla güncellendi.",
         });
         
         setIsOpen(false);
@@ -101,19 +101,19 @@ export function EditProfileDialog({ user, onProfileUpdate }: EditProfileDialogPr
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
-        <Button size="lg" variant="outline" className="rounded-full">Edit Profile</Button>
+        <Button size="lg" variant="outline" className="rounded-full">Profili Düzenle</Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Edit profile</DialogTitle>
+          <DialogTitle>Profili düzenle</DialogTitle>
           <DialogDescription>
-            Make changes to your profile here. Click save when you're done.
+            Profilinizde değişiklik yapın. Bittiğinde kaydet'e tıklayın.
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="displayName" className="text-right">
-              Display Name
+              Görünen Ad
             </Label>
             <Input
               id="displayName"
@@ -124,7 +124,7 @@ export function EditProfileDialog({ user, onProfileUpdate }: EditProfileDialogPr
           </div>
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="username" className="text-right">
-              Username
+              Kullanıcı Adı
             </Label>
             <Input
               id="username"
@@ -135,19 +135,19 @@ export function EditProfileDialog({ user, onProfileUpdate }: EditProfileDialogPr
           </div>
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="about" className="text-right">
-              About
+              Hakkında
             </Label>
             <Textarea
               id="about"
               value={about}
               onChange={(e) => setAbout(e.target.value)}
               className="col-span-3"
-              placeholder="Tell everyone about your channel."
+              placeholder="Kanalınız hakkında bilgi verin."
             />
           </div>
            <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="profile-picture" className="text-right">
-              Profile Picture
+              Profil Resmi
             </Label>
             <Input
               id="profile-picture"
@@ -175,13 +175,13 @@ export function EditProfileDialog({ user, onProfileUpdate }: EditProfileDialogPr
             </Label>
             <div className="col-span-3 flex items-center space-x-2">
                 <Checkbox id="remove-banner" checked={removeBanner} onCheckedChange={(checked) => setRemoveBanner(checked as boolean)} />
-                <label htmlFor="remove-banner" className="text-sm font-medium leading-none">Remove banner</label>
+                <label htmlFor="remove-banner" className="text-sm font-medium leading-none">Banner'ı kaldır</label>
             </div>
           </div>
         </div>
         <DialogFooter>
-          <Button onClick={() => setIsOpen(false)} variant="ghost">Cancel</Button>
-          <Button type="button" onClick={handleSaveChanges}>Save changes</Button>
+          <Button onClick={() => setIsOpen(false)} variant="ghost">İptal</Button>
+          <Button type="button" onClick={handleSaveChanges}>Değişiklikleri Kaydet</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

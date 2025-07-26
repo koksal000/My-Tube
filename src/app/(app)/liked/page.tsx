@@ -28,12 +28,12 @@ export default function LikedPage() {
   }, [router]);
 
   if (loading) {
-      return <div>Loading liked videos...</div>
+      return <div>Beğenilen videolar yükleniyor...</div>
   }
 
   return (
     <div>
-      <h1 className="text-2xl font-bold mb-6">Liked Videos</h1>
+      <h1 className="text-2xl font-bold mb-6">Beğenilen Videolar</h1>
       {likedVideos.length > 0 ? (
         <div className="grid grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {likedVideos.map(video => (
@@ -42,8 +42,8 @@ export default function LikedPage() {
         </div>
       ) : (
         <div className="text-center text-muted-foreground py-20">
-          <p className="text-lg">You haven't liked any videos yet.</p>
-          <p>Your liked videos will appear here.</p>
+          <p className="text-lg">Henüz hiç video beğenmediniz.</p>
+          <p>Beğendiğiniz videolar burada görünecek.</p>
         </div>
       )}
     </div>

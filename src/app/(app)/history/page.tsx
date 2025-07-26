@@ -28,12 +28,12 @@ export default function HistoryPage() {
     }, [router]);
 
     if(loading) {
-        return <div>Loading history...</div>
+        return <div>Geçmiş yükleniyor...</div>
     }
 
     return (
         <div>
-            <h1 className="text-2xl font-bold mb-6">Watch History</h1>
+            <h1 className="text-2xl font-bold mb-6">İzleme Geçmişi</h1>
             {viewedVideos.length > 0 ? (
                 <div className="grid grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                 {viewedVideos.map(video => (
@@ -42,7 +42,7 @@ export default function HistoryPage() {
                 </div>
             ) : (
                 <div className="text-center text-muted-foreground py-20">
-                    <p className="text-lg">Your watch history is empty.</p>
+                    <p className="text-lg">İzleme geçmişiniz boş.</p>
                 </div>
             )}
         </div>
