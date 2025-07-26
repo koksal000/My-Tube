@@ -29,7 +29,7 @@ export function SplashScreen() {
     };
 
     // Give a brief moment for the animation to be seen before checking the user state.
-    const timer = setTimeout(checkUserAndRedirect, 1000); // Redirect after 1 second
+    const timer = setTimeout(checkUserAndRedirect, 8000); // Redirect after 8 seconds
 
     return () => {
       clearTimeout(timer);
@@ -59,6 +59,7 @@ export function SplashScreen() {
           loop
           muted
           playsInline
+          autoPlay
           className="absolute inset-0 w-full h-full object-cover blur-2xl scale-150"
         />
         {/* Foreground video */}
@@ -69,8 +70,8 @@ export function SplashScreen() {
             loop
             muted
             playsInline
-            className="w-full h-full object-cover"
             autoPlay
+            className="w-full h-full object-cover"
           />
         </div>
         <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center space-x-2 text-primary font-bold text-2xl drop-shadow-lg">
