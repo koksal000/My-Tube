@@ -78,7 +78,7 @@ export default function VideoPage() {
     fetchVideoData();
   }, [params.id, router]);
 
-  const handleLike = async () => {
+  const handleLike = () => {
     if (!currentUser || !video) return;
 
     let updatedLikedVideos = [...currentUser.likedVideos];
@@ -104,7 +104,7 @@ export default function VideoPage() {
     }
   };
 
-  const handleSubscription = async () => {
+  const handleSubscription = () => {
      if (!currentUser || !video?.author) return;
      
      let updatedSubscriptions = [...currentUser.subscriptions];
@@ -135,7 +135,7 @@ export default function VideoPage() {
       router.refresh();
   };
 
-  const handleAddComment = async () => {
+  const handleAddComment = () => {
     if (!currentUser || !video || !commentText.trim()) return;
 
     const newCommentOmitAuthor: Omit<Comment, 'author'> = {
@@ -174,7 +174,7 @@ export default function VideoPage() {
     <div className="mx-auto max-w-screen-2xl">
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
         <div className="lg:col-span-2">
-          <div className="aspect-square w-full overflow-hidden rounded-xl bg-black shadow-lg">
+          <div className="aspect-video w-full overflow-hidden rounded-xl bg-black shadow-lg">
             <video
               src={video.videoUrl}
               controls

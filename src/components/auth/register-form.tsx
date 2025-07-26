@@ -10,7 +10,7 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { useToast } from "@/hooks/use-toast"
 import type { User } from "@/lib/types"
 import React from "react"
-import { addUser, getUserByUsername } from "@/lib/data"
+import { addUser, getUserByUsername, setCurrentUser } from "@/lib/data"
 import { Textarea } from "../ui/textarea"
 
 const MyTubeLogo = () => (
@@ -81,12 +81,14 @@ export function RegisterForm() {
     };
     
     addUser(newUser);
+    setCurrentUser(newUser);
     
     toast({
         title: "Kayıt Başarılı!",
-        description: "Hesabınız oluşturuldu. Şimdi giriş yapabilirsiniz.",
+        description: "Hesabınız oluşturuldu. Ana sayfaya yönlendiriliyorsunuz.",
     });
-    router.push("/login")
+    router.push("/home");
+    router.refresh();
   }
 
   return (
