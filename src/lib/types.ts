@@ -3,13 +3,13 @@ export interface User {
   username: string;
   displayName: string;
   profilePicture: string;
-  banner?: string; // Optional banner image
-  about?: string; // Optional about text
+  banner?: string; 
+  about?: string; 
   subscribers: number;
   subscriptions: string[]; // array of user ids
   likedVideos: string[]; // array of video ids
   viewedVideos: string[]; // array of video ids
-  password?: string; // Only for storage, should not be exposed on client
+  password?: string;
 }
 
 export interface Video {
@@ -20,7 +20,7 @@ export interface Video {
   videoUrl: string;
   duration: number; // in seconds
   author: User;
-  authorId: string; // Keep for mapping
+  authorId: string;
   views: number;
   likes: number;
   dislikes: number;
@@ -31,6 +31,7 @@ export interface Video {
 export interface Comment {
   id: string;
   author: User;
+  authorId: string;
   text: string;
   createdAt: string;
   likes: number;
@@ -40,10 +41,12 @@ export interface Comment {
 export interface Post {
     id: string;
     author: User;
-    authorId: string; // Keep for mapping
+    authorId: string;
     imageUrl: string;
     caption: string;
     likes: number;
     createdAt: string;
     comments: Comment[];
 }
+
+    

@@ -1,5 +1,5 @@
 import { openDB, DBSchema, IDBPDatabase } from 'idb';
-import type { User, Video, Post } from './types';
+import type { User, Video, Post, Comment } from './types';
 import initialUsers from '@/data/users.json';
 import initialVideos from '@/data/videos.json';
 import initialPosts from '@/data/posts.json';
@@ -67,10 +67,10 @@ async function initDB() {
       await userStore.add(user as User);
     }
     for (const video of initialVideos) {
-      await videoStore.add(video);
+      await videoStore.add(video as Omit<Video, 'author'>);
     }
      for (const post of initialPosts) {
-      await postStore.add(post);
+      await postStore.add(post as Omit<Post, 'author'>);
     }
     await tx.done;
     console.log('Initial data seeded.');
@@ -111,72 +111,87 @@ export async function getAllUsers(): Promise<User[]> {
 
 // --- Video Functions ---
 
-async function hydrateVideos(videoData: Omit<Video, 'author'>[]): Promise<Video[]> {
-    const authorIds = [...new Set(videoData.map(v => v.authorId))];
-    const authors = await Promise.all(authorIds.map(id => getUserById(id)));
-    const authorMap = new Map(authors.map(a => [a!.id, a!]));
+async function hydrateAuthor<T extends { authorId: string }>(items: (T & { author?: User })[]): Promise<(T & { author: User })[]> {
+    const authorIds = [...new Set(items.map(v => v.authorId))];
+    if (authorIds.length === 0) return items as (T & { author: User })[];
 
-    return videoData.map(v => ({
-        ...v,
-        author: authorMap.get(v.authorId)!
-    }));
+    const authors = await Promise.all(authorIds.map(id => getUserById(id)));
+    const authorMap = new Map(authors.filter(a => a).map(a => [a!.id, a!]));
+
+    return items
+        .map(item => ({
+            ...item,
+            author: authorMap.get(item.authorId)!,
+        }))
+        .filter(item => item.author); // Filter out items where author might not have been found
 }
+
 
 export async function getAllVideos(): Promise<Video[]> {
   const db = await initDB();
   const videos = await db.getAll('videos');
-  return hydrateVideos(videos);
+  return hydrateAuthor(videos);
 }
 
 export async function getVideoById(id: string): Promise<Video | undefined> {
     const db = await initDB();
     const videoData = await db.get('videos', id);
     if (!videoData) return undefined;
-    const author = await getUserById(videoData.authorId);
-    if (!author) throw new Error("Author not found for video");
-    return { ...videoData, author };
+    
+    const hydratedVideo = (await hydrateAuthor([videoData]))[0];
+    
+    // Hydrate authors for comments
+    if (hydratedVideo.comments && hydratedVideo.comments.length > 0) {
+        hydratedVideo.comments = await hydrateAuthor(hydratedVideo.comments);
+    }
+    
+    return hydratedVideo;
 }
 
 export async function getVideoByAuthor(authorId: string): Promise<Video[]> {
     const db = await initDB();
     const videos = await db.getAllFromIndex('videos', 'by-authorId', authorId);
-    return hydrateVideos(videos);
+    return hydrateAuthor(videos);
 }
 
 export async function addVideo(video: Omit<Video, 'author'>): Promise<void> {
     const db = await initDB();
-    await db.add('videos', video);
+    // Use put to allow updates (e.g., for likes)
+    await db.put('videos', video);
 }
-
 
 // --- Post Functions ---
-
-async function hydratePosts(postData: Omit<Post, 'author'>[]): Promise<Post[]> {
-    const authorIds = [...new Set(postData.map(p => p.authorId))];
-    const authors = await Promise.all(authorIds.map(id => getUserById(id)));
-    const authorMap = new Map(authors.map(a => [a!.id, a!]));
-
-    return postData.map(p => ({
-        ...p,
-        author: authorMap.get(p.authorId)!
-    }));
-}
 
 export async function getAllPosts(): Promise<Post[]> {
   const db = await initDB();
   const posts = await db.getAll('posts');
-  return hydratePosts(posts);
+  return hydrateAuthor(posts);
 }
 
 export async function getPostsByAuthor(authorId: string): Promise<Post[]> {
     const db = await initDB();
     const posts = await db.getAllFromIndex('posts', 'by-authorId', authorId);
-    return hydratePosts(posts);
+    return hydrateAuthor(posts);
 }
 
 export async function addPost(post: Omit<Post, 'author'>): Promise<void> {
     const db = await initDB();
     await db.add('posts', post);
+}
+
+
+// --- Comment Functions ---
+export async function addCommentToVideo(videoId: string, comment: Omit<Comment, 'author'>): Promise<void> {
+    const db = await initDB();
+    const tx = db.transaction('videos', 'readwrite');
+    const videoStore = tx.objectStore('videos');
+    const video = await videoStore.get(videoId);
+
+    if (video) {
+        video.comments.unshift(comment); // Add new comment to the top
+        await videoStore.put(video);
+    }
+    await tx.done;
 }
 
 
@@ -196,3 +211,5 @@ export async function logout(): Promise<void> {
     const db = await initDB();
     await db.delete('appState', 'currentUser');
 }
+
+    
