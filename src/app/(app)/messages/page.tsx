@@ -38,8 +38,7 @@ export default function MessagesPage() {
     const [selectedUser, setSelectedUser] = useState<User | null>(null);
     const [conversations, setConversations] = useState<User[]>([]);
     const [messageInput, setMessageInput] = useState("");
-    const [peerIdToConnect, setPeerIdToConnect] = useState("");
-
+    
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
     // Initialize PeerJS hook
@@ -58,8 +57,7 @@ export default function MessagesPage() {
             if (routerUser) {
                 const targetUser = await getUserByUsername(routerUser);
                 if (targetUser) {
-                    setSelectedUser(targetUser);
-                    setPeerIdToConnect(targetUser.id); // Assume target user's peerId is their userId
+                   handleSelectConversation(targetUser);
                 }
             }
         }
@@ -78,8 +76,9 @@ export default function MessagesPage() {
 
     const handleSelectConversation = (user: User) => {
         setSelectedUser(user);
-        setPeerIdToConnect(user.id);
-        connect(user.id);
+        if (user.id !== connectionStatus.peerId) {
+             connect(user.id);
+        }
     }
     
     const copyPeerId = () => {
@@ -140,8 +139,8 @@ export default function MessagesPage() {
                                         </div>
                                     </div>
                                     <div className="text-xs text-muted-foreground capitalize flex items-center gap-1">
-                                        <div className={`w-2 h-2 rounded-full ${connectionStatus === 'connected' ? 'bg-green-500' : 'bg-yellow-500'}`}></div>
-                                        {connectionStatus}
+                                        <div className={`w-2 h-2 rounded-full ${connectionStatus.status === 'connected' ? 'bg-green-500' : 'bg-yellow-500'}`}></div>
+                                        {connectionStatus.status}
                                     </div>
                                 </div>
                             </CardHeader>
@@ -157,9 +156,9 @@ export default function MessagesPage() {
                                         value={messageInput}
                                         onChange={(e) => setMessageInput(e.target.value)}
                                         onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
-                                        disabled={connectionStatus !== 'connected'}
+                                        disabled={connectionStatus.status !== 'connected'}
                                      />
-                                    <Button size="icon" className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8" onClick={handleSendMessage} disabled={connectionStatus !== 'connected'}>
+                                    <Button size="icon" className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8" onClick={handleSendMessage} disabled={connectionStatus.status !== 'connected'}>
                                         <Send className="h-4 w-4" />
                                     </Button>
                                 </div>

@@ -10,25 +10,38 @@ export interface MessagePayload {
     timestamp: number;
 }
 
+export type ConnectionStatus = {
+    status: 'disconnected' | 'connecting' | 'connected' | 'error';
+    peerId?: string;
+}
+
 export const usePeer = (userId: string | undefined) => {
     const [peerId, setPeerId] = useState<string | null>(null);
     const [messages, setMessages] = useState<MessagePayload[]>([]);
-    const [connectionStatus, setConnectionStatus] = useState<'disconnected' | 'connecting' | 'connected' | 'error'>('disconnected');
+    const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>({status: 'disconnected'});
     
     const peerInstance = useRef<Peer | null>(null);
     const connectionInstance = useRef<DataConnection | null>(null);
 
+    // Function to cleanly close existing connections
+    const closeConnection = () => {
+        if (connectionInstance.current) {
+            connectionInstance.current.close();
+        }
+        connectionInstance.current = null;
+        setConnectionStatus({status: 'disconnected'});
+        // Optionally clear messages of the past conversation
+        // setMessages([]); 
+    };
+
     useEffect(() => {
         if (!userId || peerInstance.current) return;
 
-        // Dynamically import PeerJS on the client side
         import('peerjs').then(({ default: Peer }) => {
-            const peer = new Peer(userId, {
-                // For production, you would configure your own PeerJS server
-                // host: 'your-peerjs-server.com',
-                // port: 9000,
-                // path: '/myapp'
-            });
+            if (peerInstance.current) {
+                peerInstance.current.destroy();
+            }
+            const peer = new Peer(userId);
             peerInstance.current = peer;
 
             peer.on('open', (id) => {
@@ -38,8 +51,9 @@ export const usePeer = (userId: string | undefined) => {
 
             peer.on('connection', (conn) => {
                 console.log('Incoming connection from', conn.peer);
+                closeConnection(); // Close any existing connection before accepting a new one
                 connectionInstance.current = conn;
-                setConnectionStatus('connected');
+                setConnectionStatus({status: 'connected', peerId: conn.peer});
                 
                 conn.on('data', (data) => {
                     setMessages(prev => [...prev, data as MessagePayload]);
@@ -47,19 +61,18 @@ export const usePeer = (userId: string | undefined) => {
 
                 conn.on('close', () => {
                     console.log('Connection closed');
-                    setConnectionStatus('disconnected');
-                    connectionInstance.current = null;
+                    closeConnection();
                 });
             });
 
             peer.on('error', (err) => {
-                console.error(err);
-                setConnectionStatus('error');
+                console.error('PeerJS error:', err);
+                setConnectionStatus({status: 'error', peerId: connectionStatus.peerId});
             });
         });
 
-        // Cleanup on component unmount
         return () => {
+            closeConnection();
             if (peerInstance.current) {
                 peerInstance.current.destroy();
                 peerInstance.current = null;
@@ -68,15 +81,23 @@ export const usePeer = (userId: string | undefined) => {
     }, [userId]);
 
     const connect = (remotePeerId: string) => {
-        if (!peerInstance.current || connectionInstance.current) return;
+        if (!peerInstance.current || !userId) return;
+        if (connectionInstance.current?.peer === remotePeerId && connectionStatus.status === 'connected') {
+            console.log("Already connected to", remotePeerId);
+            return;
+        }
+
+        closeConnection(); // Ensure any old connection is closed before starting a new one
         
-        setConnectionStatus('connecting');
-        const conn = peerInstance.current.connect(remotePeerId);
+        console.log(`Attempting to connect to ${remotePeerId}...`);
+        setConnectionStatus({status: 'connecting', peerId: remotePeerId});
+        
+        const conn = peerInstance.current.connect(remotePeerId, { reliable: true });
         connectionInstance.current = conn;
 
         conn.on('open', () => {
             console.log('Connection established to', remotePeerId);
-            setConnectionStatus('connected');
+            setConnectionStatus({status: 'connected', peerId: remotePeerId});
         });
 
         conn.on('data', (data) => {
@@ -84,26 +105,25 @@ export const usePeer = (userId: string | undefined) => {
         });
         
         conn.on('close', () => {
-            console.log('Connection closed');
-            setConnectionStatus('disconnected');
-            connectionInstance.current = null;
+            console.log('Connection closed with', remotePeerId);
+            closeConnection();
         });
 
         conn.on('error', (err) => {
-            console.error('Connection error:', err);
-            setConnectionStatus('error');
+            console.error(`Connection error with ${remotePeerId}:`, err);
+            setConnectionStatus({status: 'error', peerId: remotePeerId});
+            closeConnection();
         })
     };
 
     const sendMessage = (text: string) => {
-        if (connectionInstance.current && connectionStatus === 'connected' && peerId) {
+        if (connectionInstance.current && connectionStatus.status === 'connected' && peerId) {
             const message: MessagePayload = {
                 sender: peerId,
                 text,
                 timestamp: Date.now()
             };
             connectionInstance.current.send(message);
-            // Add own message to the chat
             setMessages(prev => [...prev, message]);
         }
     };
