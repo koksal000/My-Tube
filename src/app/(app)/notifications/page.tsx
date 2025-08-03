@@ -1,15 +1,32 @@
 "use client"
 
 import { BellRing, ThumbsUp, MessageCircle, UserPlus, GitMerge, Video } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import { useEffect, useState } from "react";
 
 // Real notification data would be fetched from a service.
 // For the prototype, we'll start with an empty array.
 const allNotifications: any[] = [];
 const mentions: any[] = [];
 const replies: any[] = [];
+
+// Helper functions to interact with localStorage
+const getSettingFromStorage = (key: string, defaultValue: boolean): boolean => {
+    if (typeof window === 'undefined') return defaultValue;
+    const savedValue = localStorage.getItem(key);
+    return savedValue !== null ? JSON.parse(savedValue) : defaultValue;
+}
+
+const setSettingInStorage = (key: string, value: boolean) => {
+    if (typeof window !== 'undefined') {
+        localStorage.setItem(key, JSON.stringify(value));
+    }
+}
+
 
 const NotificationItem = ({ notification }: { notification: any }) => {
     let icon = <BellRing className="h-5 w-5 text-gray-500" />;
@@ -43,7 +60,7 @@ const NotificationItem = ({ notification }: { notification: any }) => {
         <div key={notification.id} className="flex items-start gap-4 p-3 rounded-lg hover:bg-secondary">
             <Avatar className="h-10 w-10">
                 <AvatarImage src={notification.user.avatar} alt={notification.user.name} data-ai-hint="person face" />
-                <AvatarFallback>{notification.user.name.charAt(0)}</AvatarFallback>
+                <AvatarFallback>{(notification.user.name || 'U').charAt(0)}</AvatarFallback>
             </Avatar>
             <div className="flex-grow">
                 <div className="text-sm">{text}</div>
@@ -51,6 +68,79 @@ const NotificationItem = ({ notification }: { notification: any }) => {
             </div>
             <div className="flex-shrink-0 mt-1">{icon}</div>
         </div>
+    );
+};
+
+const NotificationSettings = () => {
+    const [likesAndComments, setLikesAndComments] = useState(true);
+    const [subscriptions, setSubscriptions] = useState(true);
+    const [mentions, setMentions] = useState(true);
+    const [isMounted, setIsMounted] = useState(false);
+
+    useEffect(() => {
+        setIsMounted(true);
+        setLikesAndComments(getSettingFromStorage('myTube-notify-likesAndComments', true));
+        setSubscriptions(getSettingFromStorage('myTube-notify-subscriptions', true));
+        setMentions(getSettingFromStorage('myTube-notify-mentions', true));
+    }, []);
+
+    const handleSettingChange = (setter: React.Dispatch<React.SetStateAction<boolean>>, key: string) => (checked: boolean) => {
+        setter(checked);
+        setSettingInStorage(key, checked);
+    };
+
+    if (!isMounted) {
+        return null; // or a loading skeleton
+    }
+
+    return (
+        <Card>
+            <CardHeader>
+                <CardTitle>Bildirim Ayarları</CardTitle>
+                <CardDescription>Hangi etkileşimler için bildirim almak istediğinizi seçin.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+                <div className="flex items-center justify-between space-x-2">
+                    <Label htmlFor="likes-comments" className="flex flex-col space-y-1">
+                        <span>Beğeniler ve Yorumlar</span>
+                        <span className="font-normal leading-snug text-muted-foreground">
+                            İçeriklerinize gelen beğeniler ve yorumlar hakkında bildirim alın.
+                        </span>
+                    </Label>
+                    <Switch 
+                        id="likes-comments" 
+                        checked={likesAndComments}
+                        onCheckedChange={handleSettingChange(setLikesAndComments, 'myTube-notify-likesAndComments')}
+                    />
+                </div>
+                <div className="flex items-center justify-between space-x-2">
+                    <Label htmlFor="subscriptions" className="flex flex-col space-y-1">
+                        <span>Abonelikler</span>
+                        <span className="font-normal leading-snug text-muted-foreground">
+                            Kanalınıza yeni birisi abone olduğunda bildirim alın.
+                        </span>
+                    </Label>
+                    <Switch 
+                        id="subscriptions" 
+                        checked={subscriptions}
+                        onCheckedChange={handleSettingChange(setSubscriptions, 'myTube-notify-subscriptions')}
+                    />
+                </div>
+                <div className="flex items-center justify-between space-x-2">
+                    <Label htmlFor="mentions" className="flex flex-col space-y-1">
+                        <span>Bahsetmeler</span>
+                        <span className="font-normal leading-snug text-muted-foreground">
+                            Birisi bir yorumda veya gönderide sizden bahsettiğinde haberdar olun.
+                        </span>
+                    </Label>
+                    <Switch 
+                        id="mentions" 
+                        checked={mentions}
+                        onCheckedChange={handleSettingChange(setMentions, 'myTube-notify-mentions')}
+                    />
+                </div>
+            </CardContent>
+        </Card>
     );
 };
 
@@ -118,9 +208,7 @@ export default function NotificationsPage() {
                     </Card>
                 </TabsContent>
                  <TabsContent value="settings">
-                    <div className="text-center text-muted-foreground py-20">
-                        <p className="text-lg">Bildirim ayarları yakında burada olacak.</p>
-                    </div>
+                    <NotificationSettings />
                 </TabsContent>
             </Tabs>
         </div>
