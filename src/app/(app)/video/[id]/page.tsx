@@ -1,15 +1,17 @@
 "use client"
 
-import { getVideoById, getAllVideos, getCurrentUser, updateUser, addCommentToVideo } from "@/lib/data";
+import { getVideoById, getAllVideos, getCurrentUser, updateUser, addCommentToVideo, getPostById } from "@/lib/data";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { ThumbsUp, ThumbsDown, Share2, BellPlus, Send, Smile, Film } from "lucide-react";
+import { ThumbsUp, ThumbsDown, Share2, BellPlus, Send, Smile, Film, Heart } from "lucide-react";
 import { VideoCard } from "@/components/video-card";
-import { useParams, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
-import type { User, Video, Comment } from "@/lib/types";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
+import { useEffect, useState, Suspense } from "react";
+import type { User, Video, Comment, Post } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import { Textarea } from "@/components/ui/textarea";
+import Image from "next/image";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 function timeAgo(dateString: string) {
     const date = new Date(dateString);
@@ -99,12 +101,14 @@ const CommentDisplay = ({ comment }: { comment: Comment }) => {
     )
 }
 
-export default function VideoPage() {
+function VideoPageClient() {
   const params = useParams<{ id: string }>();
+  const searchParams = useSearchParams();
+  const contentType = searchParams.get('type') || 'video';
   const router = useRouter();
   const { toast } = useToast();
   
-  const [video, setVideo] = useState<Video | null>(null);
+  const [content, setContent] = useState<Video | Post | null>(null);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [recommendedVideos, setRecommendedVideos] = useState<Video[]>([]);
   const [isLiked, setIsLiked] = useState(false);
@@ -113,10 +117,14 @@ export default function VideoPage() {
   const [commentText, setCommentText] = useState("");
   const [showGiphy, setShowGiphy] = useState(false);
 
-  const isIntroVideo = video?.author?.username === 'admin';
+  const isVideo = contentType === 'video' && content && 'videoUrl' in content;
+  const isPost = contentType === 'post' && content && 'imageUrl' in content;
+
+  const author = content?.author;
+  const isIntroVideo = author?.username === 'admin';
 
   useEffect(() => {
-    const fetchVideoData = async () => {
+    const fetchContentData = async () => {
         if (!params.id) return;
         setLoading(true);
 
@@ -127,25 +135,34 @@ export default function VideoPage() {
         }
         setCurrentUser(loggedInUser);
 
-        const videoData = await getVideoById(params.id as string);
-        if (videoData) {
-            setVideo(videoData);
-            setIsLiked(loggedInUser.likedVideos.includes(videoData.id));
-            if (videoData.author) {
-              setIsSubscribed(loggedInUser.subscriptions.includes(videoData.author.id));
+        let contentData: Video | Post | undefined | null = null;
+        if (contentType === 'video') {
+            contentData = await getVideoById(params.id as string);
+        } else {
+            contentData = await getPostById(params.id as string);
+        }
+
+        if (contentData) {
+            setContent(contentData);
+            if (contentData.author) {
+              setIsSubscribed(loggedInUser.subscriptions.includes(contentData.author.id));
             }
 
-            const allVideos = (await getAllVideos()).filter(v => v.author && v.author.username !== 'admin');
-            const recs = allVideos.filter(v => v.id !== params.id).sort(() => 0.5 - Math.random()).slice(0, 10);
-            setRecommendedVideos(recs);
+             if (isVideo) {
+                setIsLiked(loggedInUser.likedVideos.includes(contentData.id));
+                const allVideos = (await getAllVideos()).filter(v => v.author && v.author.username !== 'admin');
+                const recs = allVideos.filter(v => v.id !== params.id).sort(() => 0.5 - Math.random()).slice(0, 10);
+                setRecommendedVideos(recs);
+            }
         }
         setLoading(false);
     }
-    fetchVideoData();
-  }, [params.id, router]);
+    fetchContentData();
+  }, [params.id, router, contentType]);
 
   const handleLike = async () => {
-    if (!currentUser || !video) return;
+    if (!currentUser || !content || !isVideo) return;
+    const video = content as Video;
 
     let updatedLikedVideos = [...currentUser.likedVideos];
     let videoToUpdate = {...video};
@@ -162,7 +179,7 @@ export default function VideoPage() {
       const updatedUser: User = { ...currentUser, likedVideos: updatedLikedVideos };
       await updateUser(updatedUser);
       // The video data is also "updated" in memory, then persisted
-      setVideo(videoToUpdate); 
+      setContent(videoToUpdate); 
       setCurrentUser(updatedUser);
       setIsLiked(!isLiked);
       
@@ -175,16 +192,16 @@ export default function VideoPage() {
   };
 
   const handleSubscription = async () => {
-     if (!currentUser || !video?.author) return;
+     if (!currentUser || !author) return;
      
      let updatedSubscriptions = [...currentUser.subscriptions];
-     let updatedChannelUser = {...video.author};
+     let updatedChannelUser = {...author};
 
      if (isSubscribed) {
-        updatedSubscriptions = updatedSubscriptions.filter(id => id !== video.author.id);
+        updatedSubscriptions = updatedSubscriptions.filter(id => id !== author.id);
         updatedChannelUser.subscribers--;
      } else {
-        updatedSubscriptions.push(video.author.id);
+        updatedSubscriptions.push(author.id);
         updatedChannelUser.subscribers++;
      }
     
@@ -195,18 +212,18 @@ export default function VideoPage() {
 
      setCurrentUser(updatedCurrentUser);
      setIsSubscribed(!isSubscribed);
-     setVideo({...video, author: updatedChannelUser}); // update video state with new author data
+     setContent({...content, author: updatedChannelUser} as Video | Post);
      
      toast({
         title: isSubscribed ? "Abonelikten Çıkıldı" : "Abone Olundu!",
-        description: isSubscribed ? `${video.author.displayName} kanalından aboneliğinizi kaldırdınız.` : `${video.author.displayName} kanalına başarıyla abone oldunuz.`,
+        description: isSubscribed ? `${author.displayName} kanalından aboneliğinizi kaldırdınız.` : `${author.displayName} kanalına başarıyla abone oldunuz.`,
       });
       
       router.refresh();
   };
 
   const handleAddComment = async (text: string) => {
-    if (!currentUser || !video || !text.trim()) return;
+    if (!currentUser || !content || !text.trim()) return;
 
     const newCommentOmitAuthor: Omit<Comment, 'author' | 'replies'> = {
       id: `comment-${Date.now()}`,
@@ -217,11 +234,12 @@ export default function VideoPage() {
     };
     
     try {
-        await addCommentToVideo(video.id, newCommentOmitAuthor);
+        if(isVideo) {
+            await addCommentToVideo(content.id, newCommentOmitAuthor);
+        }
         
-        // Optimistically update UI
         const hydratedComment: Comment = { ...newCommentOmitAuthor, author: currentUser, replies: [] };
-        setVideo({ ...video, comments: [hydratedComment, ...video.comments] });
+        setContent({ ...content, comments: [hydratedComment, ...content.comments] } as Video | Post);
         setCommentText("");
         setShowGiphy(false);
 
@@ -233,44 +251,51 @@ export default function VideoPage() {
   };
 
   if (loading) {
-    return <div className="text-center py-20">Video yükleniyor...</div>;
+    return <div className="text-center py-20">İçerik yükleniyor...</div>;
   }
 
-  if (!video) {
-    return <div className="text-center py-20">Video bulunamadı.</div>;
-  }
-  
-  if (!video.videoUrl) {
-    return <div className="text-center py-20">Video kaynağı bulunamadı veya bozuk.</div>
+  if (!content) {
+    return <div className="text-center py-20">İçerik bulunamadı.</div>;
   }
 
   return (
     <div className="mx-auto max-w-screen-2xl">
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
         <div className="lg:col-span-2">
-          <div className="aspect-video w-full overflow-hidden rounded-xl bg-black shadow-lg">
-            <video
-              key={video.id}
-              src={video.videoUrl}
-              controls
-              autoPlay
-              className="h-full w-full"
-              poster={video.thumbnailUrl}
-            />
-          </div>
+            
+            {isVideo && (
+                <div className="aspect-video w-full overflow-hidden rounded-xl bg-black shadow-lg">
+                    <video
+                    key={content.id}
+                    src={(content as Video).videoUrl}
+                    controls
+                    autoPlay
+                    className="h-full w-full"
+                    poster={(content as Video).thumbnailUrl}
+                    />
+                </div>
+            )}
+
+            {isPost && (
+                <Card>
+                    <CardContent className="p-0">
+                        <Image src={(content as Post).imageUrl} alt={(content as Post).caption} width={1280} height={720} className="w-full h-auto rounded-t-xl" />
+                    </CardContent>
+                </Card>
+            )}
 
           <div className="py-4">
-            <h1 className="text-2xl font-bold">{video.title}</h1>
-            {!isIntroVideo && video.author && (
+            <h1 className="text-2xl font-bold">{content.title || (content as Post).caption}</h1>
+            {!isIntroVideo && author && (
                 <div className="mt-2 flex flex-wrap items-center justify-between gap-4">
                 <div className="flex items-center gap-4">
                     <Avatar className="h-12 w-12">
-                    <AvatarImage src={video.author.profilePicture} alt={video.author.displayName || video.author.username} data-ai-hint="person face" />
-                    <AvatarFallback>{(video.author.displayName || video.author.username || 'U').charAt(0)}</AvatarFallback>
+                    <AvatarImage src={author.profilePicture} alt={author.displayName || author.username} data-ai-hint="person face" />
+                    <AvatarFallback>{(author.displayName || author.username || 'U').charAt(0)}</AvatarFallback>
                     </Avatar>
                     <div>
-                    <p className="font-semibold">{video.author.displayName || video.author.username}</p>
-                    <p className="text-sm text-muted-foreground">{video.author.subscribers.toLocaleString()} abone</p>
+                    <p className="font-semibold">{author.displayName || author.username}</p>
+                    <p className="text-sm text-muted-foreground">{author.subscribers.toLocaleString()} abone</p>
                     </div>
                     <Button variant={isSubscribed ? "secondary" : "default"} className="rounded-full" onClick={handleSubscription}>
                         <BellPlus className="mr-2 h-4 w-4" /> {isSubscribed ? 'Abone Olundu' : 'Abone Ol'}
@@ -278,15 +303,22 @@ export default function VideoPage() {
                 </div>
 
                 <div className="flex items-center gap-2">
-                    <div className="flex items-center rounded-full bg-secondary">
-                    <Button variant="ghost" className="rounded-l-full gap-2 pl-4 pr-3" onClick={handleLike}>
-                        <ThumbsUp className={`h-5 w-5 ${isLiked ? 'text-primary fill-primary' : ''}`} /> {video.likes.toLocaleString()}
-                    </Button>
-                    <div className="h-6 w-px bg-border"></div>
-                    <Button variant="ghost" className="rounded-r-full pl-3 pr-4">
-                        <ThumbsDown className="h-5 w-5" />
-                    </Button>
-                    </div>
+                    {isVideo && (
+                        <div className="flex items-center rounded-full bg-secondary">
+                        <Button variant="ghost" className="rounded-l-full gap-2 pl-4 pr-3" onClick={handleLike}>
+                            <ThumbsUp className={`h-5 w-5 ${isLiked ? 'text-primary fill-primary' : ''}`} /> {content.likes.toLocaleString()}
+                        </Button>
+                        <div className="h-6 w-px bg-border"></div>
+                        <Button variant="ghost" className="rounded-r-full pl-3 pr-4">
+                            <ThumbsDown className="h-5 w-5" />
+                        </Button>
+                        </div>
+                    )}
+                    {isPost && (
+                         <Button variant="ghost" className="rounded-full gap-2 pl-4 pr-3">
+                            <Heart className={`h-5 w-5`} /> {content.likes.toLocaleString()}
+                        </Button>
+                    )}
                     <Button variant="ghost" className="rounded-full gap-2">
                     <Share2 className="h-5 w-5" /> Paylaş
                     </Button>
@@ -296,15 +328,18 @@ export default function VideoPage() {
           </div>
           
           <div className="mt-4 rounded-xl bg-secondary p-4">
-            {!isIntroVideo && (
-                <p className="font-semibold">{formatViews(video.views)} &bull; {timeAgo(video.createdAt)}</p>
+            {!isIntroVideo && isVideo && (
+                <p className="font-semibold">{formatViews(content.views)} &bull; {timeAgo(content.createdAt)}</p>
             )}
-            <p className="mt-2 whitespace-pre-wrap">{video.description}</p>
+             {!isIntroVideo && isPost && (
+                <p className="font-semibold">{content.likes.toLocaleString()} beğeni &bull; {timeAgo(content.createdAt)}</p>
+            )}
+            <p className="mt-2 whitespace-pre-wrap">{isVideo ? content.description : (content as Post).caption}</p>
           </div>
 
           {!isIntroVideo && currentUser && (
             <div className="mt-8">
-              <h2 className="text-xl font-bold mb-4">{video.comments.length} Yorum</h2>
+              <h2 className="text-xl font-bold mb-4">{content.comments.length} Yorum</h2>
               <div className="flex gap-4 mb-6">
                 <Avatar>
                     <AvatarImage src={currentUser?.profilePicture} alt={currentUser?.displayName || currentUser?.username} data-ai-hint="person face" />
@@ -336,7 +371,7 @@ export default function VideoPage() {
                 </div>
               </div>
               <div className="space-y-6">
-                {video.comments.map(comment => (
+                {content.comments.map(comment => (
                     <CommentDisplay key={comment.id} comment={comment} />
                 ))}
               </div>
@@ -355,4 +390,12 @@ export default function VideoPage() {
       </div>
     </div>
   );
+}
+
+export default function VideoPage() {
+    return (
+        <Suspense fallback={<div className="text-center py-20">Yükleniyor...</div>}>
+            <VideoPageClient />
+        </Suspense>
+    )
 }

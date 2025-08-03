@@ -48,5 +48,3 @@ export interface Post {
     createdAt: string;
     comments: Comment[];
 }
-
-    

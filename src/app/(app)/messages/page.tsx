@@ -51,7 +51,8 @@ function MessagesPageClient() {
             setCurrentUser(user);
             
             const allUsers = await getAllUsers();
-            const conversationUsers = allUsers.filter(u => u.id !== user.id && u.username !== 'admin');
+            // Filter out the current user, the admin, and "gezginkamera"
+            const conversationUsers = allUsers.filter(u => u.id !== user.id && u.username !== 'admin' && u.username !== 'gezginkamera');
             setConversations(conversationUsers);
             
             if (routerUser) {

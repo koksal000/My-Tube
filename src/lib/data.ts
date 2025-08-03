@@ -66,6 +66,7 @@ export async function getUserByUsername(username: string): Promise<User | undefi
     const allUsers = await getAllUsers();
     const user = allUsers.find(u => u.username === username);
     if (user) {
+        // In a real app, this would be a backend check. For prototype, we merge with initial data.
         const originalUser = (initialUsers as User[]).find(u => u.username === username);
         return { ...user, password: originalUser?.password };
     }
@@ -86,7 +87,7 @@ export async function getAllUsers(): Promise<User[]> {
 
 export async function getAllVideos(): Promise<Video[]> {
     const videos = await db.getAll('videos') as Video[];
-    return Promise.all(videos.map(hydrateData));
+    return Promise.all(videos.map(v => hydrateData(v as Video)));
 }
 
 export async function getVideoById(id: string): Promise<Video | undefined> {
@@ -108,7 +109,13 @@ export async function addVideo(video: Omit<Video, 'author'>): Promise<void> {
 
 export async function getAllPosts(): Promise<Post[]> {
     const posts = await db.getAll('posts') as Post[];
-    return Promise.all(posts.map(hydrateData));
+    return Promise.all(posts.map(p => hydrateData(p as Post)));
+}
+
+export async function getPostById(id: string): Promise<Post | undefined> {
+    const post = await db.get('posts', id) as Post | undefined;
+    if (!post) return undefined;
+    return hydrateData(post);
 }
 
 export async function getPostsByAuthor(authorId: string): Promise<Post[]> {
@@ -116,8 +123,9 @@ export async function getPostsByAuthor(authorId: string): Promise<Post[]> {
     return allPosts.filter(p => p.authorId === authorId);
 }
 
-export async function addPost(post: Omit<Post, 'author'>): Promise<void> {
-    await db.add('posts', post);
+export async function addPost(post: Omit<Post, 'author'|'comments'>): Promise<void> {
+    const postWithComments: Omit<Post, 'author'> = {...post, comments: []};
+    await db.add('posts', postWithComments);
 }
 
 

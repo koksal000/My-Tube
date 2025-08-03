@@ -13,6 +13,7 @@ import { useParams, useRouter } from "next/navigation";
 import { EditProfileDialog } from "@/components/profile-edit-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { MessageSquare } from "lucide-react";
+import Link from "next/link";
 
 export default function ChannelPage() {
   const router = useRouter();
@@ -168,12 +169,16 @@ export default function ChannelPage() {
                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3">
                     {userPosts.length > 0 ? (
                         userPosts.map(post => (
-                            <Card key={post.id}>
-                                <CardContent className="p-4">
-                                    {post.imageUrl && <Image src={post.imageUrl} alt={post.caption} width={400} height={300} className="w-full h-auto rounded-md mb-2" data-ai-hint="user post" />}
-                                    <p>{post.caption}</p>
-                                </CardContent>
-                            </Card>
+                            <Link href={`/video/${post.id}?type=post`} key={post.id} className="group">
+                              <Card className="overflow-hidden">
+                                  <CardContent className="p-0">
+                                      {post.imageUrl && <Image src={post.imageUrl} alt={post.caption} width={400} height={300} className="w-full h-48 object-cover transition-transform duration-300 group-hover:scale-105" data-ai-hint="user post" />}
+                                      <div className="p-4">
+                                        <p className="line-clamp-2">{post.caption}</p>
+                                      </div>
+                                  </CardContent>
+                              </Card>
+                            </Link>
                         ))
                     ) : (
                         <div className="col-span-full text-center text-muted-foreground py-10">Bu kanal henüz gönderi oluşturmadı.</div>

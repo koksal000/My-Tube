@@ -79,14 +79,13 @@ export function UploadPostForm() {
     try {
         const imageUrl = await toBase64(imageFile);
         
-        const newPost: Omit<Post, 'author'> = {
-            id: `post${Date.now()}`,
+        const newPost: Omit<Post, 'author' | 'comments'> = {
+            id: `post-${Date.now()}`,
             caption,
             imageUrl,
             authorId: currentUser.id,
             likes: 0,
             createdAt: new Date().toISOString(),
-            comments: [],
         };
 
         await addPost(newPost);
