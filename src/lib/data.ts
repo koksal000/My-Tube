@@ -2,88 +2,77 @@ import type { User, Video, Post, Comment } from './types';
 import initialUsers from '@/data/users.json';
 import initialVideos from '@/data/videos.json';
 import initialPosts from '@/data/posts.json';
-import * as db from './db';
+
+// --- Data Simulation ---
+// In a real app, this would be a database. For this prototype, we're using in-memory arrays
+// initialized from JSON files. This simulates a shared backend for all users.
+let users: User[] = JSON.parse(JSON.stringify(initialUsers));
+let videos: Omit<Video, 'author'>[] = JSON.parse(JSON.stringify(initialVideos));
+let posts: Omit<Post, 'author'>[] = JSON.parse(JSON.stringify(initialPosts));
+
 
 const CURRENT_USER_KEY = 'myTube-currentUser-id';
 
-// --- Data Initialization ---
-
-// This function runs once to populate IndexedDB from JSON files if it's empty.
-async function initializeDatabase() {
-  if (typeof window === 'undefined') return;
-  try {
-    const userCount = await db.count('users');
-    if (userCount === 0) {
-      console.log('Database is empty. Initializing with data from JSON files...');
-      await db.bulkAdd('users', initialUsers as User[]);
-      const videosWithoutAuthor = initialVideos.map(({ author, ...rest }) => rest);
-      await db.bulkAdd('videos', videosWithoutAuthor as Omit<Video, 'author'>[]);
-      const postsWithoutAuthor = initialPosts.map(({ author, ...rest }) => rest);
-      await db.bulkAdd('posts', postsWithoutAuthor as Omit<Post, 'author'>[]);
-      console.log('Database initialized successfully.');
-    }
-  } catch (error) {
-    console.error('Failed to initialize database:', error);
-  }
-}
-
-// Immediately try to initialize the DB when this module is loaded on the client.
-initializeDatabase();
-
-// Helper to hydrate authors and comments into video/post objects
+// Helper to hydrate authors into video/post/comment objects
 async function hydrateData<T extends (Video | Post | Comment)>(item: T | Omit<T, 'author'>): Promise<T> {
     if (!item) return item as T;
 
     const hydratedItem = { ...item } as T;
 
-    if ('authorId' in hydratedItem && !hydratedItem.author) {
+    if ('authorId' in hydratedItem && hydratedItem.authorId && !hydratedItem.author) {
         const author = await getUserById(hydratedItem.authorId);
         if (author) hydratedItem.author = author;
     }
-
+    
+    // Recursively hydrate comments and replies
     if ('comments' in hydratedItem && Array.isArray(hydratedItem.comments)) {
         hydratedItem.comments = await Promise.all(
-            hydratedItem.comments.map(c => hydrateData(c as Comment))
+            (hydratedItem.comments as (Comment | Omit<Comment, 'author'>)[])
+                .map(c => hydrateData(c as Comment))
         );
     }
     
     if ('replies' in hydratedItem && Array.isArray(hydratedItem.replies)) {
          hydratedItem.replies = await Promise.all(
-            hydratedItem.replies.map(r => hydrateData(r as Comment))
+            (hydratedItem.replies as (Comment | Omit<Comment, 'author'>)[])
+                .map(r => hydrateData(r as Comment))
         );
     }
 
     return hydratedItem;
 }
 
+
 // --- User Functions ---
 
 export async function addUser(user: User): Promise<void> {
-  const { password, ...userToAdd } = user; // Never store plain password in the main object
-  await db.add('users', userToAdd as User);
+  // We don't store passwords in our main user object for this simulation
+  const { password, ...userToAdd } = user;
+  users.push(userToAdd);
 }
 
 export async function updateUser(updatedUser: User): Promise<void> {
     const { password, ...userToUpdate } = updatedUser;
-    await db.put('users', userToUpdate as User);
-    
+    const userIndex = users.findIndex(u => u.id === userToUpdate.id);
+    if (userIndex !== -1) {
+        users[userIndex] = { ...users[userIndex], ...userToUpdate };
+    }
     const currentId = typeof window !== 'undefined' ? localStorage.getItem(CURRENT_USER_KEY) : null;
     if (currentId && currentId === updatedUser.id) {
-        setCurrentUser(updatedUser); // Update session if it's the current user
+        setCurrentUser(updatedUser);
     }
 }
 
 
 export async function getUserByUsername(username: string): Promise<User | undefined> {
-    const allUsers = await getAllUsers();
-    const user = allUsers.find(u => u.username === username);
+    const user = users.find(u => u.username === username);
     if (user) {
-        // In a real app, this would be a backend check. For prototype, we merge with initial data.
+        // Find the original user from the initial data to get the password for this prototype
         const originalUser = (initialUsers as User[]).find(u => u.username === username);
         if (originalUser && !user.password) {
            return { ...user, password: originalUser.password };
         }
-        return user
+        return user;
     }
     return undefined;
 }
@@ -91,78 +80,75 @@ export async function getUserByUsername(username: string): Promise<User | undefi
 
 export async function getUserById(id: string): Promise<User | undefined> {
     if(!id) return undefined;
-    return await db.get('users', id);
+    return users.find(u => u.id === id);
 }
 
 export async function getAllUsers(): Promise<User[]> {
-    return await db.getAll('users');
+    return users;
 }
 
 
 // --- Video Functions ---
 
 export async function getAllVideos(): Promise<Video[]> {
-    const videos = await db.getAll('videos') as Omit<Video, 'author'>[];
     return Promise.all(videos.map(v => hydrateData(v as Video)));
 }
 
 export async function getVideoById(id: string): Promise<Video | undefined> {
-    const video = await db.get('videos', id) as Omit<Video, 'author'> | undefined;
+    const video = videos.find(v => v.id === id);
     if (!video) return undefined;
     return hydrateData(video as Video);
 }
 
 export async function getVideoByAuthor(authorId: string): Promise<Video[]> {
-    const allVideos = await getAllVideos();
-    return allVideos.filter(v => v.authorId === authorId);
+    const authorVideos = videos.filter(v => v.authorId === authorId);
+    return Promise.all(authorVideos.map(v => hydrateData(v as Video)));
 }
 
 export async function addVideo(video: Omit<Video, 'author'>): Promise<void> {
-    await db.add('videos', video);
+    videos.push(video);
 }
 
 // --- Post Functions ---
 
 export async function getAllPosts(): Promise<Post[]> {
-    const posts = await db.getAll('posts') as Omit<Post, 'author'>[];
-    return Promise.all(posts.map(p => hydrateData(p as Post)));
+    const allPosts = await Promise.all(posts.map(p => hydrateData(p as Post)));
+    return allPosts;
 }
 
 export async function getPostById(id: string): Promise<Post | undefined> {
-    const post = await db.get('posts', id) as Omit<Post, 'author'> | undefined;
+    const post = posts.find(p => p.id === id);
     if (!post) return undefined;
-    return hydrateData(post);
+    return hydrateData(post as Post);
 }
 
 export async function getPostsByAuthor(authorId: string): Promise<Post[]> {
-    const allPosts = await getAllPosts();
-    return allPosts.filter(p => p.authorId === authorId);
+    const authorPostsRaw = posts.filter(p => p.authorId === authorId);
+    return Promise.all(authorPostsRaw.map(p => hydrateData(p as Post)));
 }
 
 export async function addPost(post: Omit<Post, 'author'|'comments'>): Promise<void> {
     const postWithComments: Omit<Post, 'author'> = {...post, comments: []};
-    await db.add('posts', postWithComments);
+    posts.push(postWithComments);
 }
 
 
 // --- Comment Functions ---
 export async function addCommentToVideo(videoId: string, comment: Omit<Comment, 'author' | 'replies'>): Promise<void> {
-    const video = await db.get('videos', videoId) as Omit<Video, 'author'> | undefined;
+    const video = videos.find(v => v.id === videoId);
     if (video) {
-        const newComment: Omit<Comment, 'author' | 'replies'> = { ...comment };
         if (!video.comments) video.comments = [];
-        video.comments.unshift(newComment as any);
-        await db.put('videos', video);
+        video.comments.unshift(comment as any);
     }
 }
 
 
 // --- Current User / Session Management ---
 
-let currentUser: User | null = null;
+let currentLoggedInUser: User | null = null;
 
 export function setCurrentUser(user: User | null): void {
-    currentUser = user;
+    currentLoggedInUser = user;
     if (typeof window !== 'undefined') {
         try {
             if (user) {
@@ -177,7 +163,7 @@ export function setCurrentUser(user: User | null): void {
 }
 
 export async function getCurrentUser(): Promise<User | null> {
-    if (currentUser) return currentUser;
+    if (currentLoggedInUser) return currentLoggedInUser;
 
     if (typeof window !== 'undefined') {
         try {
@@ -186,8 +172,8 @@ export async function getCurrentUser(): Promise<User | null> {
                 const userFromDb = await getUserById(userId);
                 if (userFromDb) {
                     const fullUser = await getUserByUsername(userFromDb.username)
-                    currentUser = fullUser || userFromDb;
-                    return currentUser;
+                    currentLoggedInUser = fullUser || userFromDb;
+                    return currentLoggedInUser;
                 }
             }
         } catch (error) {
@@ -195,7 +181,6 @@ export async function getCurrentUser(): Promise<User | null> {
         }
     }
     
-    // If we reach here, no user is logged in
     setCurrentUser(null);
     return null;
 }
