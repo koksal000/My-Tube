@@ -5,19 +5,35 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { useEffect, useState } from "react";
 
+// Helper functions to interact with localStorage
+const getSettingFromStorage = (key: string, defaultValue: boolean): boolean => {
+    if (typeof window === 'undefined') return defaultValue;
+    const savedValue = localStorage.getItem(key);
+    return savedValue !== null ? JSON.parse(savedValue) : defaultValue;
+}
+
+const setSettingInStorage = (key: string, value: boolean) => {
+    if (typeof window !== 'undefined') {
+        localStorage.setItem(key, JSON.stringify(value));
+    }
+}
+
 export default function SettingsPage() {
+  const [inAppNotifications, setInAppNotifications] = useState(true);
+  const [autoplay, setAutoplay] = useState(true);
   const [showGifs, setShowGifs] = useState(true);
   const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
     setIsMounted(true);
-    const savedSetting = localStorage.getItem('myTube-showGifs');
-    setShowGifs(savedSetting ? JSON.parse(savedSetting) : true);
+    setInAppNotifications(getSettingFromStorage('myTube-inAppNotifications', true));
+    setAutoplay(getSettingFromStorage('myTube-autoplay', true));
+    setShowGifs(getSettingFromStorage('myTube-showGifs', true));
   }, []);
 
-  const handleShowGifsChange = (checked: boolean) => {
-    setShowGifs(checked);
-    localStorage.setItem('myTube-showGifs', JSON.stringify(checked));
+  const handleSettingChange = (setter: React.Dispatch<React.SetStateAction<boolean>>, key: string) => (checked: boolean) => {
+    setter(checked);
+    setSettingInStorage(key, checked);
   };
   
   if (!isMounted) {
@@ -35,12 +51,16 @@ export default function SettingsPage() {
         <CardContent className="space-y-6">
             <div className="flex items-center justify-between space-x-2">
                 <Label htmlFor="notifications" className="flex flex-col space-y-1">
-                    <span>E-posta Bildirimleri</span>
+                    <span>Uygulama İçi Bildirimler</span>
                     <span className="font-normal leading-snug text-muted-foreground">
                         Yeni içerikler ve yanıtlar hakkında bildirim alın.
                     </span>
                 </Label>
-                <Switch id="notifications" defaultChecked />
+                <Switch 
+                  id="notifications" 
+                  checked={inAppNotifications}
+                  onCheckedChange={handleSettingChange(setInAppNotifications, 'myTube-inAppNotifications')}
+                />
             </div>
             <div className="flex items-center justify-between space-x-2">
                 <Label htmlFor="autoplay" className="flex flex-col space-y-1">
@@ -49,7 +69,11 @@ export default function SettingsPage() {
                         Bir sonraki videoyu otomatik olarak oynatın.
                     </span>
                 </Label>
-                <Switch id="autoplay" defaultChecked />
+                <Switch 
+                  id="autoplay" 
+                  checked={autoplay} 
+                  onCheckedChange={handleSettingChange(setAutoplay, 'myTube-autoplay')}
+                />
             </div>
             <div className="flex items-center justify-between space-x-2">
                 <Label htmlFor="show-gifs" className="flex flex-col space-y-1">
@@ -61,7 +85,7 @@ export default function SettingsPage() {
                 <Switch 
                   id="show-gifs" 
                   checked={showGifs} 
-                  onCheckedChange={handleShowGifsChange} 
+                  onCheckedChange={handleSettingChange(setShowGifs, 'myTube-showGifs')} 
                 />
             </div>
         </CardContent>

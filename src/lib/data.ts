@@ -1,17 +1,52 @@
 import type { User, Video, Post, Comment } from './types';
-import usersData from '@/data/users.json';
-import videosData from '@/data/videos.json';
-import postsData from '@/data/posts.json';
+import initialUsers from '@/data/users.json';
+import initialVideos from '@/data/videos.json';
+import initialPosts from '@/data/posts.json';
 
-// In-memory simulation of a database. In a real app, this would be a database.
-let mockUsers: User[] = usersData as User[];
-let mockVideos: Video[] = videosData as any[]; // Use 'as any' to bypass initial strict type checking for author
-let mockPosts: Post[] = postsData as any[];
+// --- LocalStorage Keys ---
+const USERS_KEY = 'myTube-users';
+const VIDEOS_KEY = 'myTube-videos';
+const POSTS_KEY = 'myTube-posts';
+const CURRENT_USER_KEY = 'myTube-currentUser';
+
+// --- Data Loading and Hydration ---
+
+// Helper to get data from localStorage or initialize it from JSON files
+function loadData<T>(key: string, initialData: T[]): T[] {
+    if (typeof window === 'undefined') {
+        return initialData;
+    }
+    try {
+        const storedData = localStorage.getItem(key);
+        if (storedData) {
+            return JSON.parse(storedData);
+        } else {
+            localStorage.setItem(key, JSON.stringify(initialData));
+            return initialData;
+        }
+    } catch (error) {
+        console.error(`Failed to load data for key "${key}" from localStorage`, error);
+        return initialData;
+    }
+}
+
+// Helper to save data to localStorage
+function saveData<T>(key: string, data: T[]): void {
+     if (typeof window !== 'undefined') {
+        try {
+            localStorage.setItem(key, JSON.stringify(data));
+        } catch (error) {
+            console.error(`Failed to save data for key "${key}" to localStorage`, error);
+        }
+    }
+}
+
+// In-memory simulation of a database, initialized from localStorage or initial JSON files
+let mockUsers: User[] = loadData(USERS_KEY, initialUsers as User[]);
+let mockVideos: Video[] = loadData(VIDEOS_KEY, initialVideos as any[]);
+let mockPosts: Post[] = loadData(POSTS_KEY, initialPosts as any[]);
 
 let currentUser: User | null = null;
-const CURRENT_USER_STORAGE_KEY = 'myTube-currentUser';
-
-// --- Hydration and Data Linking ---
 
 // Function to link authors to videos and posts
 function linkData() {
@@ -33,38 +68,44 @@ function linkData() {
         return item;
     };
 
-    mockVideos.forEach(hydrateAuthor);
-    mockPosts.forEach(hydrateAuthor);
+    mockVideos = mockVideos.map(hydrateAuthor);
+    mockPosts = mockPosts.map(hydrateAuthor);
 }
 
-// Initial data linking
+// Initial data linking after loading
 linkData();
 
 
 // --- User Functions ---
 
 export function addUser(user: User): void {
-  // Ensure new users don't have a password property in the mock DB for security simulation
-  const { password, ...userToSave } = user;
+  const { password, ...userToSave } = user; // Never store plain password
   mockUsers.push(userToSave as User);
+  saveData(USERS_KEY, mockUsers);
+  linkData(); // Relink data in case it affects anything
 }
 
-export function updateUser(user: User): void {
-    const index = mockUsers.findIndex(u => u.id === user.id);
+export function updateUser(updatedUser: User): void {
+    const index = mockUsers.findIndex(u => u.id === updatedUser.id);
     if (index !== -1) {
-        mockUsers[index] = user;
-        // If the current user is updated, update the currentUser variable as well
-        if (currentUser && currentUser.id === user.id) {
-            setCurrentUser(user);
+        // Prevent password from being overwritten if not provided
+        const existingUser = mockUsers[index];
+        mockUsers[index] = { ...existingUser, ...updatedUser };
+        saveData(USERS_KEY, mockUsers);
+
+        if (currentUser && currentUser.id === updatedUser.id) {
+            setCurrentUser(updatedUser);
         }
+        linkData();
     }
 }
 
 export function getUserByUsername(username: string): User | undefined {
   const user = mockUsers.find(u => u.username === username);
   if (user) {
-    // In a real app, you'd never send the password hash. For the prototype's login check, we find the original user data.
-    const originalUser = (usersData as User[]).find(u => u.username === username);
+    // For the prototype's login check, we retrieve the password from the initial data source
+    // In a real app, this would be a hashed password check against a database.
+    const originalUser = (initialUsers as User[]).find(u => u.username === username);
     return { ...user, password: originalUser?.password };
   }
   return undefined;
@@ -97,7 +138,9 @@ export function addVideo(video: Omit<Video, 'author'>): void {
     const author = getUserById(video.authorId);
     if (author) {
         const newVideo: Video = { ...video, author };
-        mockVideos.unshift(newVideo); // Add to the beginning of the list
+        mockVideos.unshift(newVideo);
+        saveData(VIDEOS_KEY, mockVideos);
+        linkData();
     }
 }
 
@@ -116,6 +159,8 @@ export function addPost(post: Omit<Post, 'author'>): void {
     if (author) {
         const newPost: Post = { ...post, author };
         mockPosts.unshift(newPost);
+        saveData(POSTS_KEY, mockPosts);
+        linkData();
     }
 }
 
@@ -127,6 +172,8 @@ export function addCommentToVideo(videoId: string, comment: Omit<Comment, 'autho
     if (video && author) {
         const newComment: Comment = { ...comment, author, replies: [] };
         video.comments.unshift(newComment);
+        saveData(VIDEOS_KEY, mockVideos);
+        linkData();
     }
 }
 
@@ -135,10 +182,10 @@ export function addCommentToVideo(videoId: string, comment: Omit<Comment, 'autho
 
 export function setCurrentUser(user: User): void {
     currentUser = user;
-    // Persist user session in localStorage
     if (typeof window !== 'undefined') {
         try {
-            localStorage.setItem(CURRENT_USER_STORAGE_KEY, user.id);
+            // Store only the ID to re-fetch the user later
+            localStorage.setItem(CURRENT_USER_KEY, user.id);
         } catch (error) {
             console.error("Could not save user to localStorage", error);
         }
@@ -146,15 +193,12 @@ export function setCurrentUser(user: User): void {
 }
 
 export function getCurrentUser(): User | null {
-    // If currentUser is already in memory, return it
     if (currentUser) {
         return currentUser;
     }
-
-    // Otherwise, try to load from localStorage
     if (typeof window !== 'undefined') {
         try {
-            const userId = localStorage.getItem(CURRENT_USER_STORAGE_KEY);
+            const userId = localStorage.getItem(CURRENT_USER_KEY);
             if (userId) {
                 const userFromStorage = getUserById(userId);
                 if (userFromStorage) {
@@ -167,16 +211,14 @@ export function getCurrentUser(): User | null {
             return null;
         }
     }
-
     return null;
 }
 
 export function logout(): void {
     currentUser = null;
-    // Clear user session from localStorage
     if (typeof window !== 'undefined') {
        try {
-            localStorage.removeItem(CURRENT_USER_STORAGE_KEY);
+            localStorage.removeItem(CURRENT_USER_KEY);
         } catch (error) {
             console.error("Could not remove user from localStorage", error);
         }
