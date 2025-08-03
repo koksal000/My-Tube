@@ -34,11 +34,11 @@ const FlowPost = ({ post }: { post: Post }) => {
             <div className="absolute bottom-4 right-4 flex flex-col items-center gap-4 text-white drop-shadow-[0_2px_2px_rgba(0,0,0,0.8)]">
                 <button className="flex flex-col items-center gap-1">
                     <Heart size={28} />
-                    <span className="text-sm font-semibold">{post.likes.toLocaleString()}</span>
+                    <span className="text-sm font-semibold">{(post.likes || 0).toLocaleString()}</span>
                 </button>
                 <button className="flex flex-col items-center gap-1">
                     <MessageCircle size={28} />
-                    <span className="text-sm font-semibold">{post.comments.length}</span>
+                    <span className="text-sm font-semibold">{(post.comments || []).length}</span>
                 </button>
             </div>
         </div>
@@ -56,7 +56,7 @@ export default function FlowPage() {
       const allPosts = await getAllPosts();
       
       const flowVideos = allVideos
-        .filter(v => v.author && v.videoUrl && v.author.username !== 'admin' && v.duration > 0);
+        .filter(v => v.author && v.videoUrl && v.author.username !== 'admin');
       
       const flowPosts = allPosts.filter(p => p.author && p.imageUrl && p.author.username !== 'admin');
 

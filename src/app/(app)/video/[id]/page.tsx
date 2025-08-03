@@ -14,6 +14,7 @@ import Image from "next/image";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 function timeAgo(dateString: string) {
+    if (!dateString) return "";
     const date = new Date(dateString);
     const seconds = Math.floor((new Date().getTime() - date.getTime()) / 1000);
     let interval = seconds / 31536000;
@@ -30,6 +31,7 @@ function timeAgo(dateString: string) {
 }
 
 function formatViews(views: number) {
+    if(isNaN(views)) return "0 izlenme";
     if (views >= 1000000000) return `${(views / 1000000000).toFixed(1)} Milyar izlenme`;
     if (views >= 1000000) return `${(views / 1000000).toFixed(1)}M izlenme`;
     if (views >= 1000) return `${(views / 1000).toFixed(0)}B izlenme`;
@@ -68,7 +70,7 @@ const CommentDisplay = ({ comment }: { comment: Comment }) => {
         }
     }, []);
 
-    if (!comment.author) {
+    if (!comment || !comment.author) {
         return <div className="flex gap-3">Yorum Yükleniyor...</div>;
     }
 
@@ -145,11 +147,11 @@ function VideoPageClient() {
         if (contentData) {
             setContent(contentData);
             if (contentData.author) {
-              setIsSubscribed(loggedInUser.subscriptions.includes(contentData.author.id));
+              setIsSubscribed((loggedInUser.subscriptions || []).includes(contentData.author.id));
             }
 
              if (isVideo) {
-                setIsLiked(loggedInUser.likedVideos.includes(contentData.id));
+                setIsLiked((loggedInUser.likedVideos || []).includes(contentData.id));
                 const allVideos = (await getAllVideos()).filter(v => v.author && v.author.username !== 'admin');
                 const recs = allVideos.filter(v => v.id !== params.id).sort(() => 0.5 - Math.random()).slice(0, 10);
                 setRecommendedVideos(recs);
@@ -164,15 +166,15 @@ function VideoPageClient() {
     if (!currentUser || !content || !isVideo) return;
     const video = content as Video;
 
-    let updatedLikedVideos = [...currentUser.likedVideos];
+    let updatedLikedVideos = [...(currentUser.likedVideos || [])];
     let videoToUpdate = {...video};
     
     if (isLiked) {
       updatedLikedVideos = updatedLikedVideos.filter(id => id !== video.id);
-      videoToUpdate.likes--;
+      videoToUpdate.likes = (videoToUpdate.likes || 0) - 1;
     } else {
       updatedLikedVideos.push(video.id);
-      videoToUpdate.likes++;
+      videoToUpdate.likes = (videoToUpdate.likes || 0) + 1;
     }
 
     try {
@@ -194,15 +196,15 @@ function VideoPageClient() {
   const handleSubscription = async () => {
      if (!currentUser || !author) return;
      
-     let updatedSubscriptions = [...currentUser.subscriptions];
+     let updatedSubscriptions = [...(currentUser.subscriptions || [])];
      let updatedChannelUser = {...author};
 
      if (isSubscribed) {
         updatedSubscriptions = updatedSubscriptions.filter(id => id !== author.id);
-        updatedChannelUser.subscribers--;
+        updatedChannelUser.subscribers = (updatedChannelUser.subscribers || 0) - 1;
      } else {
         updatedSubscriptions.push(author.id);
-        updatedChannelUser.subscribers++;
+        updatedChannelUser.subscribers = (updatedChannelUser.subscribers || 0) + 1;
      }
     
      const updatedCurrentUser: User = {...currentUser, subscriptions: updatedSubscriptions};
@@ -216,7 +218,7 @@ function VideoPageClient() {
      
      toast({
         title: isSubscribed ? "Abonelikten Çıkıldı" : "Abone Olundu!",
-        description: isSubscribed ? `${author.displayName} kanalından aboneliğinizi kaldırdınız.` : `${author.displayName} kanalına başarıyla abone oldunuz.`,
+        description: isSubscribed ? `${author.displayName || author.username} kanalından aboneliğinizi kaldırdınız.` : `${author.displayName || author.username} kanalına başarıyla abone oldunuz.`,
       });
       
       router.refresh();
@@ -239,7 +241,7 @@ function VideoPageClient() {
         }
         
         const hydratedComment: Comment = { ...newCommentOmitAuthor, author: currentUser, replies: [] };
-        setContent({ ...content, comments: [hydratedComment, ...content.comments] } as Video | Post);
+        setContent({ ...content, comments: [hydratedComment, ...(content.comments || [])] } as Video | Post);
         setCommentText("");
         setShowGiphy(false);
 
@@ -250,12 +252,12 @@ function VideoPageClient() {
     }
   };
 
-  if (loading) {
+  if (loading || !content) {
     return <div className="text-center py-20">İçerik yükleniyor...</div>;
   }
 
-  if (!content) {
-    return <div className="text-center py-20">İçerik bulunamadı.</div>;
+  if (!author && !isIntroVideo) {
+     return <div className="text-center py-20">İçerik sahibi bulunamadı.</div>;
   }
 
   return (
@@ -276,10 +278,10 @@ function VideoPageClient() {
                 </div>
             )}
 
-            {isPost && (
+            {isPost && content.imageUrl && (
                 <Card>
                     <CardContent className="p-0">
-                        <Image src={(content as Post).imageUrl} alt={(content as Post).caption} width={1280} height={720} className="w-full h-auto rounded-t-xl" />
+                        <Image src={content.imageUrl} alt={(content as Post).caption} width={1280} height={720} className="w-full h-auto rounded-t-xl" />
                     </CardContent>
                 </Card>
             )}
@@ -295,7 +297,7 @@ function VideoPageClient() {
                     </Avatar>
                     <div>
                     <p className="font-semibold">{author.displayName || author.username}</p>
-                    <p className="text-sm text-muted-foreground">{author.subscribers.toLocaleString()} abone</p>
+                    <p className="text-sm text-muted-foreground">{(author.subscribers || 0).toLocaleString()} abone</p>
                     </div>
                     <Button variant={isSubscribed ? "secondary" : "default"} className="rounded-full" onClick={handleSubscription}>
                         <BellPlus className="mr-2 h-4 w-4" /> {isSubscribed ? 'Abone Olundu' : 'Abone Ol'}
@@ -306,7 +308,7 @@ function VideoPageClient() {
                     {isVideo && (
                         <div className="flex items-center rounded-full bg-secondary">
                         <Button variant="ghost" className="rounded-l-full gap-2 pl-4 pr-3" onClick={handleLike}>
-                            <ThumbsUp className={`h-5 w-5 ${isLiked ? 'text-primary fill-primary' : ''}`} /> {content.likes.toLocaleString()}
+                            <ThumbsUp className={`h-5 w-5 ${isLiked ? 'text-primary fill-primary' : ''}`} /> {(content.likes || 0).toLocaleString()}
                         </Button>
                         <div className="h-6 w-px bg-border"></div>
                         <Button variant="ghost" className="rounded-r-full pl-3 pr-4">
@@ -316,7 +318,7 @@ function VideoPageClient() {
                     )}
                     {isPost && (
                          <Button variant="ghost" className="rounded-full gap-2 pl-4 pr-3">
-                            <Heart className={`h-5 w-5`} /> {content.likes.toLocaleString()}
+                            <Heart className={`h-5 w-5`} /> {(content.likes || 0).toLocaleString()}
                         </Button>
                     )}
                     <Button variant="ghost" className="rounded-full gap-2">
@@ -332,14 +334,14 @@ function VideoPageClient() {
                 <p className="font-semibold">{formatViews(content.views)} &bull; {timeAgo(content.createdAt)}</p>
             )}
              {!isIntroVideo && isPost && (
-                <p className="font-semibold">{content.likes.toLocaleString()} beğeni &bull; {timeAgo(content.createdAt)}</p>
+                <p className="font-semibold">{(content.likes || 0).toLocaleString()} beğeni &bull; {timeAgo(content.createdAt)}</p>
             )}
             <p className="mt-2 whitespace-pre-wrap">{isVideo ? content.description : (content as Post).caption}</p>
           </div>
 
           {!isIntroVideo && currentUser && (
             <div className="mt-8">
-              <h2 className="text-xl font-bold mb-4">{content.comments.length} Yorum</h2>
+              <h2 className="text-xl font-bold mb-4">{(content.comments || []).length} Yorum</h2>
               <div className="flex gap-4 mb-6">
                 <Avatar>
                     <AvatarImage src={currentUser?.profilePicture} alt={currentUser?.displayName || currentUser?.username} data-ai-hint="person face" />
@@ -371,7 +373,7 @@ function VideoPageClient() {
                 </div>
               </div>
               <div className="space-y-6">
-                {content.comments.map(comment => (
+                {(content.comments || []).map(comment => (
                     <CommentDisplay key={comment.id} comment={comment} />
                 ))}
               </div>

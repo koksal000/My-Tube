@@ -63,11 +63,11 @@ export default function FlowPlayer({ video }: { video: Video }) {
             <div className="absolute bottom-4 right-4 flex flex-col items-center gap-4 text-white">
                 <button className="flex flex-col items-center gap-1">
                     <ThumbsUp size={28} />
-                    <span className="text-sm font-semibold">{video.likes.toLocaleString()}</span>
+                    <span className="text-sm font-semibold">{(video.likes || 0).toLocaleString()}</span>
                 </button>
                 <button className="flex flex-col items-center gap-1">
                     <MessageCircle size={28} />
-                    <span className="text-sm font-semibold">{video.comments.length}</span>
+                    <span className="text-sm font-semibold">{(video.comments || []).length}</span>
                 </button>
             </div>
         </div>

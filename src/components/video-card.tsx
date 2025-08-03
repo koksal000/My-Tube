@@ -11,6 +11,7 @@ function formatDuration(seconds: number) {
 }
 
 function timeAgo(dateString: string) {
+    if (!dateString) return "";
     const date = new Date(dateString);
     const seconds = Math.floor((new Date().getTime() - date.getTime()) / 1000);
     let interval = seconds / 31536000;
@@ -27,6 +28,7 @@ function timeAgo(dateString: string) {
 }
 
 function formatViews(views: number) {
+    if (isNaN(views)) return "0 izlenme";
     if (views >= 1000000) return `${(views / 1000000).toFixed(1)}M izlenme`;
     if (views >= 1000) return `${(views / 1000).toFixed(0)}B izlenme`;
     return `${views} izlenme`;
@@ -50,7 +52,7 @@ export function VideoCard({ video }: { video: Video }) {
             className="object-cover transition-transform duration-300"
             data-ai-hint="video thumbnail"
           />
-          {!isIntroVideo && (
+          {!isIntroVideo && video.duration > 0 && (
             <div className="absolute bottom-1 right-1 rounded bg-black/75 px-1.5 py-0.5 text-xs font-semibold text-white">
                 {formatDuration(video.duration)}
             </div>
