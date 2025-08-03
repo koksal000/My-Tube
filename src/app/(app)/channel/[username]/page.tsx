@@ -9,7 +9,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import Image from "next/image";
 import { useEffect, useState } from "react";
 import type { User, Video, Post } from "@/lib/types";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, usePathname } from "next/navigation";
 import { EditProfileDialog } from "@/components/profile-edit-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { MessageSquare } from "lucide-react";
@@ -17,6 +17,7 @@ import Link from "next/link";
 
 export default function ChannelPage() {
   const router = useRouter();
+  const pathname = usePathname();
   const params = useParams<{ username: string }>();
   const { toast } = useToast();
   const [currentUser, setCurrentUser] = useState<User | null>(null);
@@ -49,7 +50,7 @@ export default function ChannelPage() {
          if (loggedInUser.id === foundChannelUser.id) {
            setIsOwnProfile(true);
          } else {
-           setIsSubscribed(loggedInUser.subscriptions.includes(foundChannelUser.id));
+           setIsSubscribed((loggedInUser.subscriptions || []).includes(foundChannelUser.id));
          }
 
       } else {
@@ -72,8 +73,8 @@ export default function ChannelPage() {
   const handleSubscription = async () => {
     if (!currentUser || !channelUser || isOwnProfile) return;
 
-    let updatedSubscriptions = [...currentUser.subscriptions];
-    let updatedSubscribers = channelUser.subscribers;
+    let updatedSubscriptions = [...(currentUser.subscriptions || [])];
+    let updatedSubscribers = channelUser.subscribers || 0;
 
     if (isSubscribed) {
       // Unsubscribe
@@ -129,7 +130,7 @@ export default function ChannelPage() {
                 </Avatar>
                 <div className="pb-4 flex-grow">
                     <h1 className="text-3xl font-bold">{channelUser.displayName || channelUser.username}</h1>
-                    <p className="text-muted-foreground">@{channelUser.username} &bull; {channelUser.subscribers.toLocaleString()} abone</p>
+                    <p className="text-muted-foreground">@{channelUser.username} &bull; {(channelUser.subscribers || 0).toLocaleString()} abone</p>
                 </div>
                 <div className="pb-4 flex items-center gap-2">
                   {isOwnProfile ? (

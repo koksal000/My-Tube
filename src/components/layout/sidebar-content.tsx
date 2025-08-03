@@ -45,8 +45,10 @@ export default function SidebarContentComponent() {
       const user = await getCurrentUser();
       if (user) {
         setCurrentUser(user);
-        const subUsers = await Promise.all(user.subscriptions.map(id => getUserById(id)));
-        setSubscriptions(subUsers.filter((u): u is User => !!u));
+        if (user.subscriptions && user.subscriptions.length > 0) {
+            const subUsers = await Promise.all(user.subscriptions.map(id => getUserById(id)));
+            setSubscriptions(subUsers.filter((u): u is User => !!u));
+        }
       }
     };
     fetchUserAndSubs();

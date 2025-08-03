@@ -35,15 +35,18 @@ export default function HomePage() {
           views: v.views,
           likes: v.likes,
           dislikes: v.dislikes,
-          commentCount: v.comments.length
+          commentCount: (v.comments || []).length
       }));
 
       const recommendationInput: VideoRecommendationsInput = {
         userProfile: {
           username: currentUser.username,
-          likedVideos: currentUser.likedVideos,
-          viewedVideos: currentUser.viewedVideos,
-          subscribedChannels: await Promise.all(currentUser.subscriptions.map(async id => (await getAllUsers()).find(u => u.id === id)?.username || '')),
+          likedVideos: currentUser.likedVideos || [],
+          viewedVideos: currentUser.viewedVideos || [],
+          subscribedChannels: await Promise.all((currentUser.subscriptions || []).map(async id => {
+              const user = await allUsers.find(u => u.id === id);
+              return user ? user.username : '';
+          })).then(usernames => usernames.filter(Boolean)),
         },
         allVideos: allVideosForAI,
         boostByViews: 1.2,
@@ -59,7 +62,9 @@ export default function HomePage() {
 
       } catch(e) {
         console.error("AI recommendation failed, falling back to all videos", e)
-        setRecommendedVideos(allDBVideos.filter(v => v.author));
+        const allNonAdminVideos = allDBVideos.filter(v => v.author && v.author.username !== 'admin');
+        const shuffledVideos = allNonAdminVideos.sort(() => 0.5 - Math.random());
+        setRecommendedVideos(shuffledVideos);
       } finally {
         setLoading(false);
       }

@@ -17,17 +17,21 @@ export default function SubscriptionsPage() {
       const currentUser = await getCurrentUser();
       
       if (currentUser) {
-        const subscribedUsers = await Promise.all(currentUser.subscriptions.map(id => getUserById(id)));
-        const subscribedChannelsUsernames = subscribedUsers
-            .filter((u): u is User => !!u)
-            .map(u => u.username);
-        
-        const allVideos = await getAllVideos();
-        const videos = allVideos.filter(video => 
-          video.author && subscribedChannelsUsernames.includes(video.author.username)
-        ).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-        
-        setSubscriptionVideos(videos);
+        if (currentUser.subscriptions && currentUser.subscriptions.length > 0) {
+            const subscribedUsers = await Promise.all(currentUser.subscriptions.map(id => getUserById(id)));
+            const subscribedChannelsUsernames = subscribedUsers
+                .filter((u): u is User => !!u)
+                .map(u => u.username);
+            
+            const allVideos = await getAllVideos();
+            const videos = allVideos.filter(video => 
+              video.author && subscribedChannelsUsernames.includes(video.author.username)
+            ).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+            
+            setSubscriptionVideos(videos);
+        } else {
+            setSubscriptionVideos([]);
+        }
       } else {
         router.push('/login');
       }

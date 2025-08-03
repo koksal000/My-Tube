@@ -16,8 +16,10 @@ async function initializeDatabase() {
     if (userCount === 0) {
       console.log('Database is empty. Initializing with data from JSON files...');
       await db.bulkAdd('users', initialUsers as User[]);
-      await db.bulkAdd('videos', initialVideos as Omit<Video, 'author'>[]);
-      await db.bulkAdd('posts', initialPosts as Omit<Post, 'author'| 'comments'>[]);
+      const videosWithoutAuthor = initialVideos.map(({ author, ...rest }) => rest);
+      await db.bulkAdd('videos', videosWithoutAuthor as Omit<Video, 'author'>[]);
+      const postsWithoutAuthor = initialPosts.map(({ author, ...rest }) => rest);
+      await db.bulkAdd('posts', postsWithoutAuthor as Omit<Post, 'author'>[]);
       console.log('Database initialized successfully.');
     }
   } catch (error) {
@@ -29,19 +31,29 @@ async function initializeDatabase() {
 initializeDatabase();
 
 // Helper to hydrate authors and comments into video/post objects
-async function hydrateData<T extends (Video | Post)>(item: T): Promise<T> {
-    if (!item) return item;
+async function hydrateData<T extends (Video | Post | Comment)>(item: T | Omit<T, 'author'>): Promise<T> {
+    if (!item) return item as T;
 
-    const author = await getUserById(item.authorId);
-    if(author) item.author = author;
+    const hydratedItem = { ...item } as T;
 
-    if (item.comments && item.comments.length > 0) {
-        for (let i = 0; i < item.comments.length; i++) {
-            const commentAuthor = await getUserById(item.comments[i].authorId);
-            if(commentAuthor) item.comments[i].author = commentAuthor;
-        }
+    if ('authorId' in hydratedItem && !hydratedItem.author) {
+        const author = await getUserById(hydratedItem.authorId);
+        if (author) hydratedItem.author = author;
     }
-    return item;
+
+    if ('comments' in hydratedItem && Array.isArray(hydratedItem.comments)) {
+        hydratedItem.comments = await Promise.all(
+            hydratedItem.comments.map(c => hydrateData(c as Comment))
+        );
+    }
+    
+    if ('replies' in hydratedItem && Array.isArray(hydratedItem.replies)) {
+         hydratedItem.replies = await Promise.all(
+            hydratedItem.replies.map(r => hydrateData(r as Comment))
+        );
+    }
+
+    return hydratedItem;
 }
 
 // --- User Functions ---
@@ -68,13 +80,17 @@ export async function getUserByUsername(username: string): Promise<User | undefi
     if (user) {
         // In a real app, this would be a backend check. For prototype, we merge with initial data.
         const originalUser = (initialUsers as User[]).find(u => u.username === username);
-        return { ...user, password: originalUser?.password };
+        if (originalUser && !user.password) {
+           return { ...user, password: originalUser.password };
+        }
+        return user
     }
     return undefined;
 }
 
 
 export async function getUserById(id: string): Promise<User | undefined> {
+    if(!id) return undefined;
     return await db.get('users', id);
 }
 
@@ -86,14 +102,14 @@ export async function getAllUsers(): Promise<User[]> {
 // --- Video Functions ---
 
 export async function getAllVideos(): Promise<Video[]> {
-    const videos = await db.getAll('videos') as Video[];
+    const videos = await db.getAll('videos') as Omit<Video, 'author'>[];
     return Promise.all(videos.map(v => hydrateData(v as Video)));
 }
 
 export async function getVideoById(id: string): Promise<Video | undefined> {
-    const video = await db.get('videos', id) as Video | undefined;
+    const video = await db.get('videos', id) as Omit<Video, 'author'> | undefined;
     if (!video) return undefined;
-    return hydrateData(video);
+    return hydrateData(video as Video);
 }
 
 export async function getVideoByAuthor(authorId: string): Promise<Video[]> {
@@ -108,12 +124,12 @@ export async function addVideo(video: Omit<Video, 'author'>): Promise<void> {
 // --- Post Functions ---
 
 export async function getAllPosts(): Promise<Post[]> {
-    const posts = await db.getAll('posts') as Post[];
+    const posts = await db.getAll('posts') as Omit<Post, 'author'>[];
     return Promise.all(posts.map(p => hydrateData(p as Post)));
 }
 
 export async function getPostById(id: string): Promise<Post | undefined> {
-    const post = await db.get('posts', id) as Post | undefined;
+    const post = await db.get('posts', id) as Omit<Post, 'author'> | undefined;
     if (!post) return undefined;
     return hydrateData(post);
 }
@@ -131,10 +147,11 @@ export async function addPost(post: Omit<Post, 'author'|'comments'>): Promise<vo
 
 // --- Comment Functions ---
 export async function addCommentToVideo(videoId: string, comment: Omit<Comment, 'author' | 'replies'>): Promise<void> {
-    const video = await db.get('videos', videoId) as Video | undefined;
+    const video = await db.get('videos', videoId) as Omit<Video, 'author'> | undefined;
     if (video) {
-        const newComment: Comment = { ...comment, author: {} as User, replies: [] };
-        video.comments.unshift(newComment);
+        const newComment: Omit<Comment, 'author' | 'replies'> = { ...comment };
+        if (!video.comments) video.comments = [];
+        video.comments.unshift(newComment as any);
         await db.put('videos', video);
     }
 }
@@ -168,7 +185,8 @@ export async function getCurrentUser(): Promise<User | null> {
             if (userId) {
                 const userFromDb = await getUserById(userId);
                 if (userFromDb) {
-                    currentUser = userFromDb;
+                    const fullUser = await getUserByUsername(userFromDb.username)
+                    currentUser = fullUser || userFromDb;
                     return currentUser;
                 }
             }

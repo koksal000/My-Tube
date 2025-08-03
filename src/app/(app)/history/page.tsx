@@ -15,8 +15,12 @@ export default function HistoryPage() {
         const fetchHistory = async () => {
             const currentUser = await getCurrentUser();
             if (currentUser) {
-                const userViewedVideos = await Promise.all(currentUser.viewedVideos.map(id => getVideoById(id)));
-                setViewedVideos(userViewedVideos.filter((v): v is Video => !!v));
+                if(currentUser.viewedVideos && currentUser.viewedVideos.length > 0) {
+                   const userViewedVideos = await Promise.all(currentUser.viewedVideos.map(id => getVideoById(id)));
+                   setViewedVideos(userViewedVideos.filter((v): v is Video => !!v));
+                } else {
+                    setViewedVideos([]);
+                }
             } else {
                 router.push('/login');
             }

@@ -3,8 +3,8 @@
 import { Suspense, useEffect, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { searchContent, SearchContentInput } from "@/ai/flows/contextual-search";
-import { getAllVideos, getAllUsers } from "@/lib/data";
-import type { Video, User } from "@/lib/types";
+import { getAllVideos, getAllUsers, getAllPosts } from "@/lib/data";
+import type { Video, User, Post } from "@/lib/types";
 import { VideoCard } from "@/components/video-card";
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -54,7 +54,7 @@ function SearchResults({ query }: { query: string }) {
             video.author &&
             (video.title.toLowerCase().includes(lowerCaseQuery) ||
             video.description.toLowerCase().includes(lowerCaseQuery) ||
-            video.author.displayName.toLowerCase().includes(lowerCaseQuery))
+            (video.author.displayName && video.author.displayName.toLowerCase().includes(lowerCaseQuery)))
         );
          const filteredChannels = allDBUsers.filter(
             (user) => user.username !== 'admin' &&
