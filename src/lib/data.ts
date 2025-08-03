@@ -2,225 +2,178 @@ import type { User, Video, Post, Comment } from './types';
 import initialUsers from '@/data/users.json';
 import initialVideos from '@/data/videos.json';
 import initialPosts from '@/data/posts.json';
+import * as db from './db';
 
-// --- LocalStorage Keys ---
-const USERS_KEY = 'myTube-users';
-const VIDEOS_KEY = 'myTube-videos';
-const POSTS_KEY = 'myTube-posts';
-const CURRENT_USER_KEY = 'myTube-currentUser';
+const CURRENT_USER_KEY = 'myTube-currentUser-id';
 
-// --- Data Loading and Hydration ---
+// --- Data Initialization ---
 
-// Helper to get data from localStorage or initialize it from JSON files
-function loadData<T>(key: string, initialData: T[]): T[] {
-    if (typeof window === 'undefined') {
-        return initialData;
+// This function runs once to populate IndexedDB from JSON files if it's empty.
+async function initializeDatabase() {
+  if (typeof window === 'undefined') return;
+  try {
+    const userCount = await db.count('users');
+    if (userCount === 0) {
+      console.log('Database is empty. Initializing with data from JSON files...');
+      await db.bulkAdd('users', initialUsers as User[]);
+      await db.bulkAdd('videos', initialVideos as Omit<Video, 'author'>[]);
+      await db.bulkAdd('posts', initialPosts as Omit<Post, 'author'| 'comments'>[]);
+      console.log('Database initialized successfully.');
     }
-    try {
-        const storedData = localStorage.getItem(key);
-        if (storedData) {
-            return JSON.parse(storedData);
-        } else {
-            localStorage.setItem(key, JSON.stringify(initialData));
-            return initialData;
-        }
-    } catch (error) {
-        console.error(`Failed to load data for key "${key}" from localStorage`, error);
-        return initialData;
-    }
+  } catch (error) {
+    console.error('Failed to initialize database:', error);
+  }
 }
 
-// Helper to save data to localStorage
-function saveData<T>(key: string, data: T[]): void {
-     if (typeof window !== 'undefined') {
-        try {
-            localStorage.setItem(key, JSON.stringify(data));
-        } catch (error) {
-            console.error(`Failed to save data for key "${key}" to localStorage`, error);
+// Immediately try to initialize the DB when this module is loaded on the client.
+initializeDatabase();
+
+// Helper to hydrate authors and comments into video/post objects
+async function hydrateData<T extends (Video | Post)>(item: T): Promise<T> {
+    if (!item) return item;
+
+    const author = await getUserById(item.authorId);
+    if(author) item.author = author;
+
+    if (item.comments && item.comments.length > 0) {
+        for (let i = 0; i < item.comments.length; i++) {
+            const commentAuthor = await getUserById(item.comments[i].authorId);
+            if(commentAuthor) item.comments[i].author = commentAuthor;
         }
     }
+    return item;
 }
-
-// In-memory simulation of a database, initialized from localStorage or initial JSON files
-let mockUsers: User[] = loadData(USERS_KEY, initialUsers as User[]);
-let mockVideos: Video[] = loadData(VIDEOS_KEY, initialVideos as any[]);
-let mockPosts: Post[] = loadData(POSTS_KEY, initialPosts as any[]);
-
-let currentUser: User | null = null;
-
-// Function to link authors to videos and posts
-function linkData() {
-    const userMap = new Map(mockUsers.map(u => [u.id, u]));
-
-    const hydrateAuthor = (item: any) => {
-        const author = userMap.get(item.authorId);
-        if (author) {
-            item.author = author;
-            if (item.comments) {
-                item.comments.forEach(comment => {
-                    const commentAuthor = userMap.get(comment.authorId);
-                    if (commentAuthor) {
-                        comment.author = commentAuthor;
-                    }
-                });
-            }
-        }
-        return item;
-    };
-
-    mockVideos = mockVideos.map(hydrateAuthor);
-    mockPosts = mockPosts.map(hydrateAuthor);
-}
-
-// Initial data linking after loading
-linkData();
-
 
 // --- User Functions ---
 
-export function addUser(user: User): void {
-  const { password, ...userToSave } = user; // Never store plain password
-  mockUsers.push(userToSave as User);
-  saveData(USERS_KEY, mockUsers);
-  linkData(); // Relink data in case it affects anything
+export async function addUser(user: User): Promise<void> {
+  const { password, ...userToAdd } = user; // Never store plain password in the main object
+  await db.add('users', userToAdd as User);
 }
 
-export function updateUser(updatedUser: User): void {
-    const index = mockUsers.findIndex(u => u.id === updatedUser.id);
-    if (index !== -1) {
-        // Prevent password from being overwritten if not provided
-        const existingUser = mockUsers[index];
-        mockUsers[index] = { ...existingUser, ...updatedUser };
-        saveData(USERS_KEY, mockUsers);
-
-        if (currentUser && currentUser.id === updatedUser.id) {
-            setCurrentUser(updatedUser);
-        }
-        linkData();
+export async function updateUser(updatedUser: User): Promise<void> {
+    const { password, ...userToUpdate } = updatedUser;
+    await db.put('users', userToUpdate as User);
+    
+    const currentId = typeof window !== 'undefined' ? localStorage.getItem(CURRENT_USER_KEY) : null;
+    if (currentId && currentId === updatedUser.id) {
+        setCurrentUser(updatedUser); // Update session if it's the current user
     }
 }
 
-export function getUserByUsername(username: string): User | undefined {
-  const user = mockUsers.find(u => u.username === username);
-  if (user) {
-    // For the prototype's login check, we retrieve the password from the initial data source
-    // In a real app, this would be a hashed password check against a database.
-    const originalUser = (initialUsers as User[]).find(u => u.username === username);
-    return { ...user, password: originalUser?.password };
-  }
-  return undefined;
+
+export async function getUserByUsername(username: string): Promise<User | undefined> {
+    const allUsers = await getAllUsers();
+    const user = allUsers.find(u => u.username === username);
+    if (user) {
+        const originalUser = (initialUsers as User[]).find(u => u.username === username);
+        return { ...user, password: originalUser?.password };
+    }
+    return undefined;
 }
 
-export function getUserById(id: string): User | undefined {
-    return mockUsers.find(u => u.id === id);
+
+export async function getUserById(id: string): Promise<User | undefined> {
+    return await db.get('users', id);
 }
 
-export function getAllUsers(): User[] {
-  return mockUsers;
+export async function getAllUsers(): Promise<User[]> {
+    return await db.getAll('users');
 }
 
 
 // --- Video Functions ---
 
-export function getAllVideos(): Video[] {
-  return mockVideos;
+export async function getAllVideos(): Promise<Video[]> {
+    const videos = await db.getAll('videos') as Video[];
+    return Promise.all(videos.map(hydrateData));
 }
 
-export function getVideoById(id: string): Video | undefined {
-    return mockVideos.find(v => v.id === id);
+export async function getVideoById(id: string): Promise<Video | undefined> {
+    const video = await db.get('videos', id) as Video | undefined;
+    if (!video) return undefined;
+    return hydrateData(video);
 }
 
-export function getVideoByAuthor(authorId: string): Video[] {
-    return mockVideos.filter(v => v.authorId === authorId);
+export async function getVideoByAuthor(authorId: string): Promise<Video[]> {
+    const allVideos = await getAllVideos();
+    return allVideos.filter(v => v.authorId === authorId);
 }
 
-export function addVideo(video: Omit<Video, 'author'>): void {
-    const author = getUserById(video.authorId);
-    if (author) {
-        const newVideo: Video = { ...video, author };
-        mockVideos.unshift(newVideo);
-        saveData(VIDEOS_KEY, mockVideos);
-        linkData();
-    }
+export async function addVideo(video: Omit<Video, 'author'>): Promise<void> {
+    await db.add('videos', video);
 }
 
 // --- Post Functions ---
 
-export function getAllPosts(): Post[] {
-  return mockPosts;
+export async function getAllPosts(): Promise<Post[]> {
+    const posts = await db.getAll('posts') as Post[];
+    return Promise.all(posts.map(hydrateData));
 }
 
-export function getPostsByAuthor(authorId: string): Post[] {
-    return mockPosts.filter(p => p.authorId === authorId);
+export async function getPostsByAuthor(authorId: string): Promise<Post[]> {
+    const allPosts = await getAllPosts();
+    return allPosts.filter(p => p.authorId === authorId);
 }
 
-export function addPost(post: Omit<Post, 'author'>): void {
-     const author = getUserById(post.authorId);
-    if (author) {
-        const newPost: Post = { ...post, author };
-        mockPosts.unshift(newPost);
-        saveData(POSTS_KEY, mockPosts);
-        linkData();
-    }
+export async function addPost(post: Omit<Post, 'author'>): Promise<void> {
+    await db.add('posts', post);
 }
 
 
 // --- Comment Functions ---
-export function addCommentToVideo(videoId: string, comment: Omit<Comment, 'author' | 'replies'>): void {
-    const video = getVideoById(videoId);
-    const author = getUserById(comment.authorId);
-    if (video && author) {
-        const newComment: Comment = { ...comment, author, replies: [] };
+export async function addCommentToVideo(videoId: string, comment: Omit<Comment, 'author' | 'replies'>): Promise<void> {
+    const video = await db.get('videos', videoId) as Video | undefined;
+    if (video) {
+        const newComment: Comment = { ...comment, author: {} as User, replies: [] };
         video.comments.unshift(newComment);
-        saveData(VIDEOS_KEY, mockVideos);
-        linkData();
+        await db.put('videos', video);
     }
 }
 
 
 // --- Current User / Session Management ---
 
-export function setCurrentUser(user: User): void {
+let currentUser: User | null = null;
+
+export function setCurrentUser(user: User | null): void {
     currentUser = user;
     if (typeof window !== 'undefined') {
         try {
-            // Store only the ID to re-fetch the user later
-            localStorage.setItem(CURRENT_USER_KEY, user.id);
+            if (user) {
+                localStorage.setItem(CURRENT_USER_KEY, user.id);
+            } else {
+                localStorage.removeItem(CURRENT_USER_KEY);
+            }
         } catch (error) {
-            console.error("Could not save user to localStorage", error);
+            console.error("Could not set user session in localStorage", error);
         }
     }
 }
 
-export function getCurrentUser(): User | null {
-    if (currentUser) {
-        return currentUser;
-    }
+export async function getCurrentUser(): Promise<User | null> {
+    if (currentUser) return currentUser;
+
     if (typeof window !== 'undefined') {
         try {
             const userId = localStorage.getItem(CURRENT_USER_KEY);
             if (userId) {
-                const userFromStorage = getUserById(userId);
-                if (userFromStorage) {
-                    currentUser = userFromStorage;
+                const userFromDb = await getUserById(userId);
+                if (userFromDb) {
+                    currentUser = userFromDb;
                     return currentUser;
                 }
             }
         } catch (error) {
-            console.error("Could not read user from localStorage", error);
-            return null;
+            console.error("Could not read user session from localStorage", error);
         }
     }
+    
+    // If we reach here, no user is logged in
+    setCurrentUser(null);
     return null;
 }
 
 export function logout(): void {
-    currentUser = null;
-    if (typeof window !== 'undefined') {
-       try {
-            localStorage.removeItem(CURRENT_USER_KEY);
-        } catch (error) {
-            console.error("Could not remove user from localStorage", error);
-        }
-    }
+    setCurrentUser(null);
 }

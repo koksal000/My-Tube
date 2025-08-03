@@ -10,9 +10,9 @@ export default function ExplorePage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchVideos = () => {
+    const fetchVideos = async () => {
       setLoading(true);
-      const allVideos = getAllVideos();
+      const allVideos = await getAllVideos();
       // admin videosunu keşfetten çıkar ve yazarı olmayan videoları filtrele
       const filteredVideos = allVideos.filter(v => v.author && v.author.username !== 'admin');
       // Videoları karıştır

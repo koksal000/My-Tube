@@ -12,17 +12,17 @@ export default function SubscriptionsPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchSubs = () => {
+    const fetchSubs = async () => {
       setLoading(true);
-      const currentUser = getCurrentUser();
+      const currentUser = await getCurrentUser();
       
       if (currentUser) {
-        const subscribedUsers = currentUser.subscriptions.map(id => getUserById(id));
+        const subscribedUsers = await Promise.all(currentUser.subscriptions.map(id => getUserById(id)));
         const subscribedChannelsUsernames = subscribedUsers
             .filter((u): u is User => !!u)
             .map(u => u.username);
         
-        const allVideos = getAllVideos();
+        const allVideos = await getAllVideos();
         const videos = allVideos.filter(video => 
           video.author && subscribedChannelsUsernames.includes(video.author.username)
         ).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());

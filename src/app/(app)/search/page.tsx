@@ -1,4 +1,3 @@
-
 "use client";
 
 import { Suspense, useEffect, useState } from "react";
@@ -21,8 +20,8 @@ function SearchResults({ query }: { query: string }) {
     const performSearch = async () => {
       setLoading(true);
 
-      const allDBVideos = getAllVideos();
-      const allDBUsers = getAllUsers();
+      const allDBVideos = await getAllVideos();
+      const allDBUsers = await getAllUsers();
       
       const allContentForAI = [
         ...allDBVideos.filter(v => v.author).map(v => ({ id: v.id, title: v.title, description: v.description, username: v.author.username, type: 'video' })),

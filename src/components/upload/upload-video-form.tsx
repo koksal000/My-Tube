@@ -33,7 +33,7 @@ export function UploadVideoForm() {
     const thumbnailFile = formData.get("thumbnail") as File;
     const videoFile = formData.get("video") as File;
     
-    const currentUser = getCurrentUser();
+    const currentUser = await getCurrentUser();
     if (!currentUser) {
         toast({ title: "Hata", description: "Yükleme yapmak için giriş yapmalısınız.", variant: "destructive" });
         setIsUploading(false);
@@ -70,7 +70,7 @@ export function UploadVideoForm() {
           comments: [],
       };
 
-      addVideo(newVideo);
+      await addVideo(newVideo);
 
       toast({
           title: "Yükleme Başarılı!",

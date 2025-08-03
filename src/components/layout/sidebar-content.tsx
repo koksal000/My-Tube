@@ -41,11 +41,11 @@ export default function SidebarContentComponent() {
   const [subscriptions, setSubscriptions] = useState<User[]>([]);
 
   useEffect(() => {
-    const fetchUserAndSubs = () => {
-      const user = getCurrentUser();
+    const fetchUserAndSubs = async () => {
+      const user = await getCurrentUser();
       if (user) {
         setCurrentUser(user);
-        const subUsers = user.subscriptions.map(id => getUserById(id));
+        const subUsers = await Promise.all(user.subscriptions.map(id => getUserById(id)));
         setSubscriptions(subUsers.filter((u): u is User => !!u));
       }
     };

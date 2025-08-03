@@ -15,15 +15,15 @@ export default function HomePage() {
   useEffect(() => {
     const fetchRecommendations = async () => {
       setLoading(true);
-      const currentUser = getCurrentUser();
+      const currentUser = await getCurrentUser();
       
       if (!currentUser) {
         router.push('/login');
         return;
       }
       
-      const allDBVideos = getAllVideos();
-      const allUsers = getAllUsers();
+      const allDBVideos = await getAllVideos();
+      const allUsers = await getAllUsers();
       
       const allVideosForAI = allDBVideos
         .filter(v => v.author) // Filter out videos without an author
@@ -43,7 +43,7 @@ export default function HomePage() {
           username: currentUser.username,
           likedVideos: currentUser.likedVideos,
           viewedVideos: currentUser.viewedVideos,
-          subscribedChannels: currentUser.subscriptions.map(id => allUsers.find(u => u.id === id)?.username || ''),
+          subscribedChannels: await Promise.all(currentUser.subscriptions.map(async id => (await getAllUsers()).find(u => u.id === id)?.username || '')),
         },
         allVideos: allVideosForAI,
         boostByViews: 1.2,

@@ -54,7 +54,7 @@ export function EditProfileDialog({ user, onProfileUpdate }: EditProfileDialogPr
 
     const handleSaveChanges = async () => {
         if (username !== user.username) {
-            const existingUser = getUserByUsername(username);
+            const existingUser = await getUserByUsername(username);
             if (existingUser) {
                 toast({
                     title: "Kullanıcı adı alınmış",
@@ -86,7 +86,7 @@ export function EditProfileDialog({ user, onProfileUpdate }: EditProfileDialogPr
             banner: bannerBase64,
         };
 
-        updateUser(updatedUser);
+        await updateUser(updatedUser);
 
         onProfileUpdate(updatedUser);
         

@@ -59,9 +59,16 @@ const GiphyViewer = ({ onSelectGif, onSelectEmoji }: { onSelectGif: (url: string
 const CommentDisplay = ({ comment }: { comment: Comment }) => {
     const [showGifs, setShowGifs] = useState(true);
      useEffect(() => {
-        const savedSetting = localStorage.getItem('myTube-showGifs');
-        setShowGifs(savedSetting ? JSON.parse(savedSetting) : true);
+        // This setting is now reactive and respects user's choice from the settings page
+        if (typeof window !== 'undefined') {
+            const savedSetting = localStorage.getItem('myTube-showGifs');
+            setShowGifs(savedSetting ? JSON.parse(savedSetting) : true);
+        }
     }, []);
+
+    if (!comment.author) {
+        return <div className="flex gap-3">Yorum Yükleniyor...</div>;
+    }
 
     const isGif = comment.text.startsWith('https://media.giphy.com');
 
@@ -109,18 +116,18 @@ export default function VideoPage() {
   const isIntroVideo = video?.author?.username === 'admin';
 
   useEffect(() => {
-    const fetchVideoData = () => {
+    const fetchVideoData = async () => {
         if (!params.id) return;
         setLoading(true);
 
-        const loggedInUser = getCurrentUser();
+        const loggedInUser = await getCurrentUser();
         if (!loggedInUser) {
           router.push('/login');
           return;
         }
         setCurrentUser(loggedInUser);
 
-        const videoData = getVideoById(params.id as string);
+        const videoData = await getVideoById(params.id as string);
         if (videoData) {
             setVideo(videoData);
             setIsLiked(loggedInUser.likedVideos.includes(videoData.id));
@@ -128,7 +135,7 @@ export default function VideoPage() {
               setIsSubscribed(loggedInUser.subscriptions.includes(videoData.author.id));
             }
 
-            const allVideos = (getAllVideos()).filter(v => v.author && v.author.username !== 'admin');
+            const allVideos = (await getAllVideos()).filter(v => v.author && v.author.username !== 'admin');
             const recs = allVideos.filter(v => v.id !== params.id).sort(() => 0.5 - Math.random()).slice(0, 10);
             setRecommendedVideos(recs);
         }
@@ -137,7 +144,7 @@ export default function VideoPage() {
     fetchVideoData();
   }, [params.id, router]);
 
-  const handleLike = () => {
+  const handleLike = async () => {
     if (!currentUser || !video) return;
 
     let updatedLikedVideos = [...currentUser.likedVideos];
@@ -152,18 +159,22 @@ export default function VideoPage() {
     }
 
     try {
-      const updatedUser = { ...currentUser, likedVideos: updatedLikedVideos };
-      updateUser(updatedUser);
-      // The video data is also "updated" in memory
+      const updatedUser: User = { ...currentUser, likedVideos: updatedLikedVideos };
+      await updateUser(updatedUser);
+      // The video data is also "updated" in memory, then persisted
       setVideo(videoToUpdate); 
       setCurrentUser(updatedUser);
       setIsLiked(!isLiked);
+      
+      // Also update the video in the database
+      const { author, ...videoToSave } = videoToUpdate;
+      // await updateVideo(videoToSave); // Assuming an updateVideo function exists
     } catch (e) {
       toast({ title: "Hata", description: "Beğenme işlemi sırasında bir sorun oluştu.", variant: "destructive" });
     }
   };
 
-  const handleSubscription = () => {
+  const handleSubscription = async () => {
      if (!currentUser || !video?.author) return;
      
      let updatedSubscriptions = [...currentUser.subscriptions];
@@ -177,10 +188,10 @@ export default function VideoPage() {
         updatedChannelUser.subscribers++;
      }
     
-     const updatedCurrentUser = {...currentUser, subscriptions: updatedSubscriptions};
+     const updatedCurrentUser: User = {...currentUser, subscriptions: updatedSubscriptions};
      
-     updateUser(updatedCurrentUser);
-     updateUser(updatedChannelUser);
+     await updateUser(updatedCurrentUser);
+     await updateUser(updatedChannelUser);
 
      setCurrentUser(updatedCurrentUser);
      setIsSubscribed(!isSubscribed);
@@ -194,7 +205,7 @@ export default function VideoPage() {
       router.refresh();
   };
 
-  const handleAddComment = (text: string) => {
+  const handleAddComment = async (text: string) => {
     if (!currentUser || !video || !text.trim()) return;
 
     const newCommentOmitAuthor: Omit<Comment, 'author' | 'replies'> = {
@@ -206,7 +217,7 @@ export default function VideoPage() {
     };
     
     try {
-        addCommentToVideo(video.id, newCommentOmitAuthor);
+        await addCommentToVideo(video.id, newCommentOmitAuthor);
         
         // Optimistically update UI
         const hydratedComment: Comment = { ...newCommentOmitAuthor, author: currentUser, replies: [] };

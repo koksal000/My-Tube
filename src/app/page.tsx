@@ -9,9 +9,9 @@ export default function Home() {
   const router = useRouter();
 
   useEffect(() => {
-    const timer = setTimeout(() => {
+    const timer = setTimeout(async () => {
       try {
-        const user = getCurrentUser();
+        const user = await getCurrentUser();
         if (user) {
           router.push('/home');
         } else {

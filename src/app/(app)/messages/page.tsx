@@ -1,4 +1,3 @@
-
 "use client"
 
 import { Button } from "@/components/ui/button";
@@ -47,21 +46,24 @@ export default function MessagesPage() {
     const { peerId, messages, connectionStatus, connect, sendMessage } = usePeer(currentUser?.id);
 
     useEffect(() => {
-        const user = getCurrentUser();
-        if(!user) return;
-        setCurrentUser(user);
-        
-        const allUsers = getAllUsers();
-        const conversationUsers = allUsers.filter(u => u.id !== user.id && u.username !== 'admin');
-        setConversations(conversationUsers);
-        
-        if (routerUser) {
-            const targetUser = getUserByUsername(routerUser);
-            if (targetUser) {
-                setSelectedUser(targetUser);
-                setPeerIdToConnect(targetUser.id); // Assume target user's peerId is their userId
+        const init = async () => {
+            const user = await getCurrentUser();
+            if(!user) return;
+            setCurrentUser(user);
+            
+            const allUsers = await getAllUsers();
+            const conversationUsers = allUsers.filter(u => u.id !== user.id && u.username !== 'admin');
+            setConversations(conversationUsers);
+            
+            if (routerUser) {
+                const targetUser = await getUserByUsername(routerUser);
+                if (targetUser) {
+                    setSelectedUser(targetUser);
+                    setPeerIdToConnect(targetUser.id); // Assume target user's peerId is their userId
+                }
             }
         }
+        init();
     }, [routerUser]);
 
     useEffect(() => {
@@ -81,8 +83,10 @@ export default function MessagesPage() {
     }
     
     const copyPeerId = () => {
-        navigator.clipboard.writeText(peerId || "");
-        toast({ title: "Peer ID Kopyalandı!", description: "ID'nizi şimdi arkadaşınızla paylaşabilirsiniz." });
+        if (peerId) {
+            navigator.clipboard.writeText(peerId);
+            toast({ title: "Peer ID Kopyalandı!", description: "ID'nizi şimdi arkadaşınızla paylaşabilirsiniz." });
+        }
     }
 
     return (
@@ -142,7 +146,7 @@ export default function MessagesPage() {
                                 </div>
                             </CardHeader>
                             <CardContent className="flex-grow p-4 space-y-4 overflow-y-auto">
-                               {messages.map(msg => <ChatMessage key={msg.timestamp} msg={msg} isOwnMessage={msg.sender === peerId} author={selectedUser} />)}
+                               {messages.map((msg, index) => <ChatMessage key={`${msg.timestamp}-${index}`} msg={msg} isOwnMessage={msg.sender === peerId} author={selectedUser} />)}
                                <div ref={messagesEndRef} />
                             </CardContent>
                             <div className="p-4 border-t">

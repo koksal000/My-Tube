@@ -45,7 +45,7 @@ export function RegisterForm() {
     const profilePictureFile = formData.get("profile-picture") as File | null;
     const bannerFile = formData.get("banner") as File | null;
     
-    const existingUser = getUserByUsername(username);
+    const existingUser = await getUserByUsername(username);
 
     if (existingUser) {
       toast({
@@ -80,7 +80,7 @@ export function RegisterForm() {
       viewedVideos: [],
     };
     
-    addUser(newUser);
+    await addUser(newUser);
     setCurrentUser(newUser);
     
     toast({

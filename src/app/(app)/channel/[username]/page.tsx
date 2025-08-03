@@ -26,11 +26,11 @@ export default function ChannelPage() {
   const [isOwnProfile, setIsOwnProfile] = useState(false);
   
   useEffect(() => {
-    const init = () => {
+    const init = async () => {
       if(!params.username) return;
 
-      const foundChannelUser = getUserByUsername(params.username as string);
-      const loggedInUser = getCurrentUser();
+      const foundChannelUser = await getUserByUsername(params.username as string);
+      const loggedInUser = await getCurrentUser();
       
       if (!loggedInUser) {
         router.push('/login');
@@ -40,8 +40,8 @@ export default function ChannelPage() {
 
       if (foundChannelUser) {
         setChannelUser(foundChannelUser);
-         const videos = getVideoByAuthor(foundChannelUser.id);
-         const posts = getPostsByAuthor(foundChannelUser.id);
+         const videos = await getVideoByAuthor(foundChannelUser.id);
+         const posts = await getPostsByAuthor(foundChannelUser.id);
          setUserVideos(videos);
          setUserPosts(posts);
 
@@ -68,7 +68,7 @@ export default function ChannelPage() {
     }
   }
 
-  const handleSubscription = () => {
+  const handleSubscription = async () => {
     if (!currentUser || !channelUser || isOwnProfile) return;
 
     let updatedSubscriptions = [...currentUser.subscriptions];
@@ -88,8 +88,8 @@ export default function ChannelPage() {
     const updatedChannelUser: User = { ...channelUser, subscribers: updatedSubscribers };
 
     try {
-      updateUser(updatedCurrentUser);
-      updateUser(updatedChannelUser);
+      await updateUser(updatedCurrentUser);
+      await updateUser(updatedChannelUser);
       
       setCurrentUser(updatedCurrentUser);
       setChannelUser(updatedChannelUser);

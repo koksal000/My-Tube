@@ -25,7 +25,8 @@ export default function SettingsPage() {
   const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
-    setIsMounted(true);
+    // We need to wait for the component to mount to safely access localStorage
+    setIsMounted(true); 
     setInAppNotifications(getSettingFromStorage('myTube-inAppNotifications', true));
     setAutoplay(getSettingFromStorage('myTube-autoplay', true));
     setShowGifs(getSettingFromStorage('myTube-showGifs', true));

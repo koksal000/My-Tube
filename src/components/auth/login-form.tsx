@@ -29,7 +29,7 @@ export function LoginForm() {
     const username = formData.get("username") as string;
     const password = formData.get("password") as string;
 
-    const user = getUserByUsername(username);
+    const user = await getUserByUsername(username);
 
     // In a real app, passwords would be hashed. For this prototype, we're doing a simple check.
     if (user && user.password === password) {

@@ -12,10 +12,10 @@ export default function LikedPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchLikedVideos = () => {
-      const currentUser = getCurrentUser();
+    const fetchLikedVideos = async () => {
+      const currentUser = await getCurrentUser();
       if (currentUser) {
-        const userLikedVideos = currentUser.likedVideos.map(id => getVideoById(id));
+        const userLikedVideos = await Promise.all(currentUser.likedVideos.map(id => getVideoById(id)));
         setLikedVideos(userLikedVideos.filter((v): v is Video => !!v));
       } else {
         router.push('/login');

@@ -23,15 +23,16 @@ import { getCurrentUser, logout } from "@/lib/data"
 export default function Header() {
   const router = useRouter();
   const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const user = getCurrentUser();
-    if (user) {
+    const fetchUser = async () => {
+      setLoading(true);
+      const user = await getCurrentUser();
       setCurrentUser(user);
-    } else {
-      // Don't redirect here, let individual pages handle it
-      // This prevents redirect loops on public pages if we ever have them
+      setLoading(false);
     }
+    fetchUser();
   }, [router]);
   
   const handleLogout = () => {
@@ -50,7 +51,7 @@ export default function Header() {
     }
   };
 
-  if (!currentUser) {
+  if (loading || !currentUser) {
     return (
        <header className="sticky top-0 z-10 flex h-16 shrink-0 items-center gap-4 border-b bg-background/80 px-4 backdrop-blur-sm md:px-6">
         {/* Render a loading state or a slimmed-down header for logged-out users */}

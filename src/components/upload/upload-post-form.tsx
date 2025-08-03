@@ -63,7 +63,7 @@ export function UploadPostForm() {
     const caption = formData.get("caption") as string;
     const imageFile = formData.get("image") as File;
     
-    const currentUser = getCurrentUser();
+    const currentUser = await getCurrentUser();
     if (!currentUser) {
         toast({ title: "Hata", description: "Gönderi oluşturmak için giriş yapmalısınız.", variant: "destructive" });
         setIsUploading(false);
@@ -89,7 +89,7 @@ export function UploadPostForm() {
             comments: [],
         };
 
-        addPost(newPost);
+        await addPost(newPost);
 
         toast({
             title: "Gönderi Oluşturuldu!",
