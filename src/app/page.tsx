@@ -8,9 +8,8 @@ import { getCurrentUser } from '@/lib/data';
 export default function Home() {
   const router = useRouter();
 
-  useEffect(() => {
-    const timer = setTimeout(async () => {
-      try {
+  const handleVideoEnd = async () => {
+     try {
         const user = await getCurrentUser();
         if (user) {
           router.push('/home');
@@ -21,10 +20,7 @@ export default function Home() {
         console.error("Yönlendirme sırasında hata:", error);
         router.push('/login');
       }
-    }, 8000); // 8 saniye sonra yönlendir
+  };
 
-    return () => clearTimeout(timer);
-  }, [router]);
-
-  return <SplashScreen />;
+  return <SplashScreen onVideoEnd={handleVideoEnd} />;
 }
