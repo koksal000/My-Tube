@@ -1,22 +1,15 @@
 "use client"
 
 import { BellRing, ThumbsUp, MessageCircle, UserPlus, GitMerge, Video } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
-const notifications = {
-    all: [
-        { id: 1, type: "subscribe", user: { name: "Teknoloji Gurusu", avatar: "https://placehold.co/100x100.png" }, time: "2 saat önce" }
-    ],
-    mentions: [
-        { id: 4, type: "mention", user: { name: "Müzik Tutkunu", avatar: "https://placehold.co/100x100.png" }, comment: "@GezginKamera bu harika bir çekim!", videoTitle: "Akustik Cover", time: "1 gün önce" },
-    ],
-    replies: [
-         { id: 3, type: "comment", user: { name: "Teknoloji Gurusu", avatar: "https://placehold.co/100x100.png" }, comment: "Harika bir analiz, tebrikler!", videoTitle: "Geleceğin Telefonları", time: "8 saat önce" },
-    ]
-};
-const allNotifications = [...notifications.all, ...notifications.mentions, ...notifications.replies]
+// Real notification data would be fetched from a service.
+// For the prototype, we'll start with an empty array.
+const allNotifications: any[] = [];
+const mentions: any[] = [];
+const replies: any[] = [];
 
 const NotificationItem = ({ notification }: { notification: any }) => {
     let icon = <BellRing className="h-5 w-5 text-gray-500" />;
@@ -93,9 +86,9 @@ export default function NotificationsPage() {
                 <TabsContent value="mentions">
                      <Card>
                         <CardContent className="p-2">
-                           {notifications.mentions.length > 0 ? (
+                           {mentions.length > 0 ? (
                                <div className="space-y-2">
-                                   {notifications.mentions.map(notification => (
+                                   {mentions.map(notification => (
                                        <NotificationItem key={notification.id} notification={notification} />
                                    ))}
                                </div>
@@ -110,9 +103,9 @@ export default function NotificationsPage() {
                  <TabsContent value="replies">
                      <Card>
                         <CardContent className="p-2">
-                           {notifications.replies.length > 0 ? (
+                           {replies.length > 0 ? (
                                <div className="space-y-2">
-                                   {notifications.replies.map(notification => (
+                                   {replies.map(notification => (
                                        <NotificationItem key={notification.id} notification={notification} />
                                    ))}
                                </div>

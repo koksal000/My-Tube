@@ -37,20 +37,20 @@ export default function MessagesPage() {
 
         const allUsers = getAllUsers();
         if(user) {
-            setConversations(allUsers.filter(u => u.id !== user.id && u.username !== 'admin'));
-        }
-
-        if (routerUser) {
-            const targetUser = getUserByUsername(routerUser);
-            if (targetUser) {
-                setSelectedUser(targetUser);
+            const conversationUsers = allUsers.filter(u => u.id !== user.id && u.username !== 'admin');
+            setConversations(conversationUsers);
+            
+            if (routerUser) {
+                const targetUser = getUserByUsername(routerUser);
+                if (targetUser) {
+                    setSelectedUser(targetUser);
+                }
+            } else if (conversationUsers.length > 0) {
+                // Select the first user in the list if no specific user is targeted
+                setSelectedUser(conversationUsers[0]);
             }
-        } else {
-           if (conversations.length > 0) {
-               setSelectedUser(conversations[0])
-           }
         }
-    }, [routerUser, conversations.length]);
+    }, [routerUser]);
 
 
     const messages = selectedUser ? [
