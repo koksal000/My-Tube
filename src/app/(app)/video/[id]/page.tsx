@@ -75,8 +75,8 @@ const CommentDisplay = ({ comment }: { comment: Comment }) => {
     return (
         <div className="flex gap-3">
             <Avatar>
-                 <AvatarImage src={comment.author.profilePicture} alt={comment.author.displayName} data-ai-hint="person face" />
-                <AvatarFallback>{comment.author.displayName.charAt(0)}</AvatarFallback>
+                 <AvatarImage src={comment.author.profilePicture} alt={comment.author.displayName || comment.author.username} data-ai-hint="person face" />
+                <AvatarFallback>{(comment.author.displayName || comment.author.username || 'U').charAt(0)}</AvatarFallback>
             </Avatar>
             <div>
                 <div className="flex items-center gap-2">
@@ -265,11 +265,11 @@ export default function VideoPage() {
                 <div className="mt-2 flex flex-wrap items-center justify-between gap-4">
                 <div className="flex items-center gap-4">
                     <Avatar className="h-12 w-12">
-                    <AvatarImage src={video.author.profilePicture} alt={video.author.displayName} data-ai-hint="person face" />
-                    <AvatarFallback>{video.author.displayName.charAt(0)}</AvatarFallback>
+                    <AvatarImage src={video.author.profilePicture} alt={video.author.displayName || video.author.username} data-ai-hint="person face" />
+                    <AvatarFallback>{(video.author.displayName || video.author.username || 'U').charAt(0)}</AvatarFallback>
                     </Avatar>
                     <div>
-                    <p className="font-semibold">{video.author.displayName}</p>
+                    <p className="font-semibold">{video.author.displayName || video.author.username}</p>
                     <p className="text-sm text-muted-foreground">{video.author.subscribers.toLocaleString()} abone</p>
                     </div>
                     <Button variant={isSubscribed ? "secondary" : "default"} className="rounded-full" onClick={handleSubscription}>
@@ -307,8 +307,8 @@ export default function VideoPage() {
               <h2 className="text-xl font-bold mb-4">{video.comments.length} Yorum</h2>
               <div className="flex gap-4 mb-6">
                 <Avatar>
-                    <AvatarImage src={currentUser?.profilePicture} alt={currentUser?.displayName} data-ai-hint="person face" />
-                    <AvatarFallback>{currentUser?.displayName.charAt(0)}</AvatarFallback>
+                    <AvatarImage src={currentUser?.profilePicture} alt={currentUser?.displayName || currentUser?.username} data-ai-hint="person face" />
+                    <AvatarFallback>{(currentUser?.displayName || currentUser?.username || 'U').charAt(0)}</AvatarFallback>
                 </Avatar>
                 <div className="flex-grow space-y-2">
                     <div className="relative">

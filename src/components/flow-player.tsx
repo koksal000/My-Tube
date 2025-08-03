@@ -33,6 +33,10 @@ export default function FlowPlayer({ video }: { video: Video }) {
             setIsPlaying(true);
         }
     };
+    
+    if (!video || !video.author) {
+        return null; // or a loading skeleton
+    }
 
     return (
         <div ref={ref} className="relative w-full h-full">
@@ -48,8 +52,8 @@ export default function FlowPlayer({ video }: { video: Video }) {
             <div className="absolute bottom-4 left-4 text-white drop-shadow-lg">
                 <Link href={`/channel/${video.author.username}`} className="flex items-center gap-2 mb-2">
                     <Avatar>
-                        <AvatarImage src={video.author.profilePicture} alt={video.author.displayName} data-ai-hint="person face" />
-                        <AvatarFallback>{video.author.displayName.charAt(0)}</AvatarFallback>
+                        <AvatarImage src={video.author.profilePicture} alt={video.author.displayName || video.author.username} data-ai-hint="person face" />
+                        <AvatarFallback>{(video.author.displayName || video.author.username || 'U').charAt(0)}</AvatarFallback>
                     </Avatar>
                     <span className="font-semibold">@{video.author.username}</span>
                 </Link>

@@ -123,11 +123,11 @@ export default function ChannelPage() {
             )}
             <div className={`relative z-10 flex items-end gap-4 px-8 ${channelUser.banner ? '-mt-16' : 'mt-8'}`}>
                 <Avatar className="h-32 w-32 border-4 border-background">
-                    <AvatarImage src={channelUser.profilePicture} alt={channelUser.displayName} data-ai-hint="person face" />
-                    <AvatarFallback className="text-4xl">{channelUser.displayName.charAt(0)}</AvatarFallback>
+                    <AvatarImage src={channelUser.profilePicture} alt={channelUser.displayName || channelUser.username} data-ai-hint="person face" />
+                    <AvatarFallback className="text-4xl">{(channelUser.displayName || channelUser.username || 'U').charAt(0)}</AvatarFallback>
                 </Avatar>
                 <div className="pb-4 flex-grow">
-                    <h1 className="text-3xl font-bold">{channelUser.displayName}</h1>
+                    <h1 className="text-3xl font-bold">{channelUser.displayName || channelUser.username}</h1>
                     <p className="text-muted-foreground">@{channelUser.username} &bull; {channelUser.subscribers.toLocaleString()} abone</p>
                 </div>
                 <div className="pb-4 flex items-center gap-2">
@@ -183,7 +183,7 @@ export default function ChannelPage() {
              <TabsContent value="about">
                 <Card>
                     <CardContent className="p-6">
-                        <p className="whitespace-pre-wrap">{channelUser.about || `${channelUser.displayName} kanalına hoş geldiniz!`}</p>
+                        <p className="whitespace-pre-wrap">{channelUser.about || `${channelUser.displayName || channelUser.username} kanalına hoş geldiniz!`}</p>
                     </CardContent>
                 </Card>
             </TabsContent>

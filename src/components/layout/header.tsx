@@ -90,8 +90,8 @@ export default function Header() {
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="relative h-10 w-10 rounded-full">
               <Avatar className="h-10 w-10">
-                <AvatarImage src={currentUser.profilePicture} alt={currentUser.displayName} data-ai-hint="person face"/>
-                <AvatarFallback>{currentUser.displayName.charAt(0)}</AvatarFallback>
+                <AvatarImage src={currentUser.profilePicture} alt={currentUser.displayName || currentUser.username} data-ai-hint="person face"/>
+                <AvatarFallback>{(currentUser.displayName || currentUser.username || 'U').charAt(0)}</AvatarFallback>
               </Avatar>
             </Button>
           </DropdownMenuTrigger>

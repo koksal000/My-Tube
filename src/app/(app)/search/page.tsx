@@ -58,8 +58,8 @@ function SearchResults({ query }: { query: string }) {
         );
          const filteredChannels = allDBUsers.filter(
             (user) => user.username !== 'admin' &&
-            (user.displayName.toLowerCase().includes(lowerCaseQuery) ||
-            user.username.toLowerCase().includes(lowerCaseQuery))
+            ((user.displayName && user.displayName.toLowerCase().includes(lowerCaseQuery)) ||
+             (user.username && user.username.toLowerCase().includes(lowerCaseQuery)))
         );
         setVideos(filteredVideos);
         setChannels(filteredChannels);
@@ -99,11 +99,11 @@ function SearchResults({ query }: { query: string }) {
               <Card key={channel.id} className="hover:bg-secondary transition-colors">
                 <CardContent className="p-4 flex items-center gap-4">
                   <Avatar className="h-16 w-16">
-                    <AvatarImage src={channel.profilePicture} alt={channel.displayName} data-ai-hint="person face" />
-                    <AvatarFallback>{channel.displayName.charAt(0)}</AvatarFallback>
+                    <AvatarImage src={channel.profilePicture} alt={channel.displayName || channel.username} data-ai-hint="person face" />
+                    <AvatarFallback>{(channel.displayName || channel.username || 'U').charAt(0)}</AvatarFallback>
                   </Avatar>
                   <div className="flex-grow">
-                    <h3 className="font-semibold text-lg cursor-pointer" onClick={() => router.push(`/channel/${channel.username}`)}>{channel.displayName}</h3>
+                    <h3 className="font-semibold text-lg cursor-pointer" onClick={() => router.push(`/channel/${channel.username}`)}>{channel.displayName || channel.username}</h3>
                     <p className="text-sm text-muted-foreground">@{channel.username} &bull; {(channel.subscribers || 0).toLocaleString()} abone</p>
                     <p className="text-sm text-muted-foreground line-clamp-1">{channel.about}</p>
                   </div>

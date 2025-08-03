@@ -125,13 +125,13 @@ export default function SidebarContentComponent() {
         <SidebarMenu>
             {subscriptions.map(sub => (
                  <SidebarMenuItem key={sub.id}>
-                    <SidebarMenuButton asChild isActive={pathname.startsWith(`/channel/${sub.username}`)} tooltip={sub.displayName}>
+                    <SidebarMenuButton asChild isActive={pathname.startsWith(`/channel/${sub.username}`)} tooltip={sub.displayName || sub.username}>
                         <Link href={`/channel/${sub.username}`}>
                             <Avatar className="w-6 h-6">
-                                <AvatarImage src={sub.profilePicture} alt={sub.displayName} data-ai-hint="person face" />
-                                <AvatarFallback>{sub.displayName.charAt(0)}</AvatarFallback>
+                                <AvatarImage src={sub.profilePicture} alt={sub.displayName || sub.username} data-ai-hint="person face" />
+                                <AvatarFallback>{(sub.displayName || sub.username || 'U').charAt(0)}</AvatarFallback>
                             </Avatar>
-                            <span>{sub.displayName}</span>
+                            <span>{sub.displayName || sub.username}</span>
                         </Link>
                     </SidebarMenuButton>
                 </SidebarMenuItem>

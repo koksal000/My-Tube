@@ -17,8 +17,8 @@ const ChatMessage = ({ msg, isOwnMessage, author }: { msg: MessagePayload; isOwn
   <div className={`flex items-end gap-2 ${isOwnMessage ? 'justify-end' : ''}`}>
     {!isOwnMessage && author && (
       <Avatar className="h-8 w-8">
-        <AvatarImage src={author.profilePicture} alt={author.displayName} data-ai-hint="person face" />
-        <AvatarFallback>{author.displayName.charAt(0)}</AvatarFallback>
+        <AvatarImage src={author.profilePicture} alt={author.displayName || author.username} data-ai-hint="person face" />
+        <AvatarFallback>{(author.displayName || author.username || 'U').charAt(0)}</AvatarFallback>
       </Avatar>
     )}
     <div className={`max-w-xs rounded-lg px-3 py-2 ${isOwnMessage ? 'rounded-br-none bg-primary text-primary-foreground' : 'rounded-bl-none bg-secondary'}`}>
@@ -109,11 +109,11 @@ function MessagesPageClient() {
                                     onClick={() => handleSelectConversation(convoUser)}
                                     className={`flex items-center gap-3 p-3 cursor-pointer border-b transition-colors ${selectedUser?.username === convoUser.username ? 'bg-secondary' : 'hover:bg-secondary/50'}`}>
                                     <Avatar className="h-10 w-10">
-                                        <AvatarImage src={convoUser.profilePicture} alt={convoUser.displayName} data-ai-hint="person face" />
-                                        <AvatarFallback>{convoUser.displayName.charAt(0)}</AvatarFallback>
+                                        <AvatarImage src={convoUser.profilePicture} alt={convoUser.displayName || convoUser.username} data-ai-hint="person face" />
+                                        <AvatarFallback>{(convoUser.displayName || convoUser.username || 'U').charAt(0)}</AvatarFallback>
                                     </Avatar>
                                     <div className="flex-grow overflow-hidden">
-                                        <p className="font-semibold">{convoUser.displayName}</p>
+                                        <p className="font-semibold">{convoUser.displayName || convoUser.username}</p>
                                         <p className="text-sm text-muted-foreground truncate">@{convoUser.username}</p>
                                     </div>
                                 </div>
@@ -130,11 +130,11 @@ function MessagesPageClient() {
                                 <div className="flex items-center justify-between">
                                     <div className="flex items-center gap-3">
                                         <Avatar className="h-10 w-10">
-                                            <AvatarImage src={selectedUser.profilePicture} alt={selectedUser.displayName} data-ai-hint="person face" />
-                                            <AvatarFallback>{selectedUser.displayName.charAt(0)}</AvatarFallback>
+                                            <AvatarImage src={selectedUser.profilePicture} alt={selectedUser.displayName || selectedUser.username} data-ai-hint="person face" />
+                                            <AvatarFallback>{(selectedUser.displayName || selectedUser.username || 'U').charAt(0)}</AvatarFallback>
                                         </Avatar>
                                         <div>
-                                            <CardTitle>{selectedUser.displayName}</CardTitle>
+                                            <CardTitle>{selectedUser.displayName || selectedUser.username}</CardTitle>
                                             <p className="text-xs text-muted-foreground">@{selectedUser.username}</p>
                                         </div>
                                     </div>

@@ -33,6 +33,10 @@ function formatViews(views: number) {
 }
 
 export function VideoCard({ video }: { video: Video }) {
+  if (!video || !video.author) {
+    // You can return a loading skeleton or null
+    return null; 
+  }
   const isIntroVideo = video.author?.username === 'admin';
 
   return (
@@ -57,8 +61,8 @@ export function VideoCard({ video }: { video: Video }) {
         {!isIntroVideo && (
           <Link href={`/channel/${video.author.username}`}>
               <Avatar>
-              <AvatarImage src={video.author.profilePicture} alt={video.author.displayName} data-ai-hint="person face" />
-              <AvatarFallback>{video.author.displayName.charAt(0)}</AvatarFallback>
+              <AvatarImage src={video.author.profilePicture} alt={video.author.displayName || video.author.username} data-ai-hint="person face" />
+              <AvatarFallback>{(video.author.displayName || video.author.username || 'U').charAt(0)}</AvatarFallback>
               </Avatar>
           </Link>
         )}
@@ -72,7 +76,7 @@ export function VideoCard({ video }: { video: Video }) {
             <>
                 <p className="text-sm text-muted-foreground">
                     <Link href={`/channel/${video.author.username}`} className="hover:text-foreground">
-                    {video.author.displayName}
+                    {video.author.displayName || video.author.username}
                     </Link>
                 </p>
                 <p className="text-sm text-muted-foreground">
