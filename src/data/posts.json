@@ -1,3 +1,4 @@
+
 [
   {
     "id": "post1",
@@ -17,7 +18,7 @@
     "createdAt": "2024-07-27T18:30:00.000Z",
     "comments": []
   },
-    {
+  {
     "id": "post3",
     "authorId": "user4",
     "imageUrl": "https://images.unsplash.com/photo-1542037104-6ec24ee2dc5e?q=80&w=2070&auto=format&fit=crop",

@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
 import { Send, Copy, AlertCircle } from "lucide-react";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { getCurrentUser, getUserByUsername, getAllUsers } from "@/lib/data";
 import type { User } from "@/lib/types";
@@ -29,7 +29,7 @@ const ChatMessage = ({ msg, isOwnMessage, author }: { msg: MessagePayload; isOwn
 );
 
 
-export default function MessagesPage() {
+function MessagesPageClient() {
     const searchParams = useSearchParams();
     const routerUser = searchParams.get('to');
     const { toast } = useToast();
@@ -166,7 +166,7 @@ export default function MessagesPage() {
                         </>
                     ) : (
                         <CardContent className="flex flex-col h-full items-center justify-center text-center text-muted-foreground">
-                            <AlertCircle className="h-12 w-12 mb-4 text-primary" />
+                            <AlertCircle className="h-12 w-12 text-primary" />
                             <p className="text-lg font-medium">Bir sohbet seçin</p>
                             <p className="text-sm">Başlamak için soldaki sohbetlerden birini seçin.</p>
                         </CardContent>
@@ -175,4 +175,13 @@ export default function MessagesPage() {
             </div>
         </div>
     );
+}
+
+
+export default function MessagesPage() {
+    return (
+        <Suspense fallback={<div className="text-center py-20">Sohbetler yükleniyor...</div>}>
+            <MessagesPageClient />
+        </Suspense>
+    )
 }
