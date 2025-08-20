@@ -9,7 +9,13 @@ import { useToast } from "@/hooks/use-toast"
 import type { Video } from "@/lib/types"
 import React from "react"
 import { addVideo, getCurrentUser } from "@/lib/data"
-import { uploadFile } from "@/services/catbox"
+import { uploadFileAction } from "@/app/actions"
+
+async function uploadFile(file: File): Promise<string> {
+    const formData = new FormData();
+    formData.append('fileToUpload', file);
+    return await uploadFileAction(formData);
+}
 
 export function UploadVideoForm() {
   const router = useRouter()
@@ -20,7 +26,8 @@ export function UploadVideoForm() {
     event.preventDefault()
     setIsUploading(true);
 
-    const formData = new FormData(event.target as HTMLFormElement);
+    const form = event.target as HTMLFormElement;
+    const formData = new FormData(form);
     const title = formData.get("title") as string;
     const description = formData.get("description") as string;
     const thumbnailFile = formData.get("thumbnail") as File;
@@ -40,6 +47,8 @@ export function UploadVideoForm() {
     }
     
     try {
+      toast({ title: "Yükleme Başladı", description: "Dosyalarınız yükleniyor, bu işlem biraz zaman alabilir..." });
+      
       const [thumbnailUrl, videoUrl] = await Promise.all([
         uploadFile(thumbnailFile),
         uploadFile(videoFile)

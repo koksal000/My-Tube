@@ -12,7 +12,7 @@ import type { User } from "@/lib/types"
 import React from "react"
 import { addUser, getUserByUsername, setCurrentUser } from "@/lib/data"
 import { Textarea } from "../ui/textarea"
-import { uploadFile } from "@/services/catbox"
+import { uploadFileAction } from "@/app/actions"
 
 const MyTubeLogo = () => (
     <div className="flex items-center justify-center space-x-2 text-primary font-bold text-2xl mb-4">
@@ -23,15 +23,24 @@ const MyTubeLogo = () => (
     </div>
 )
 
+async function uploadFile(file: File): Promise<string> {
+    const formData = new FormData();
+    formData.append('fileToUpload', file);
+    return await uploadFileAction(formData);
+}
+
 export function RegisterForm() {
   const router = useRouter()
   const { toast } = useToast();
   const [addBanner, setAddBanner] = React.useState(false);
+  const [isRegistering, setIsRegistering] = React.useState(false);
 
 
   const handleRegister = async (event: React.FormEvent) => {
     event.preventDefault()
-    const formData = new FormData(event.target as HTMLFormElement);
+    setIsRegistering(true);
+    const form = event.target as HTMLFormElement;
+    const formData = new FormData(form);
     const username = formData.get("username") as string;
     const displayName = formData.get("displayName") as string;
     const password = formData.get("password") as string;
@@ -47,42 +56,51 @@ export function RegisterForm() {
         description: "Bu kullanıcı adı zaten alınmış. Lütfen başka bir tane deneyin.",
         variant: "destructive",
       });
+      setIsRegistering(false);
       return;
     }
     
-    let profilePictureUrl = "https://files.catbox.moe/553pqe.jpg"; // Default
-    if (profilePictureFile && profilePictureFile.size > 0) {
-      profilePictureUrl = await uploadFile(profilePictureFile);
-    }
-    
-    let bannerUrl: string | undefined = undefined;
-    if (addBanner && bannerFile && bannerFile.size > 0) {
-        bannerUrl = await uploadFile(bannerFile);
-    }
+    try {
+        let profilePictureUrl = "https://files.catbox.moe/553pqe.jpg"; // Default
+        if (profilePictureFile && profilePictureFile.size > 0) {
+          profilePictureUrl = await uploadFile(profilePictureFile);
+        }
+        
+        let bannerUrl: string | undefined = undefined;
+        if (addBanner && bannerFile && bannerFile.size > 0) {
+            bannerUrl = await uploadFile(bannerFile);
+        }
 
-    const newUser: User = {
-      id: `user-${Date.now()}`,
-      username,
-      displayName,
-      password,
-      about,
-      profilePicture: profilePictureUrl,
-      banner: bannerUrl,
-      subscribers: 0,
-      subscriptions: [],
-      likedVideos: [],
-      viewedVideos: [],
-    };
-    
-    await addUser(newUser);
-    setCurrentUser(newUser);
-    
-    toast({
-        title: "Kayıt Başarılı!",
-        description: "Hesabınız oluşturuldu. Ana sayfaya yönlendiriliyorsunuz.",
-    });
-    router.push("/home");
-    router.refresh();
+        const newUser: User = {
+          id: `user-${Date.now()}`,
+          username,
+          displayName,
+          password,
+          about,
+          profilePicture: profilePictureUrl,
+          banner: bannerUrl,
+          subscribers: 0,
+          subscriptions: [],
+          likedVideos: [],
+          viewedVideos: [],
+        };
+        
+        await addUser(newUser);
+        setCurrentUser(newUser);
+        
+        toast({
+            title: "Kayıt Başarılı!",
+            description: "Hesabınız oluşturuldu. Ana sayfaya yönlendiriliyorsunuz.",
+        });
+        router.push("/home");
+        router.refresh();
+
+    } catch (error) {
+         console.error("Registration failed", error);
+         toast({ title: "Kayıt Başarısız", description: `Bir hata oluştu: ${error instanceof Error ? error.message : 'Bilinmeyen Hata'}`, variant: "destructive" });
+    } finally {
+        setIsRegistering(false);
+    }
   }
 
   return (
@@ -98,26 +116,26 @@ export function RegisterForm() {
         <form onSubmit={handleRegister} className="grid gap-4">
           <div className="grid gap-2">
             <Label htmlFor="username">Kullanıcı Adı</Label>
-            <Input id="username" name="username" placeholder="kullanıcıadınız" required />
+            <Input id="username" name="username" placeholder="kullanıcıadınız" required disabled={isRegistering}/>
           </div>
           <div className="grid gap-2">
             <Label htmlFor="displayName">Görünen Ad</Label>
-            <Input id="displayName" name="displayName" placeholder="Adınız" required />
+            <Input id="displayName" name="displayName" placeholder="Adınız" required disabled={isRegistering}/>
           </div>
           <div className="grid gap-2">
             <Label htmlFor="password">Şifre</Label>
-            <Input id="password" name="password" type="password" required />
+            <Input id="password" name="password" type="password" required disabled={isRegistering}/>
           </div>
           <div className="grid gap-2">
             <Label htmlFor="profile-picture">Profil Resmi</Label>
-            <Input id="profile-picture" name="profile-picture" type="file" accept="image/*" />
+            <Input id="profile-picture" name="profile-picture" type="file" accept="image/*" disabled={isRegistering}/>
           </div>
            <div className="grid gap-2">
             <Label htmlFor="about">Hakkında</Label>
-            <Textarea id="about" name="about" placeholder="Herkese kendinizden biraz bahsedin." />
+            <Textarea id="about" name="about" placeholder="Herkese kendinizden biraz bahsedin." disabled={isRegistering}/>
           </div>
           <div className="flex items-center space-x-2">
-            <Checkbox id="add-banner" checked={addBanner} onCheckedChange={(checked) => setAddBanner(checked as boolean)} />
+            <Checkbox id="add-banner" checked={addBanner} onCheckedChange={(checked) => setAddBanner(checked as boolean)} disabled={isRegistering}/>
             <label
               htmlFor="add-banner"
               className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
@@ -128,11 +146,11 @@ export function RegisterForm() {
            {addBanner && (
             <div className="grid gap-2">
               <Label htmlFor="banner">Kanal Banner'ı</Label>
-              <Input id="banner" name="banner" type="file" accept="image/*" required={addBanner} />
+              <Input id="banner" name="banner" type="file" accept="image/*" required={addBanner} disabled={isRegistering}/>
             </div>
            )}
-          <Button type="submit" className="w-full">
-            Hesap Oluştur
+          <Button type="submit" className="w-full" disabled={isRegistering}>
+            {isRegistering ? "Kaydediliyor..." : "Hesap Oluştur"}
           </Button>
         </form>
         <div className="mt-4 text-center text-sm">

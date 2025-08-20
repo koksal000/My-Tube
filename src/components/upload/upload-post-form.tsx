@@ -9,7 +9,13 @@ import { useToast } from "@/hooks/use-toast"
 import type { Post } from "@/lib/types"
 import React from "react"
 import { addPost, getCurrentUser } from "@/lib/data"
-import { uploadFile } from "@/services/catbox"
+import { uploadFileAction } from "@/app/actions"
+
+async function uploadFile(file: File): Promise<string> {
+    const formData = new FormData();
+    formData.append('fileToUpload', file);
+    return await uploadFileAction(formData);
+}
 
 export function UploadPostForm() {
   const router = useRouter()
@@ -21,7 +27,8 @@ export function UploadPostForm() {
     event.preventDefault()
     setIsUploading(true);
 
-    const formData = new FormData(event.target as HTMLFormElement);
+    const form = event.target as HTMLFormElement;
+    const formData = new FormData(form);
     const caption = formData.get("caption") as string;
     const imageFile = formData.get("image") as File;
     
