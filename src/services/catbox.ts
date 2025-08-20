@@ -1,5 +1,7 @@
 // This is a server-side only file
 import { Buffer } from 'buffer';
+import FormData from 'form-data';
+
 
 const USER_HASH = '2a2859051bb86dfe906d0bf6f';
 const CATBOX_API_URL = 'https://catbox.moe/user/api.php';
@@ -9,18 +11,16 @@ export async function uploadFile(file: File): Promise<string> {
     formData.append('reqtype', 'fileupload');
     formData.append('userhash', USER_HASH);
     
-    // Convert File to a format that can be sent in a server-side request
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
     
-    // FormData in Node's fetch needs Blob, not Buffer directly.
-    const blob = new Blob([buffer], { type: file.type });
-    formData.append('fileToUpload', blob, file.name);
+    formData.append('fileToUpload', buffer, file.name);
 
     try {
         const response = await fetch(CATBOX_API_URL, {
             method: 'POST',
-            body: formData,
+            body: formData as any, // FormData type from 'form-data' is compatible
+            headers: formData.getHeaders ? formData.getHeaders() : undefined, // Add headers for multipart
         });
 
         if (!response.ok) {
