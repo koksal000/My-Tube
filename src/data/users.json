@@ -11,26 +11,5 @@
         "subscriptions": [],
         "likedVideos": [],
         "viewedVideos": []
-    },
-    {
-        "id": "user2",
-        "username": "gezginkamera",
-        "displayName": "Gezgin Kamera",
-        "password": "password123",
-        "profilePicture": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=1964&auto=format&fit=crop"
-    },
-    {
-        "id": "user3",
-        "username": "muzikruhu",
-        "displayName": "Müzik Ruhu",
-        "password": "password123",
-        "profilePicture": "https://images.unsplash.com/photo-1522529599102-193c0d76b5b6?q=80&w=2070&auto=format&fit=crop"
-    },
-    {
-        "id": "user4",
-        "username": "teknoguru",
-        "displayName": "Teknoloji Gurusu",
-        "password": "password123",
-        "profilePicture": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=1887&auto=format&fit=crop"
     }
 ]
