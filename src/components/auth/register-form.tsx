@@ -12,6 +12,7 @@ import type { User } from "@/lib/types"
 import React from "react"
 import { addUser, getUserByUsername, setCurrentUser } from "@/lib/data"
 import { Textarea } from "../ui/textarea"
+import { uploadFile } from "@/services/catbox"
 
 const MyTubeLogo = () => (
     <div className="flex items-center justify-center space-x-2 text-primary font-bold text-2xl mb-4">
@@ -21,13 +22,6 @@ const MyTubeLogo = () => (
         <span>My-Tube Reborn</span>
     </div>
 )
-
-const toBase64 = (file: File): Promise<string> => new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.readAsDataURL(file);
-    reader.onload = () => resolve(reader.result as string);
-    reader.onerror = error => reject(error);
-});
 
 export function RegisterForm() {
   const router = useRouter()
@@ -56,14 +50,14 @@ export function RegisterForm() {
       return;
     }
     
-    let profilePictureBase64 = "data:image/png;base64,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";
+    let profilePictureUrl = "https://files.catbox.moe/553pqe.jpg"; // Default
     if (profilePictureFile && profilePictureFile.size > 0) {
-      profilePictureBase64 = await toBase64(profilePictureFile);
+      profilePictureUrl = await uploadFile(profilePictureFile);
     }
     
-    let bannerBase64: string | undefined = undefined;
+    let bannerUrl: string | undefined = undefined;
     if (addBanner && bannerFile && bannerFile.size > 0) {
-        bannerBase64 = await toBase64(bannerFile);
+        bannerUrl = await uploadFile(bannerFile);
     }
 
     const newUser: User = {
@@ -72,8 +66,8 @@ export function RegisterForm() {
       displayName,
       password,
       about,
-      profilePicture: profilePictureBase64,
-      banner: bannerBase64,
+      profilePicture: profilePictureUrl,
+      banner: bannerUrl,
       subscribers: 0,
       subscriptions: [],
       likedVideos: [],

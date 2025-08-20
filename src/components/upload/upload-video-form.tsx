@@ -6,17 +6,10 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { useToast } from "@/hooks/use-toast"
-import type { User, Video } from "@/lib/types"
+import type { Video } from "@/lib/types"
 import React from "react"
 import { addVideo, getCurrentUser } from "@/lib/data"
-
-// Helper function to read file as base64
-const toBase64 = (file: File): Promise<string> => new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.readAsDataURL(file);
-    reader.onload = () => resolve(reader.result as string);
-    reader.onerror = error => reject(error);
-});
+import { uploadFile } from "@/services/catbox"
 
 export function UploadVideoForm() {
   const router = useRouter()
@@ -47,12 +40,9 @@ export function UploadVideoForm() {
     }
     
     try {
-      // In a real app, you would upload to a CDN and get URLs.
-      // Here, we convert to base64, which is not suitable for large files (like videos)
-      // and will hit browser storage limits. This is a prototype limitation.
       const [thumbnailUrl, videoUrl] = await Promise.all([
-        toBase64(thumbnailFile),
-        toBase64(videoFile)
+        uploadFile(thumbnailFile),
+        uploadFile(videoFile)
       ]);
       
       const newVideo: Omit<Video, 'author'> = {
@@ -80,7 +70,7 @@ export function UploadVideoForm() {
 
     } catch (error) {
       console.error("Upload failed", error);
-      toast({ title: "Yükleme Başarısız", description: "Yükleme sırasında bir hata oluştu. Dosya çok büyük olabilir.", variant: "destructive" });
+      toast({ title: "Yükleme Başarısız", description: `Yükleme sırasında bir hata oluştu: ${error instanceof Error ? error.message : 'Bilinmeyen hata'}`, variant: "destructive" });
     } finally {
       setIsUploading(false);
     }

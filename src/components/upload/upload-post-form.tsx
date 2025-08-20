@@ -6,48 +6,10 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { useToast } from "@/hooks/use-toast"
-import type { User, Post } from "@/lib/types"
+import type { Post } from "@/lib/types"
 import React from "react"
 import { addPost, getCurrentUser } from "@/lib/data"
-
-// Helper function to read file as base64 and compress image
-const toBase64 = (file: File): Promise<string> => new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onerror = reject;
-    reader.onload = () => {
-        const img = new Image();
-        img.src = reader.result as string;
-        img.onload = () => {
-            const canvas = document.createElement('canvas');
-            const MAX_WIDTH = 1280;
-            const MAX_HEIGHT = 720;
-            let { width, height } = img;
-
-            if (width > height) {
-                if (width > MAX_WIDTH) {
-                    height *= MAX_WIDTH / width;
-                    width = MAX_WIDTH;
-                }
-            } else {
-                if (height > MAX_HEIGHT) {
-                    width *= MAX_HEIGHT / height;
-                    height = MAX_HEIGHT;
-                }
-            }
-            canvas.width = width;
-            canvas.height = height;
-            const ctx = canvas.getContext('2d');
-            if (!ctx) {
-                return reject(new Error('Failed to get canvas context'));
-            }
-            ctx.drawImage(img, 0, 0, width, height);
-            // Get the data-URL with quality reduction for jpeg
-            resolve(canvas.toDataURL(file.type, 0.8));
-        };
-        img.onerror = reject;
-    };
-    reader.readAsDataURL(file);
-});
+import { uploadFile } from "@/services/catbox"
 
 export function UploadPostForm() {
   const router = useRouter()
@@ -77,7 +39,7 @@ export function UploadPostForm() {
     }
     
     try {
-        const imageUrl = await toBase64(imageFile);
+        const imageUrl = await uploadFile(imageFile);
         
         const newPost: Omit<Post, 'author' | 'comments'> = {
             id: `post-${Date.now()}`,
@@ -98,7 +60,7 @@ export function UploadPostForm() {
 
     } catch (error) {
         console.error("Upload failed", error);
-        toast({ title: "Yükleme Başarısız", description: "Resim dosyası işlenemedi.", variant: "destructive" });
+        toast({ title: "Yükleme Başarısız", description: `Resim dosyası işlenemedi: ${error instanceof Error ? error.message : 'Bilinmeyen Hata'}`, variant: "destructive" });
     } finally {
         setIsUploading(false);
     }

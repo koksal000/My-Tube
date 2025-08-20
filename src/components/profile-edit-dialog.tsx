@@ -18,18 +18,12 @@ import type { User } from "@/lib/types"
 import { Textarea } from "./ui/textarea"
 import { Checkbox } from "./ui/checkbox"
 import { getUserByUsername, updateUser } from "@/lib/data"
+import { uploadFile } from "@/services/catbox"
 
 interface EditProfileDialogProps {
   user: User;
   onProfileUpdate: (updatedUser: User) => void;
 }
-
-const toBase64 = (file: File): Promise<string> => new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.readAsDataURL(file);
-    reader.onload = () => resolve(reader.result as string);
-    reader.onerror = error => reject(error);
-});
 
 export function EditProfileDialog({ user, onProfileUpdate }: EditProfileDialogProps) {
     const { toast } = useToast();
@@ -65,16 +59,16 @@ export function EditProfileDialog({ user, onProfileUpdate }: EditProfileDialogPr
             }
         }
 
-        let profilePictureBase64: string = user.profilePicture;
+        let profilePictureUrl: string = user.profilePicture;
         if (newProfilePicture) {
-            profilePictureBase64 = await toBase64(newProfilePicture);
+            profilePictureUrl = await uploadFile(newProfilePicture);
         }
 
-        let bannerBase64: string | undefined = user.banner;
+        let bannerUrl: string | undefined = user.banner;
         if (removeBanner) {
-            bannerBase64 = undefined;
+            bannerUrl = undefined;
         } else if (newBanner) {
-            bannerBase64 = await toBase64(newBanner);
+            bannerUrl = await uploadFile(newBanner);
         }
         
         const updatedUser: User = {
@@ -82,8 +76,8 @@ export function EditProfileDialog({ user, onProfileUpdate }: EditProfileDialogPr
             username,
             displayName,
             about,
-            profilePicture: profilePictureBase64,
-            banner: bannerBase64,
+            profilePicture: profilePictureUrl,
+            banner: bannerUrl,
         };
 
         await updateUser(updatedUser);
