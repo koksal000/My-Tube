@@ -8,23 +8,32 @@ export interface User {
   subscribers: number;
   subscriptions: string[]; // array of user ids
   likedVideos: string[]; // array of video ids
+  likedPosts: string[]; // array of post ids
   viewedVideos: string[]; // array of video ids
   password?: string;
 }
 
-export interface Video {
+export interface Content {
   id: string;
+  author: User;
+  authorId: string;
+  likes: number;
+  createdAt: string;
+  comments: Comment[];
+}
+
+export interface Video extends Content {
   title: string;
   description: string;
   thumbnailUrl: string;
   videoUrl: string;
   duration: number; // in seconds
-  author: User;
-  authorId: string;
   views: number;
-  likes: number;
-  createdAt: string;
-  comments: Comment[];
+}
+
+export interface Post extends Content {
+    imageUrl: string;
+    caption: string;
 }
 
 export interface Comment {
@@ -37,17 +46,6 @@ export interface Comment {
   replies: Comment[];
 }
 
-export interface Post {
-    id: string;
-    author: User;
-    authorId: string;
-    imageUrl: string;
-    caption: string;
-    likes: number;
-    createdAt: string;
-    comments: Comment[];
-}
-
 export interface Message {
     id: string;
     senderId: string;
@@ -55,5 +53,3 @@ export interface Message {
     text: string;
     createdAt: string;
 }
-
-    

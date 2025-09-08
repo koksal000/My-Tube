@@ -71,8 +71,7 @@ export function RegisterForm() {
             bannerUrl = await uploadFileAction(bannerFormData);
         }
 
-        const newUser: User = {
-          id: `user-${Date.now()}`,
+        const newUser: Omit<User, 'id'> = {
           username,
           displayName,
           password,
@@ -82,11 +81,12 @@ export function RegisterForm() {
           subscribers: 0,
           subscriptions: [],
           likedVideos: [],
+          likedPosts: [],
           viewedVideos: [],
         };
         
-        await addUserAction(newUser);
-        setCurrentUser(newUser);
+        const createdUser = await addUserAction(newUser);
+        setCurrentUser(createdUser);
         
         toast({
             title: "Kayıt Başarılı!",
@@ -163,5 +163,3 @@ export function RegisterForm() {
     </Card>
   )
 }
-
-    

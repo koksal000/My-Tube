@@ -11,7 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Textarea } from "@/components/ui/textarea";
 import Image from "next/image";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { addCommentToAction, likeVideoAction, subscribeAction, getVideosAction, getVideoAction, getPostAction } from "@/app/actions";
+import { addCommentToAction, likeContentAction, subscribeAction, getVideosAction, getVideoAction, getPostAction } from "@/app/actions";
 import { getCurrentUser } from "@/lib/data";
 
 function timeAgo(dateString: string) {
@@ -155,31 +155,44 @@ function VideoPageClient() {
                 const allVideos = (await getVideosAction()).filter(v => v.author && v.author.username !== 'admin');
                 const recs = allVideos.filter(v => v.id !== params.id).sort(() => 0.5 - Math.random()).slice(0, 10);
                 setRecommendedVideos(recs);
+            } else if (isPost) {
+                 setIsLiked((loggedInUser.likedPosts || []).includes(contentData.id));
             }
         }
         setLoading(false);
     }
     fetchContentData();
-  }, [params.id, router, contentType, isVideo]);
+  }, [params.id, router, contentType]);
 
   const handleLike = async () => {
-    if (!currentUser || !content || !isVideo) return;
-    const video = content as Video;
+    if (!currentUser || !content) return;
+    
+    const contentId = content.id;
+    const contentTypeForAction = isVideo ? 'video' : 'post';
     const newIsLiked = !isLiked;
+
+    const originalContent = { ...content };
+    const originalUser = { ...currentUser };
 
     try {
         setIsLiked(newIsLiked);
-        const optimisticLikes = video.likes + (newIsLiked ? 1 : -1);
-        setContent({...video, likes: optimisticLikes});
+        const optimisticLikes = content.likes + (newIsLiked ? 1 : -1);
+        setContent({...content, likes: optimisticLikes });
         
-        await likeVideoAction(video.id, currentUser.id);
+        const updatedUser = { ...currentUser };
+        if(contentTypeForAction === 'video') {
+            updatedUser.likedVideos = newIsLiked ? [...(updatedUser.likedVideos || []), contentId] : (updatedUser.likedVideos || []).filter(id => id !== contentId);
+        } else {
+            updatedUser.likedPosts = newIsLiked ? [...(updatedUser.likedPosts || []), contentId] : (updatedUser.likedPosts || []).filter(id => id !== contentId);
+        }
+        setCurrentUser(updatedUser);
 
-        const updatedUser = {...currentUser, likedVideos: newIsLiked ? [...(currentUser.likedVideos || []), video.id] : (currentUser.likedVideos || []).filter(id => id !== video.id)}
-        setCurrentUser(updatedUser)
+        await likeContentAction(contentId, currentUser.id, contentTypeForAction);
       
     } catch (e) {
       setIsLiked(!newIsLiked);
-      setContent(video);
+      setContent(originalContent);
+      setCurrentUser(originalUser);
       toast({ title: "Hata", description: "Beğenme işlemi sırasında bir sorun oluştu.", variant: "destructive" });
     }
   };
@@ -202,7 +215,7 @@ function VideoPageClient() {
 
         toast({
             title: newIsSubscribed ? "Abone Olundu!" : "Abonelikten Çıkıldı",
-            description: newIsSubscribed ? `${author.displayName || author.username} kanalına başarıyla abone oldunuz.` : `${author.displayName || author.username} kanalından aboneliğinizi kaldırdınız.`,
+            description: newIsSubScribed ? `${author.displayName || author.username} kanalına başarıyla abone oldunuz.` : `${author.displayName || author.username} kanalından aboneliğinizi kaldırdınız.`,
         });
         
         router.refresh();
@@ -252,16 +265,16 @@ function VideoPageClient() {
                 </div>
             )}
 
-            {isPost && content.imageUrl && (
+            {isPost && (content as Post).imageUrl && (
                 <Card>
                     <CardContent className="p-0">
-                        <Image src={content.imageUrl} alt={(content as Post).caption} width={1280} height={720} className="w-full h-auto rounded-t-xl" />
+                        <Image src={(content as Post).imageUrl} alt={(content as Post).caption} width={1280} height={720} className="w-full h-auto rounded-t-xl" />
                     </CardContent>
                 </Card>
             )}
 
           <div className="py-4">
-            <h1 className="text-2xl font-bold">{content.title || (content as Post).caption}</h1>
+            <h1 className="text-2xl font-bold">{isVideo ? (content as Video).title : (content as Post).caption}</h1>
             {!isIntroVideo && author && (
                 <div className="mt-2 flex flex-wrap items-center justify-between gap-4">
                 <div className="flex items-center gap-4">
@@ -285,8 +298,8 @@ function VideoPageClient() {
                         </Button>
                     )}
                     {isPost && (
-                         <Button variant="ghost" className="rounded-full gap-2 pl-4 pr-3">
-                            <Heart className={`h-5 w-5`} /> {(content.likes || 0).toLocaleString()}
+                         <Button variant="secondary" className="rounded-full gap-2 px-4" onClick={handleLike}>
+                            <Heart className={`h-5 w-5 ${isLiked ? 'text-primary fill-primary' : ''}`} /> {(content.likes || 0).toLocaleString()}
                         </Button>
                     )}
                     <Button variant="ghost" className="rounded-full gap-2">
@@ -299,12 +312,12 @@ function VideoPageClient() {
           
           <div className="mt-4 rounded-xl bg-secondary p-4">
             {!isIntroVideo && isVideo && (
-                <p className="font-semibold">{formatViews(content.views)} &bull; {timeAgo(content.createdAt)}</p>
+                <p className="font-semibold">{formatViews((content as Video).views)} &bull; {timeAgo(content.createdAt)}</p>
             )}
              {!isIntroVideo && isPost && (
                 <p className="font-semibold">{(content.likes || 0).toLocaleString()} beğeni &bull; {timeAgo(content.createdAt)}</p>
             )}
-            <p className="mt-2 whitespace-pre-wrap">{isVideo ? content.description : (content as Post).caption}</p>
+            <p className="mt-2 whitespace-pre-wrap">{isVideo ? (content as Video).description : (content as Post).caption}</p>
           </div>
 
           {!isIntroVideo && currentUser && (
@@ -369,5 +382,3 @@ export default function VideoPage() {
         </Suspense>
     )
 }
-
-    

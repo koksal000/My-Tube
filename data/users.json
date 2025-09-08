@@ -1,3 +1,4 @@
+
 [
     {
         "id": "user1",
@@ -9,7 +10,8 @@
         "subscribers": 0,
         "subscriptions": [],
         "likedVideos": [],
-        "viewedVideos": []
+        "viewedVideos": [],
+        "likedPosts": []
     },
     {
         "id": "user-1757337251654",
@@ -23,7 +25,8 @@
         "likedVideos": [
             "video1757338784190"
         ],
-        "viewedVideos": []
+        "viewedVideos": [],
+        "likedPosts": []
     },
     {
         "id": "user-1757337355751",
@@ -35,6 +38,7 @@
         "subscribers": 0,
         "subscriptions": [],
         "likedVideos": [],
-        "viewedVideos": []
+        "viewedVideos": [],
+        "likedPosts": []
     }
 ]

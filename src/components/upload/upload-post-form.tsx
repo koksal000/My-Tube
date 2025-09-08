@@ -45,8 +45,7 @@ export function UploadPostForm() {
         uploadFormData.append('fileToUpload', imageFile);
         const imageUrl = await uploadFileAction(uploadFormData);
         
-        const newPost: Omit<Post, 'author' | 'comments'> = {
-            id: `post-${Date.now()}`,
+        const newPostData: Omit<Post, 'id' | 'author' | 'comments'> = {
             caption,
             imageUrl,
             authorId: currentUser.id,
@@ -54,7 +53,7 @@ export function UploadPostForm() {
             createdAt: new Date().toISOString(),
         };
 
-        await addPostAction(newPost);
+        const newPost = await addPostAction(newPostData);
 
         toast({
             title: "Gönderi Oluşturuldu!",
@@ -86,5 +85,3 @@ export function UploadPostForm() {
     </form>
   )
 }
-
-    

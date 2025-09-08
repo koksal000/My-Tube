@@ -9,7 +9,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Heart, MessageCircle } from 'lucide-react';
-import { getVideosAction, getPostsAction, likeVideoAction } from '@/app/actions';
+import { getVideosAction, getPostsAction, likeContentAction } from '@/app/actions';
 import { getCurrentUser } from '@/lib/data';
 import { useToast } from '@/hooks/use-toast';
 import { CommentSheet } from '@/components/comment-sheet';
@@ -86,44 +86,44 @@ export default function FlowPage() {
         toast({ title: "Giriş Gerekli", description: "Beğenmek için giriş yapmalısınız.", variant: "destructive" });
         return;
     }
-    if (!('videoUrl' in contentItem)) {
-        toast({ title: "Hata", description: "Gönderiler şu an beğenilemiyor.", variant: "destructive"});
-        return;
-    }
 
-    const videoId = contentItem.id;
-    const isLiked = currentUser.likedVideos?.includes(videoId);
+    const contentId = contentItem.id;
+    const contentType = 'videoUrl' in contentItem ? 'video' : 'post';
+    const isLiked = contentType === 'video' 
+      ? currentUser.likedVideos?.includes(contentId)
+      : currentUser.likedPosts?.includes(contentId);
 
     // Optimistic UI Update
+    const originalContent = [...content];
+    const originalUser = { ...currentUser };
+
     const updatedContent = content.map(item => {
-        if (item.id === videoId) {
+        if (item.id === contentId) {
             return { ...item, likes: item.likes + (isLiked ? -1 : 1) };
         }
         return item;
     });
     setContent(updatedContent);
 
-    const updatedUser = {
-        ...currentUser,
-        likedVideos: isLiked 
-            ? currentUser.likedVideos.filter(id => id !== videoId)
-            : [...(currentUser.likedVideos || []), videoId]
-    };
+    const updatedUser: User = { ...currentUser };
+    if (contentType === 'video') {
+        updatedUser.likedVideos = isLiked 
+            ? (updatedUser.likedVideos || []).filter(id => id !== contentId)
+            : [...(updatedUser.likedVideos || []), contentId];
+    } else {
+        updatedUser.likedPosts = isLiked
+            ? (updatedUser.likedPosts || []).filter(id => id !== contentId)
+            : [...(updatedUser.likedPosts || []), contentId];
+    }
     setCurrentUser(updatedUser);
     
     try {
-      await likeVideoAction(videoId, currentUser.id);
+      await likeContentAction(contentId, currentUser.id, contentType);
     } catch (error) {
       toast({ title: "Hata", description: "Beğenme işlemi sırasında bir sorun oluştu.", variant: "destructive" });
       // Revert UI on failure
-       const revertedContent = content.map(item => {
-        if (item.id === videoId) {
-            return { ...item, likes: item.likes };
-        }
-        return item;
-    });
-       setContent(revertedContent);
-       setCurrentUser(currentUser);
+      setContent(originalContent);
+      setCurrentUser(originalUser);
     }
   };
   
@@ -179,8 +179,8 @@ export default function FlowPage() {
              <FlowPost 
                 post={item} 
                 onCommentClick={() => handleOpenComments(item)}
-                onLikeClick={() => handleLike(item)} // Placeholder for post liking
-                isLiked={false} // Placeholder for post liking
+                onLikeClick={() => handleLike(item)}
+                isLiked={currentUser?.likedPosts?.includes(item.id) || false}
              />
           )}
         </div>

@@ -119,14 +119,17 @@ export async function getMessagesAction(currentUserId: string, otherUserId: stri
 
 // --- DATA WRITING ACTIONS ---
 
-export async function addUserAction(user: User): Promise<void> {
+export async function addUserAction(user: Omit<User, 'id'>): Promise<User> {
   const users = await readData<User>(usersFilePath);
   const existingUser = users.find(u => u.username === user.username);
   if (existingUser) {
       throw new Error("Username already exists.");
   }
-  users.push(user);
+  const newUser = { ...user, id: `user-${Date.now()}` };
+  users.push(newUser);
   await writeData(usersFilePath, users);
+  const { password, ...userWithoutPassword } = newUser;
+  return userWithoutPassword;
 }
 
 export async function updateUserAction(updatedUser: User): Promise<void> {
@@ -142,18 +145,34 @@ export async function updateUserAction(updatedUser: User): Promise<void> {
     }
 }
 
-export async function addVideoAction(video: Omit<Video, 'author'>): Promise<void> {
+export async function addVideoAction(video: Omit<Video, 'id' | 'author'>): Promise<Video> {
     const videos = await readData<Video>(videosFilePath);
-    videos.push(video as any);
+    const users = await readData<User>(usersFilePath);
+    const author = users.find(u => u.id === video.authorId);
+    if (!author) throw new Error("Author not found");
+
+    const newVideo = { ...video, id: `video-${Date.now()}` };
+    videos.push(newVideo as any); // Pushing unhydrated version
     await writeData(videosFilePath, videos);
+
+    const { password, ...authorWithoutPassword } = author;
+    return { ...newVideo, author: authorWithoutPassword };
 }
 
-export async function addPostAction(post: Omit<Post, 'author'|'comments'>): Promise<void> {
+export async function addPostAction(post: Omit<Post, 'id' | 'author' | 'comments'>): Promise<Post> {
     const posts = await readData<Post>(postsFilePath);
-    const postWithComments: Omit<Post, 'author'> = {...post, comments: []};
-    posts.push(postWithComments as any);
+    const users = await readData<User>(usersFilePath);
+    const author = users.find(u => u.id === post.authorId);
+    if (!author) throw new Error("Author not found");
+
+    const newPost: Omit<Post, 'author'> = {...post, id: `post-${Date.now()}`, comments: [] };
+    posts.push(newPost as any); // Pushing unhydrated version
     await writeData(postsFilePath, posts);
+
+    const { password, ...authorWithoutPassword } = author;
+    return { ...newPost, author: authorWithoutPassword };
 }
+
 
 export async function addCommentToAction(contentId: string, contentType: 'video' | 'post', authorId: string, text: string): Promise<Comment> {
     const allUsers = await readData<User>(usersFilePath);
@@ -200,27 +219,43 @@ export async function addCommentToAction(contentId: string, contentType: 'video'
     return newComment;
 }
 
-export async function likeVideoAction(videoId: string, userId: string): Promise<void> {
-    const videos = await readData<Video>(videosFilePath);
+export async function likeContentAction(contentId: string, userId: string, contentType: 'video' | 'post'): Promise<void> {
     const users = await readData<User>(usersFilePath);
-    
-    const video = videos.find(v => v.id === videoId);
     const user = users.find(u => u.id === userId);
+    if (!user) throw new Error("User not found");
 
-    if (video && user) {
-        const isLiking = !(user.likedVideos || []).includes(videoId);
+    if (contentType === 'video') {
+        const videos = await readData<Video>(videosFilePath);
+        const content = videos.find(v => v.id === contentId);
+        if (!content) throw new Error("Video not found");
 
+        const isLiking = !(user.likedVideos || []).includes(contentId);
         if (isLiking) {
-            video.likes = (video.likes || 0) + 1;
-            user.likedVideos = [...(user.likedVideos || []), videoId];
+            content.likes = (content.likes || 0) + 1;
+            user.likedVideos = [...(user.likedVideos || []), contentId];
         } else {
-            video.likes = Math.max(0, (video.likes || 0) - 1);
-            user.likedVideos = (user.likedVideos || []).filter(id => id !== videoId);
+            content.likes = Math.max(0, (content.likes || 0) - 1);
+            user.likedVideos = (user.likedVideos || []).filter(id => id !== contentId);
         }
-        
         await writeData(videosFilePath, videos);
-        await writeData(usersFilePath, users);
+
+    } else { // 'post'
+        const posts = await readData<Post>(postsFilePath);
+        const content = posts.find(p => p.id === contentId);
+        if (!content) throw new Error("Post not found");
+
+        const isLiking = !(user.likedPosts || []).includes(contentId);
+        if (isLiking) {
+            content.likes = (content.likes || 0) + 1;
+            user.likedPosts = [...(user.likedPosts || []), contentId];
+        } else {
+            content.likes = Math.max(0, (content.likes || 0) - 1);
+            user.likedPosts = (user.likedPosts || []).filter(id => id !== contentId);
+        }
+        await writeData(postsFilePath, posts);
     }
+    
+    await writeData(usersFilePath, users);
 }
 
 export async function subscribeAction(currentUserId: string, channelUserId: string): Promise<void> {
@@ -309,5 +344,3 @@ export async function sendMessageAction(senderId: string, recipientId: string, t
     await writeData(messagesFilePath, messages);
     return newMessage;
 }
-
-    

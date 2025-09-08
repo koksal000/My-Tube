@@ -55,8 +55,7 @@ export function UploadVideoForm() {
         uploadFileAction(videoFormData)
       ]);
       
-      const newVideo: Omit<Video, 'author'> = {
-          id: `video${Date.now()}`,
+      const newVideoData: Omit<Video, 'id' | 'author'> = {
           title,
           description,
           thumbnailUrl,
@@ -69,7 +68,7 @@ export function UploadVideoForm() {
           comments: [],
       };
 
-      await addVideoAction(newVideo);
+      const newVideo = await addVideoAction(newVideoData);
 
       toast({
           title: "Yükleme Başarılı!",
@@ -109,5 +108,3 @@ export function UploadVideoForm() {
     </form>
   )
 }
-
-    
