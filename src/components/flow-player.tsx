@@ -5,9 +5,16 @@ import type { Video } from "@/lib/types";
 import { useInView } from "react-intersection-observer";
 import Link from "next/link";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
-import { ThumbsUp, MessageCircle } from "lucide-react";
+import { ThumbsUp, MessageCircle, Heart } from "lucide-react";
 
-export default function FlowPlayer({ video }: { video: Video }) {
+interface FlowPlayerProps {
+    video: Video;
+    onCommentClick: () => void;
+    onLikeClick: () => void;
+    isLiked: boolean;
+}
+
+export default function FlowPlayer({ video, onCommentClick, onLikeClick, isLiked }: FlowPlayerProps) {
     const videoRef = useRef<HTMLVideoElement>(null);
     const [isPlaying, setIsPlaying] = useState(false);
     const { ref, inView } = useInView({
@@ -61,11 +68,11 @@ export default function FlowPlayer({ video }: { video: Video }) {
                 <p className="text-sm line-clamp-2">{video.description}</p>
             </div>
             <div className="absolute bottom-4 right-4 flex flex-col items-center gap-4 text-white">
-                <button className="flex flex-col items-center gap-1">
-                    <ThumbsUp size={28} />
+                <button className="flex flex-col items-center gap-1" onClick={onLikeClick}>
+                    <Heart size={28} className={isLiked ? 'text-primary fill-primary' : ''} />
                     <span className="text-sm font-semibold">{(video.likes || 0).toLocaleString()}</span>
                 </button>
-                <button className="flex flex-col items-center gap-1">
+                <button className="flex flex-col items-center gap-1" onClick={onCommentClick}>
                     <MessageCircle size={28} />
                     <span className="text-sm font-semibold">{(video.comments || []).length}</span>
                 </button>
