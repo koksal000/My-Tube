@@ -11,7 +11,7 @@ import { getCurrentUser } from "@/lib/data";
 import type { User } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import { usePeer } from "@/hooks/usePeer";
-import type { MessagePayload } from "@/hooks/usePeer";
+import type { MessagePayload, ConnectionStatus } from "@/hooks/usePeer";
 import { getUsersAction } from "@/app/actions";
 
 const ChatMessage = ({ msg, isOwnMessage, author }: { msg: MessagePayload; isOwnMessage: boolean, author?: User }) => (
@@ -42,21 +42,21 @@ function MessagesPageClient() {
     
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
-    // Initialize PeerJS hook
-    const { peerId, messages, connectionStatus, connect, sendMessage } = usePeer(currentUser?.id);
+    // Defer peer initialization until we have a user
+    const peerData = usePeer(currentUser?.id);
 
     useEffect(() => {
         const init = async () => {
             const user = await getCurrentUser();
-            if(!user) return;
+            if (!user) return;
             setCurrentUser(user);
             
             const allUsers = await getUsersAction();
-            // Filter out the current user and the admin
             const conversationUsers = allUsers.filter(u => u.id !== user.id && u.username !== 'admin');
             setConversations(conversationUsers);
             
-            if (routerUser) {
+            // If peer is initialized and there's a user in the URL, connect
+            if (routerUser && peerData.connect) {
                 const targetUser = allUsers.find(u => u.username === routerUser);
                 if (targetUser) {
                    handleSelectConversation(targetUser);
@@ -64,28 +64,28 @@ function MessagesPageClient() {
             }
         }
         init();
-    }, [routerUser]);
+    }, [routerUser, peerData.connect]); // Depend on connect to re-run when it's available
 
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-    }, [messages]);
+    }, [peerData.messages]);
 
     const handleSendMessage = () => {
         if (!messageInput.trim() || !selectedUser) return;
-        sendMessage(messageInput);
+        peerData.sendMessage(messageInput);
         setMessageInput("");
     };
 
     const handleSelectConversation = (user: User) => {
         setSelectedUser(user);
-        if (user.id) {
-           connect(user.id);
+        if (user.id && peerData.connect) {
+           peerData.connect(user.id);
         }
     }
     
     const copyPeerId = () => {
-        if (peerId) {
-            navigator.clipboard.writeText(peerId);
+        if (peerData.peerId) {
+            navigator.clipboard.writeText(peerData.peerId);
             toast({ title: "Peer ID Kopyalandı!", description: "ID'nizi şimdi arkadaşınızla paylaşabilirsiniz." });
         }
     }
@@ -96,9 +96,9 @@ function MessagesPageClient() {
                  <Card className="flex-grow flex flex-col">
                     <CardHeader className="flex flex-col items-start justify-between gap-2">
                         <CardTitle>Sohbetler</CardTitle>
-                         {peerId && (
+                         {peerData.peerId && (
                            <div className="flex items-center gap-2 text-xs text-muted-foreground w-full">
-                               <Input value={peerId} readOnly className="flex-1 h-8 text-xs" />
+                               <Input value={peerData.peerId} readOnly className="flex-1 h-8 text-xs" />
                                <Button size="icon" variant="outline" className="h-8 w-8" onClick={copyPeerId}><Copy className="h-4 w-4"/></Button>
                            </div>
                          )}
@@ -141,13 +141,13 @@ function MessagesPageClient() {
                                         </div>
                                     </div>
                                     <div className="text-xs text-muted-foreground capitalize flex items-center gap-1">
-                                        <div className={`w-2 h-2 rounded-full ${connectionStatus.status === 'connected' ? 'bg-green-500' : 'bg-yellow-500'}`}></div>
-                                        {connectionStatus.status}
+                                        <div className={`w-2 h-2 rounded-full ${peerData.connectionStatus.status === 'connected' ? 'bg-green-500' : 'bg-yellow-500'}`}></div>
+                                        {peerData.connectionStatus.status}
                                     </div>
                                 </div>
                             </CardHeader>
                             <CardContent className="flex-grow p-4 space-y-4 overflow-y-auto">
-                               {messages.map((msg, index) => <ChatMessage key={`${msg.timestamp}-${index}`} msg={msg} isOwnMessage={msg.sender === peerId} author={selectedUser} />)}
+                               {peerData.messages.map((msg, index) => <ChatMessage key={`${msg.timestamp}-${index}`} msg={msg} isOwnMessage={msg.sender === peerData.peerId} author={selectedUser} />)}
                                <div ref={messagesEndRef} />
                             </CardContent>
                             <div className="p-4 border-t">
@@ -158,9 +158,9 @@ function MessagesPageClient() {
                                         value={messageInput}
                                         onChange={(e) => setMessageInput(e.target.value)}
                                         onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
-                                        disabled={connectionStatus.status !== 'connected'}
+                                        disabled={peerData.connectionStatus.status !== 'connected'}
                                      />
-                                    <Button size="icon" className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8" onClick={handleSendMessage} disabled={connectionStatus.status !== 'connected'}>
+                                    <Button size="icon" className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8" onClick={handleSendMessage} disabled={peerData.connectionStatus.status !== 'connected'}>
                                         <Send className="h-4 w-4" />
                                     </Button>
                                 </div>
