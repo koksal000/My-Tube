@@ -2,14 +2,46 @@ import type { User, Video, Post, Comment } from './types';
 import initialUsers from '@/data/users.json';
 import initialVideos from '@/data/videos.json';
 import initialPosts from '@/data/posts.json';
+import fs from 'fs';
+import path from 'path';
 
-// --- Data Simulation as a Central Database ---
-// In a real app, this would be a database. For this prototype, we're using in-memory arrays
-// initialized from JSON files. These act as our single source of truth for all users.
-// Any "write" operations modify these arrays in memory.
-let users: User[] = JSON.parse(JSON.stringify(initialUsers));
-let videos: Omit<Video, 'author'>[] = JSON.parse(JSON.stringify(initialVideos));
-let posts: Omit<Post, 'author'>[] = JSON.parse(JSON.stringify(initialPosts));
+// --- Data Persistence Layer ---
+// In a typical web app, you'd use a database. As requested, for this project,
+// we are directly reading from and writing to JSON files in the `src/data` directory.
+// This makes the data persistent across server restarts within the development environment.
+
+const dataPath = path.join(process.cwd(), 'src/data');
+const usersFilePath = path.join(dataPath, 'users.json');
+const videosFilePath = path.join(dataPath, 'videos.json');
+const postsFilePath = path.join(dataPath, 'posts.json');
+
+// Helper function to read data from JSON files
+const readData = <T>(filePath: string): T => {
+    try {
+        const jsonData = fs.readFileSync(filePath, 'utf-8');
+        return JSON.parse(jsonData) as T;
+    } catch (error) {
+        console.error(`Error reading data from ${filePath}:`, error);
+        // If the file doesn't exist or is invalid, return an empty array
+        return [] as T;
+    }
+};
+
+// Helper function to write data to JSON files
+const writeData = (filePath: string, data: any): void => {
+    try {
+        fs.writeFileSync(filePath, JSON.stringify(data, null, 4), 'utf-8');
+    } catch (error) {
+        console.error(`Error writing data to ${filePath}:`, error);
+    }
+};
+
+// --- In-Memory Data Cache, loaded from files ---
+// This acts as a "live" version of our data. It's initialized from the files
+// and then updated in memory and written back to the files on every change.
+let users: User[] = readData<User[]>(usersFilePath);
+let videos: Omit<Video, 'author'>[] = readData<Omit<Video, 'author'>[]>(videosFilePath);
+let posts: Omit<Post, 'author'>[] = readData<Omit<Post, 'author'>[]>(postsFilePath);
 
 
 const CURRENT_USER_KEY = 'myTube-currentUser-id';
@@ -47,21 +79,21 @@ async function hydrateData<T extends (Video | Post | Comment)>(item: T | Omit<T,
 // --- User Functions ---
 
 export async function addUser(user: User): Promise<void> {
-  // This now "persists" the user to our central in-memory array.
   users.push(user);
+  writeData(usersFilePath, users);
 }
 
 export async function updateUser(updatedUser: User): Promise<void> {
     const userIndex = users.findIndex(u => u.id === updatedUser.id);
     if (userIndex !== -1) {
-        // Persist password if it's not included in the update payload
         const existingPassword = users[userIndex].password;
         users[userIndex] = { ...updatedUser };
         if (!users[userIndex].password && existingPassword) {
             users[userIndex].password = existingPassword;
         }
+        writeData(usersFilePath, users);
     }
-    // If the currently logged-in user is the one being updated, update the session as well.
+    
     const currentId = typeof window !== 'undefined' ? localStorage.getItem(CURRENT_USER_KEY) : null;
     if (currentId && currentId === updatedUser.id) {
         setCurrentUser(updatedUser);
@@ -70,19 +102,16 @@ export async function updateUser(updatedUser: User): Promise<void> {
 
 
 export async function getUserByUsername(username: string): Promise<User | undefined> {
-    // Finds the user from our central, "live" user array.
     return users.find(u => u.username === username);
 }
 
 
 export async function getUserById(id: string): Promise<User | undefined> {
     if(!id) return undefined;
-    // Finds the user from our central, "live" user array.
     return users.find(u => u.id === id);
 }
 
 export async function getAllUsers(): Promise<User[]> {
-    // Returns all users from our central store.
     return [...users];
 }
 
@@ -105,8 +134,8 @@ export async function getVideoByAuthor(authorId: string): Promise<Video[]> {
 }
 
 export async function addVideo(video: Omit<Video, 'author'>): Promise<void> {
-    // "Saves" the new video to the central video array.
     videos.push(video);
+    writeData(videosFilePath, videos);
 }
 
 // --- Post Functions ---
@@ -128,17 +157,18 @@ export async function getPostsByAuthor(authorId: string): Promise<Post[]> {
 
 export async function addPost(post: Omit<Post, 'author'|'comments'>): Promise<void> {
     const postWithComments: Omit<Post, 'author'> = {...post, comments: []};
-    // "Saves" the new post to the central post array.
     posts.push(postWithComments);
+    writeData(postsFilePath, posts);
 }
 
 
 // --- Comment Functions ---
 export async function addCommentToVideo(videoId: string, comment: Omit<Comment, 'author' | 'replies'>): Promise<void> {
-    const video = videos.find(v => v.id === videoId);
-    if (video) {
-        if (!video.comments) video.comments = [];
-        video.comments.unshift(comment as any);
+    const videoIndex = videos.findIndex(v => v.id === videoId);
+    if (videoIndex !== -1) {
+        if (!videos[videoIndex].comments) videos[videoIndex].comments = [];
+        videos[videoIndex].comments.unshift(comment as any);
+        writeData(videosFilePath, videos);
     }
 }
 
@@ -172,7 +202,6 @@ export async function getCurrentUser(): Promise<User | null> {
         try {
             const userId = localStorage.getItem(CURRENT_USER_KEY);
             if (userId) {
-                // IMPORTANT: Fetch the user from the central 'users' array, not a separate call.
                 const userFromCentralStore = users.find(u => u.id === userId);
                 if (userFromCentralStore) {
                     currentLoggedInUser = userFromCentralStore;
@@ -184,7 +213,6 @@ export async function getCurrentUser(): Promise<User | null> {
         }
     }
     
-    // If no user is found, ensure everything is cleared.
     setCurrentUser(null);
     return null;
 }

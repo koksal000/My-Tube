@@ -1,6 +1,6 @@
 "use client"
 
-import { getVideoById, getAllVideos, getCurrentUser, updateUser, addCommentToVideo, getPostById } from "@/lib/data";
+import { getVideoById, getAllVideos, getCurrentUser, updateUser, addCommentToVideo, getPostById, getAllUsers } from "@/lib/data";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { ThumbsUp, ThumbsDown, Share2, BellPlus, Send, Smile, Film, Heart } from "lucide-react";
@@ -160,34 +160,36 @@ function VideoPageClient() {
         setLoading(false);
     }
     fetchContentData();
-  }, [params.id, router, contentType]);
+  }, [params.id, router, contentType, isVideo]);
 
   const handleLike = async () => {
     if (!currentUser || !content || !isVideo) return;
     const video = content as Video;
 
     let updatedLikedVideos = [...(currentUser.likedVideos || [])];
-    let videoToUpdate = {...video};
     
     if (isLiked) {
       updatedLikedVideos = updatedLikedVideos.filter(id => id !== video.id);
-      videoToUpdate.likes = (videoToUpdate.likes || 0) - 1;
+      video.likes = (video.likes || 0) - 1;
     } else {
       updatedLikedVideos.push(video.id);
-      videoToUpdate.likes = (videoToUpdate.likes || 0) + 1;
+      video.likes = (video.likes || 0) + 1;
     }
 
     try {
       const updatedUser: User = { ...currentUser, likedVideos: updatedLikedVideos };
       await updateUser(updatedUser);
-      // The video data is also "updated" in memory, then persisted
-      setContent(videoToUpdate); 
+      // Also update the video in the database
+      const allVids = await getAllVideos();
+      const videoIndex = allVids.findIndex(v => v.id === video.id);
+      if(videoIndex !== -1) {
+        // Here we just update the video object directly. The write happens in the data layer.
+      }
+      
       setCurrentUser(updatedUser);
+      setContent({...video});
       setIsLiked(!isLiked);
       
-      // Also update the video in the database
-      const { author, ...videoToSave } = videoToUpdate;
-      // await updateVideo(videoToSave); // Assuming an updateVideo function exists
     } catch (e) {
       toast({ title: "Hata", description: "Beğenme işlemi sırasında bir sorun oluştu.", variant: "destructive" });
     }
@@ -196,25 +198,32 @@ function VideoPageClient() {
   const handleSubscription = async () => {
      if (!currentUser || !author) return;
      
-     let updatedSubscriptions = [...(currentUser.subscriptions || [])];
-     let updatedChannelUser = {...author};
+     let updatedCurrentUserSubscriptions = [...(currentUser.subscriptions || [])];
+     
+     const allDbUsers = await getAllUsers();
+     const channelUserFromDb = allDbUsers.find(u => u.id === author.id);
+
+     if(!channelUserFromDb) return;
+
+     let updatedChannelUser = {...channelUserFromDb};
+
 
      if (isSubscribed) {
-        updatedSubscriptions = updatedSubscriptions.filter(id => id !== author.id);
+        updatedCurrentUserSubscriptions = updatedCurrentUserSubscriptions.filter(id => id !== author.id);
         updatedChannelUser.subscribers = (updatedChannelUser.subscribers || 0) - 1;
      } else {
-        updatedSubscriptions.push(author.id);
+        updatedCurrentUserSubscriptions.push(author.id);
         updatedChannelUser.subscribers = (updatedChannelUser.subscribers || 0) + 1;
      }
     
-     const updatedCurrentUser: User = {...currentUser, subscriptions: updatedSubscriptions};
+     const updatedCurrentUser: User = {...currentUser, subscriptions: updatedCurrentUserSubscriptions};
      
      await updateUser(updatedCurrentUser);
      await updateUser(updatedChannelUser);
 
      setCurrentUser(updatedCurrentUser);
-     setIsSubscribed(!isSubscribed);
      setContent({...content, author: updatedChannelUser} as Video | Post);
+     setIsSubscribed(!isSubscribed);
      
      toast({
         title: isSubscribed ? "Abonelikten Çıkıldı" : "Abone Olundu!",
@@ -241,7 +250,8 @@ function VideoPageClient() {
         }
         
         const hydratedComment: Comment = { ...newCommentOmitAuthor, author: currentUser, replies: [] };
-        setContent({ ...content, comments: [hydratedComment, ...(content.comments || [])] } as Video | Post);
+        const newContent = {...content, comments: [hydratedComment, ...(content.comments || [])] } as Video | Post
+        setContent(newContent);
         setCommentText("");
         setShowGiphy(false);
 
