@@ -25,7 +25,6 @@ const VideoRecommendationsInputSchema = z.object({
     username: z.string().describe('The username of the channel that uploaded the video.'),
     views: z.number().describe('The number of views the video has.'),
     likes: z.number().describe('The number of likes the video has.'),
-    dislikes: z.number().describe('The number of dislikes the video has.'),
     commentCount: z.number().describe('The number of comments the video has.'),
   })).describe('An array of all available videos.'),
   boostByViews: z.number().describe('A multiplier to boost videos with high view count'),
