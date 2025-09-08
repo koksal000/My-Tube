@@ -48,3 +48,11 @@ export interface Post {
     createdAt: string;
     comments: Comment[];
 }
+
+export interface Message {
+    id: string;
+    senderId: string;
+    recipientId: string;
+    text: string;
+    createdAt: string;
+}

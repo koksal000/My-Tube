@@ -13,7 +13,7 @@ import { EditProfileDialog } from "@/components/profile-edit-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { MessageSquare } from "lucide-react";
 import Link from "next/link";
-import { updateUserAction, getUsersAction, getVideosAction, getPostsAction } from "@/app/actions";
+import { subscribeAction, getUsersAction, getVideosAction, getPostsAction } from "@/app/actions";
 import { getCurrentUser } from "@/lib/data";
 
 export default function ChannelPage() {
@@ -78,45 +78,35 @@ export default function ChannelPage() {
   const handleSubscription = async () => {
     if (!currentUser || !channelUser || isOwnProfile) return;
 
-    let updatedSubscriptions = [...(currentUser.subscriptions || [])];
-    let updatedSubscribers = channelUser.subscribers || 0;
-
     const newIsSubscribed = !isSubscribed;
-
-    if (newIsSubscribed) {
-      // Subscribe
-      updatedSubscriptions.push(channelUser.id);
-      updatedSubscribers++;
-    } else {
-      // Unsubscribe
-      updatedSubscriptions = updatedSubscriptions.filter(id => id !== channelUser.id);
-      updatedSubscribers--;
+    
+    // Optimistic UI Update
+    setIsSubscribed(newIsSubscribed);
+    if(channelUser){
+      const optimisticSubscribers = channelUser.subscribers + (newIsSubscribed ? 1 : -1);
+      setChannelUser({...channelUser, subscribers: optimisticSubscribers });
     }
 
-    const updatedCurrentUser: User = { ...currentUser, subscriptions: updatedSubscriptions };
-    const updatedChannelUser: User = { ...channelUser, subscribers: updatedSubscribers };
-
-    // Optimistic UI Update
-    setCurrentUser(updatedCurrentUser);
-    setChannelUser(updatedChannelUser);
-    setIsSubscribed(newIsSubscribed);
-
     try {
-      await updateUserAction(updatedCurrentUser);
-      await updateUserAction(updatedChannelUser);
+      await subscribeAction(currentUser.id, channelUser.id);
+
+      const updatedCurrentUser: User = { 
+        ...currentUser, 
+        subscriptions: newIsSubscribed 
+          ? [...(currentUser.subscriptions || []), channelUser.id]
+          : (currentUser.subscriptions || []).filter(id => id !== channelUser.id)
+      };
+      setCurrentUser(updatedCurrentUser);
       
        toast({
         title: newIsSubscribed ? "Abone Olundu!" : "Abonelikten Çıkıldı",
         description: newIsSubscribed ? `${channelUser.displayName} kanalına başarıyla abone oldunuz.` : `${channelUser.displayName} kanalından aboneliğinizi kaldırdınız.`,
       });
 
-      // Force header/sidebar refresh by navigating, even to the same page
       router.refresh();
 
     } catch (error) {
-       // Revert UI on error
        setIsSubscribed(!newIsSubscribed);
-       // Revert other state changes if needed
        toast({ title: "Hata", description: "İşlem sırasında bir hata oluştu.", variant: "destructive" });
     }
   };
