@@ -7,11 +7,12 @@ import { Input } from "@/components/ui/input";
 import { Send, Copy, AlertCircle } from "lucide-react";
 import { useState, useEffect, useRef, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
-import { getCurrentUser, getUserByUsername, getAllUsers } from "@/lib/data";
+import { getCurrentUser } from "@/lib/data";
 import type { User } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import { usePeer } from "@/hooks/usePeer";
 import type { MessagePayload } from "@/hooks/usePeer";
+import { getUsersAction } from "@/app/actions";
 
 const ChatMessage = ({ msg, isOwnMessage, author }: { msg: MessagePayload; isOwnMessage: boolean, author?: User }) => (
   <div className={`flex items-end gap-2 ${isOwnMessage ? 'justify-end' : ''}`}>
@@ -50,13 +51,13 @@ function MessagesPageClient() {
             if(!user) return;
             setCurrentUser(user);
             
-            const allUsers = await getAllUsers();
-            // Filter out the current user, the admin, and "gezginkamera"
-            const conversationUsers = allUsers.filter(u => u.id !== user.id && u.username !== 'admin' && u.username !== 'gezginkamera');
+            const allUsers = await getUsersAction();
+            // Filter out the current user and the admin
+            const conversationUsers = allUsers.filter(u => u.id !== user.id && u.username !== 'admin');
             setConversations(conversationUsers);
             
             if (routerUser) {
-                const targetUser = await getUserByUsername(routerUser);
+                const targetUser = allUsers.find(u => u.username === routerUser);
                 if (targetUser) {
                    handleSelectConversation(targetUser);
                 }

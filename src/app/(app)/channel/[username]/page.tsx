@@ -1,6 +1,5 @@
 "use client"
 
-import { getVideoByAuthor, getPostsByAuthor, getCurrentUser, getUserByUsername } from "@/lib/data";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -14,7 +13,8 @@ import { EditProfileDialog } from "@/components/profile-edit-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { MessageSquare } from "lucide-react";
 import Link from "next/link";
-import { updateUserAction } from "@/app/actions";
+import { updateUserAction, getUsersAction, getVideosAction, getPostsAction } from "@/app/actions";
+import { getCurrentUser } from "@/lib/data";
 
 export default function ChannelPage() {
   const router = useRouter();
@@ -32,7 +32,9 @@ export default function ChannelPage() {
     const init = async () => {
       if(!params.username) return;
 
-      const foundChannelUser = await getUserByUsername(params.username as string);
+      const allUsers = await getUsersAction();
+      const foundChannelUser = allUsers.find(u => u.username === params.username);
+
       const loggedInUser = await getCurrentUser();
       
       if (!loggedInUser) {
@@ -43,8 +45,10 @@ export default function ChannelPage() {
 
       if (foundChannelUser) {
         setChannelUser(foundChannelUser);
-         const videos = await getVideoByAuthor(foundChannelUser.id);
-         const posts = await getPostsByAuthor(foundChannelUser.id);
+         const allVideos = await getVideosAction();
+         const allPosts = await getPostsAction();
+         const videos = allVideos.filter(v => v.authorId === foundChannelUser.id);
+         const posts = allPosts.filter(p => p.authorId === foundChannelUser.id);
          setUserVideos(videos);
          setUserPosts(posts);
 

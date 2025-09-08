@@ -1,12 +1,12 @@
 "use client"
 
 import { VideoCard } from "@/components/video-card";
-import { getAllVideos, getAllPosts } from "@/lib/data";
 import type { Video, Post } from "@/lib/types";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/card";
 import Image from "next/image";
+import { getVideosAction, getPostsAction } from "@/app/actions";
 
 // A component for displaying posts in the explore grid
 const PostCard = ({ post }: { post: Post }) => (
@@ -33,8 +33,8 @@ export default function ExplorePage() {
   useEffect(() => {
     const fetchContent = async () => {
       setLoading(true);
-      const allVideos = await getAllVideos();
-      const allPosts = await getAllPosts();
+      const allVideos = await getVideosAction();
+      const allPosts = await getPostsAction();
       
       // admin contentini keşfetten çıkar ve yazarı olmayanları filtrele
       const filteredVideos = allVideos.filter(v => v.author && v.author.username !== 'admin');

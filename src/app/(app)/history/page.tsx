@@ -1,10 +1,11 @@
 "use client"
 
 import { VideoCard } from "@/components/video-card";
-import { getVideoById, getCurrentUser } from "@/lib/data";
 import { useState, useEffect } from "react";
 import type { Video } from "@/lib/types";
 import { useRouter } from "next/navigation";
+import { getCurrentUser } from "@/lib/data";
+import { getVideoAction } from "@/app/actions";
 
 export default function HistoryPage() {
     const router = useRouter();
@@ -16,7 +17,7 @@ export default function HistoryPage() {
             const currentUser = await getCurrentUser();
             if (currentUser) {
                 if(currentUser.viewedVideos && currentUser.viewedVideos.length > 0) {
-                   const userViewedVideos = await Promise.all(currentUser.viewedVideos.map(id => getVideoById(id)));
+                   const userViewedVideos = await Promise.all(currentUser.viewedVideos.map(id => getVideoAction(id)));
                    setViewedVideos(userViewedVideos.filter((v): v is Video => !!v));
                 } else {
                     setViewedVideos([]);

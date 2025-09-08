@@ -1,10 +1,12 @@
 "use client"
 
 import { VideoCard } from "@/components/video-card";
-import { getAllVideos, getCurrentUser, getUserById } from "@/lib/data";
 import { useState, useEffect } from "react";
 import type { User, Video } from "@/lib/types";
 import { useRouter } from "next/navigation";
+import { getCurrentUser } from "@/lib/data";
+import { getUserAction, getVideosAction } from "@/app/actions";
+
 
 export default function SubscriptionsPage() {
   const router = useRouter();
@@ -18,12 +20,12 @@ export default function SubscriptionsPage() {
       
       if (currentUser) {
         if (currentUser.subscriptions && currentUser.subscriptions.length > 0) {
-            const subscribedUsers = await Promise.all(currentUser.subscriptions.map(id => getUserById(id)));
+            const subscribedUsers = await Promise.all(currentUser.subscriptions.map(id => getUserAction(id)));
             const subscribedChannelsUsernames = subscribedUsers
                 .filter((u): u is User => !!u)
                 .map(u => u.username);
             
-            const allVideos = await getAllVideos();
+            const allVideos = await getVideosAction();
             const videos = allVideos.filter(video => 
               video.author && subscribedChannelsUsernames.includes(video.author.username)
             ).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());

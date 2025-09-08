@@ -1,3 +1,4 @@
+
 'use server';
 
 import type { User, Video, Post, Comment } from '@/lib/types';
@@ -6,30 +7,99 @@ import path from 'path';
 
 // --- Data Persistence Layer ---
 // This file contains Server Actions that are guaranteed to only run on the server.
-// They handle all data mutation (writing to files) to ensure persistence.
+// They handle all data reading and writing to files to ensure persistence across all clients.
 
-const dataPath = path.join(process.cwd(), 'src/data');
+const dataPath = path.join(process.cwd(), 'data');
 const usersFilePath = path.join(dataPath, 'users.json');
 const videosFilePath = path.join(dataPath, 'videos.json');
 const postsFilePath = path.join(dataPath, 'posts.json');
 
-// Helper function to read data from JSON files
-const readData = async <T>(filePath: string): Promise<T> => {
+// --- DATA READING ACTIONS ---
+
+const readData = async <T>(filePath: string): Promise<T[]> => {
     try {
+        await fs.mkdir(dataPath, { recursive: true });
         const jsonData = await fs.readFile(filePath, 'utf-8');
-        return JSON.parse(jsonData) as T;
+        return JSON.parse(jsonData) as T[];
     } catch (error) {
         if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
-            return [] as T; // Return empty array if file does not exist
+            await fs.writeFile(filePath, '[]', 'utf-8');
+            return []; // Return empty array if file does not exist
         }
         console.error(`Error reading data from ${filePath}:`, error);
         throw error;
     }
 };
 
-// Helper function to write data to JSON files
-const writeData = async (filePath: string, data: any): Promise<void> => {
+async function hydrateData<T extends (Video | Post | Comment)>(item: T | Omit<T, 'author'>, allUsers: User[]): Promise<T> {
+    if (!item) return item as T;
+
+    const hydratedItem = { ...item } as T;
+
+    if ('authorId' in hydratedItem && hydratedItem.authorId && !hydratedItem.author) {
+        const author = allUsers.find(u => u.id === hydratedItem.authorId);
+        if (author) hydratedItem.author = { ...author, password: '' }; // Never send password to client
+    }
+    
+    if ('comments' in hydratedItem && Array.isArray(hydratedItem.comments)) {
+        hydratedItem.comments = await Promise.all(
+            (hydratedItem.comments as (Comment | Omit<Comment, 'author'>)[])
+                .map(c => hydrateData(c as Comment, allUsers))
+        );
+    }
+    
+    if ('replies' in hydratedItem && Array.isArray(hydratedItem.replies)) {
+         hydratedItem.replies = await Promise.all(
+            (hydratedItem.replies as (Comment | Omit<Comment, 'author'>)[])
+                .map(r => hydrateData(r as Comment, allUsers))
+        );
+    }
+
+    return hydratedItem;
+}
+
+export async function getUsersAction(): Promise<User[]> {
+    const users = await readData<User>(usersFilePath);
+    // Never send password to client
+    return users.map(({ password, ...user }) => user);
+}
+
+export async function getUserAction(userId: string): Promise<User | null> {
+    const users = await readData<User>(usersFilePath);
+    const user = users.find(u => u.id === userId);
+    if (!user) return null;
+    const { password, ...userWithoutPassword } = user;
+    return userWithoutPassword;
+}
+
+
+export async function getVideosAction(): Promise<Video[]> {
+    const [videos, allUsers] = await Promise.all([readData<Video>(videosFilePath), readData<User>(usersFilePath)]);
+    return Promise.all(videos.map(v => hydrateData(v, allUsers)));
+}
+
+export async function getVideoAction(videoId: string): Promise<Video | null> {
+    const videos = await getVideosAction();
+    const video = videos.find(v => v.id === videoId);
+    return video || null;
+}
+
+export async function getPostsAction(): Promise<Post[]> {
+    const [posts, allUsers] = await Promise.all([readData<Post>(postsFilePath), readData<User>(usersFilePath)]);
+    return Promise.all(posts.map(p => hydrateData(p, allUsers)));
+}
+
+export async function getPostAction(postId: string): Promise<Post | null> {
+    const posts = await getPostsAction();
+    const post = posts.find(p => p.id === postId);
+    return post || null;
+}
+
+// --- DATA WRITING ACTIONS ---
+
+const writeData = async <T>(filePath: string, data: T[]): Promise<void> => {
     try {
+        await fs.mkdir(dataPath, { recursive: true });
         await fs.writeFile(filePath, JSON.stringify(data, null, 4), 'utf-8');
     } catch (error) {
         console.error(`Error writing data to ${filePath}:`, error);
@@ -37,17 +107,18 @@ const writeData = async (filePath: string, data: any): Promise<void> => {
     }
 };
 
-
-// --- Server Actions for Data Mutation ---
-
 export async function addUserAction(user: User): Promise<void> {
-  const users = await readData<User[]>(usersFilePath);
+  const users = await readData<User>(usersFilePath);
+  const existingUser = users.find(u => u.username === user.username);
+  if (existingUser) {
+      throw new Error("Username already exists.");
+  }
   users.push(user);
   await writeData(usersFilePath, users);
 }
 
 export async function updateUserAction(updatedUser: User): Promise<void> {
-    const users = await readData<User[]>(usersFilePath);
+    const users = await readData<User>(usersFilePath);
     const userIndex = users.findIndex(u => u.id === updatedUser.id);
     if (userIndex !== -1) {
         // Preserve password if it's not being updated
@@ -60,21 +131,21 @@ export async function updateUserAction(updatedUser: User): Promise<void> {
 }
 
 export async function addVideoAction(video: Omit<Video, 'author'>): Promise<void> {
-    const videos = await readData<Omit<Video, 'author'>[]>(videosFilePath);
-    videos.push(video);
+    const videos = await readData<Video>(videosFilePath);
+    videos.push(video as any);
     await writeData(videosFilePath, videos);
 }
 
 export async function addPostAction(post: Omit<Post, 'author'|'comments'>): Promise<void> {
-    const posts = await readData<Omit<Post, 'author'>[]>(postsFilePath);
+    const posts = await readData<Post>(postsFilePath);
     const postWithComments: Omit<Post, 'author'> = {...post, comments: []};
-    posts.push(postWithComments);
+    posts.push(postWithComments as any);
     await writeData(postsFilePath, posts);
 }
 
 export async function addCommentToAction(contentId: string, contentType: 'video' | 'post', comment: Omit<Comment, 'author' | 'replies'>): Promise<void> {
     if (contentType === 'video') {
-        const videos = await readData<Video[]>(videosFilePath);
+        const videos = await readData<Video>(videosFilePath);
         const videoIndex = videos.findIndex(v => v.id === contentId);
         if (videoIndex !== -1) {
             if (!videos[videoIndex].comments) videos[videoIndex].comments = [];
@@ -82,7 +153,7 @@ export async function addCommentToAction(contentId: string, contentType: 'video'
             await writeData(videosFilePath, videos);
         }
     } else {
-        const posts = await readData<Post[]>(postsFilePath);
+        const posts = await readData<Post>(postsFilePath);
         const postIndex = posts.findIndex(p => p.id === contentId);
         if (postIndex !== -1) {
             if (!posts[postIndex].comments) posts[postIndex].comments = [];
@@ -93,8 +164,8 @@ export async function addCommentToAction(contentId: string, contentType: 'video'
 }
 
 export async function likeVideoAction(videoId: string, userId: string, isLiking: boolean): Promise<void> {
-    const videos = await readData<Video[]>(videosFilePath);
-    const users = await readData<User[]>(usersFilePath);
+    const videos = await readData<Video>(videosFilePath);
+    const users = await readData<User>(usersFilePath);
     
     const video = videos.find(v => v.id === videoId);
     const user = users.find(u => u.id === userId);
@@ -108,21 +179,32 @@ export async function likeVideoAction(videoId: string, userId: string, isLiking:
             user.likedVideos = (user.likedVideos || []).filter(id => id !== videoId);
         }
         
+        const userIndex = users.findIndex(u => u.id === userId);
+        if(userIndex !== -1) users[userIndex] = user;
+
+        const videoIndex = videos.findIndex(v => v.id === videoId);
+        if(videoIndex !== -1) videos[videoIndex] = video;
+        
         await writeData(videosFilePath, videos);
         await writeData(usersFilePath, users);
     }
+}
+
+export async function authenticateUserAction(username: string, password_provided: string): Promise<User | null> {
+    const users = await readData<User>(usersFilePath);
+    const user = users.find(u => u.username === username);
+
+    if (user && user.password === password_provided) {
+        const { password, ...userWithoutPassword } = user;
+        return userWithoutPassword;
+    }
+    return null;
 }
 
 
 const USER_HASH = '2a2859051bb86dfe906d0bf6f';
 const CATBOX_API_URL = 'https://catbox.moe/user/api.php';
 
-/**
- * Uploads a file to Catbox.moe using a Server Action.
- * This function is designed to be called from client components.
- * @param formData The FormData object containing the file to upload.
- * @returns The URL of the uploaded file.
- */
 export async function uploadFileAction(formData: FormData): Promise<string> {
   const file = formData.get('fileToUpload') as File | null;
   
@@ -130,7 +212,6 @@ export async function uploadFileAction(formData: FormData): Promise<string> {
       throw new Error('No file provided.');
   }
 
-  // We need to rebuild the FormData for the server context with the userhash
   const serverFormData = new FormData();
   serverFormData.append('reqtype', 'fileupload');
   serverFormData.append('userhash', USER_HASH);

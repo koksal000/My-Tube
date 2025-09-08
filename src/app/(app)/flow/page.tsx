@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from 'react';
-import { getAllVideos, getAllPosts } from '@/lib/data';
 import type { Video, Post } from '@/lib/types';
 import FlowPlayer from '@/components/flow-player';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -10,6 +9,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Heart, MessageCircle } from 'lucide-react';
+import { getVideosAction, getPostsAction } from '@/app/actions';
 
 const FlowPost = ({ post }: { post: Post }) => {
     const { ref, inView } = useInView({ threshold: 0.9 });
@@ -52,8 +52,8 @@ export default function FlowPage() {
   useEffect(() => {
     const fetchContent = async () => {
       setLoading(true);
-      const allVideos = await getAllVideos();
-      const allPosts = await getAllPosts();
+      const allVideos = await getVideosAction();
+      const allPosts = await getPostsAction();
       
       const flowVideos = allVideos
         .filter(v => v.author && v.videoUrl && v.author.username !== 'admin');

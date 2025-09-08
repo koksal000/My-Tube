@@ -1,6 +1,5 @@
 "use client"
 
-import { getVideoById, getAllVideos, getCurrentUser, getAllUsers } from "@/lib/data";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { ThumbsUp, ThumbsDown, Share2, BellPlus, Send, Smile, Film, Heart } from "lucide-react";
@@ -12,8 +11,8 @@ import { useToast } from "@/hooks/use-toast";
 import { Textarea } from "@/components/ui/textarea";
 import Image from "next/image";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { getPostById } from "@/lib/data";
-import { addCommentToAction, likeVideoAction, updateUserAction } from "@/app/actions";
+import { addCommentToAction, likeVideoAction, updateUserAction, getVideosAction, getVideoAction, getPostAction, getUsersAction } from "@/app/actions";
+import { getCurrentUser } from "@/lib/data";
 
 function timeAgo(dateString: string) {
     if (!dateString) return "";
@@ -139,11 +138,11 @@ function VideoPageClient() {
         }
         setCurrentUser(loggedInUser);
 
-        let contentData: Video | Post | undefined | null = null;
+        let contentData: Video | Post | null = null;
         if (contentType === 'video') {
-            contentData = await getVideoById(params.id as string);
+            contentData = await getVideoAction(params.id as string);
         } else {
-            contentData = await getPostById(params.id as string);
+            contentData = await getPostAction(params.id as string);
         }
 
         if (contentData) {
@@ -154,7 +153,7 @@ function VideoPageClient() {
 
              if (isVideo) {
                 setIsLiked((loggedInUser.likedVideos || []).includes(contentData.id));
-                const allVideos = (await getAllVideos()).filter(v => v.author && v.author.username !== 'admin');
+                const allVideos = (await getVideosAction()).filter(v => v.author && v.author.username !== 'admin');
                 const recs = allVideos.filter(v => v.id !== params.id).sort(() => 0.5 - Math.random()).slice(0, 10);
                 setRecommendedVideos(recs);
             }
@@ -178,7 +177,7 @@ function VideoPageClient() {
         await likeVideoAction(video.id, currentUser.id, newIsLiked);
 
         // Optionally, re-fetch user to sync likedVideos list, though not strictly necessary for UI
-        const updatedUser = {...currentUser, likedVideos: newIsLiked ? [...currentUser.likedVideos, video.id] : currentUser.likedVideos.filter(id => id !== video.id)}
+        const updatedUser = {...currentUser, likedVideos: newIsLiked ? [...(currentUser.likedVideos || []), video.id] : (currentUser.likedVideos || []).filter(id => id !== video.id)}
         setCurrentUser(updatedUser)
       
     } catch (e) {
@@ -192,7 +191,7 @@ function VideoPageClient() {
   const handleSubscription = async () => {
      if (!currentUser || !author) return;
      
-     const allDbUsers = await getAllUsers();
+     const allDbUsers = await getUsersAction();
      const channelUserFromDb = allDbUsers.find(u => u.id === author.id);
      if(!channelUserFromDb) return;
 

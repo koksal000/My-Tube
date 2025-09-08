@@ -3,12 +3,12 @@
 import { Suspense, useEffect, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { searchContent, SearchContentInput } from "@/ai/flows/contextual-search";
-import { getAllVideos, getAllUsers, getAllPosts } from "@/lib/data";
 import type { Video, User, Post } from "@/lib/types";
 import { VideoCard } from "@/components/video-card";
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { getVideosAction, getUsersAction } from "@/app/actions";
 
 function SearchResults({ query }: { query: string }) {
   const router = useRouter();
@@ -20,8 +20,8 @@ function SearchResults({ query }: { query: string }) {
     const performSearch = async () => {
       setLoading(true);
 
-      const allDBVideos = await getAllVideos();
-      const allDBUsers = await getAllUsers();
+      const allDBVideos = await getVideosAction();
+      const allDBUsers = await getUsersAction();
       
       const allContentForAI = [
         ...allDBVideos.filter(v => v.author).map(v => ({ id: v.id, title: v.title, description: v.description, username: v.author.username, type: 'video' })),

@@ -10,9 +10,9 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { useToast } from "@/hooks/use-toast"
 import type { User } from "@/lib/types"
 import React from "react"
-import { getUserByUsername, setCurrentUser } from "@/lib/data"
+import { setCurrentUser } from "@/lib/data"
 import { Textarea } from "../ui/textarea"
-import { uploadFileAction, addUserAction } from "@/app/actions"
+import { uploadFileAction, addUserAction, getUsersAction } from "@/app/actions"
 
 const MyTubeLogo = () => (
     <div className="flex items-center justify-center space-x-2 text-primary font-bold text-2xl mb-4">
@@ -43,7 +43,8 @@ export function RegisterForm() {
     const profilePictureFile = formData.get("profile-picture") as File | null;
     const bannerFile = formData.get("banner") as File | null;
     
-    const existingUser = await getUserByUsername(username);
+    const allUsers = await getUsersAction();
+    const existingUser = allUsers.find(u => u.username === username);
 
     if (existingUser) {
       toast({

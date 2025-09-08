@@ -8,7 +8,8 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useToast } from "@/hooks/use-toast"
 import React from "react"
-import { getUserByUsername, setCurrentUser } from "@/lib/data"
+import { setCurrentUser } from "@/lib/data"
+import { authenticateUserAction } from "@/app/actions"
 
 const MyTubeLogo = () => (
     <div className="flex items-center justify-center space-x-2 text-primary font-bold text-2xl mb-4">
@@ -29,10 +30,9 @@ export function LoginForm() {
     const username = formData.get("username") as string;
     const password = formData.get("password") as string;
 
-    const user = await getUserByUsername(username);
+    const user = await authenticateUserAction(username, password);
 
-    // In a real app, passwords would be hashed. For this prototype, we're doing a simple check.
-    if (user && user.password === password) {
+    if (user) {
       setCurrentUser(user);
       toast({
         title: "Giriş Başarılı!",

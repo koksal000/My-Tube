@@ -5,7 +5,8 @@ import { generateVideoRecommendations, VideoRecommendationsInput } from "@/ai/fl
 import React, { useEffect, useState } from "react";
 import type { User, Video } from "@/lib/types";
 import { useRouter } from "next/navigation";
-import { getAllUsers, getAllVideos, getCurrentUser } from "@/lib/data";
+import { getCurrentUser } from "@/lib/data";
+import { getVideosAction, getUserAction } from "@/app/actions";
 
 export default function HomePage() {
   const router = useRouter();
@@ -22,8 +23,7 @@ export default function HomePage() {
         return;
       }
       
-      const allDBVideos = await getAllVideos();
-      const allUsers = await getAllUsers();
+      const allDBVideos = await getVideosAction();
       
       const allVideosForAI = allDBVideos
         .filter(v => v.author) // Filter out videos without an author
@@ -38,15 +38,15 @@ export default function HomePage() {
           commentCount: (v.comments || []).length
       }));
 
+      const subscribedUsers = await Promise.all((currentUser.subscriptions || []).map(id => getUserAction(id)));
+      const subscribedUsernames = subscribedUsers.filter(Boolean).map(u => u!.username);
+
       const recommendationInput: VideoRecommendationsInput = {
         userProfile: {
           username: currentUser.username,
           likedVideos: currentUser.likedVideos || [],
           viewedVideos: currentUser.viewedVideos || [],
-          subscribedChannels: await Promise.all((currentUser.subscriptions || []).map(async id => {
-              const user = await allUsers.find(u => u.id === id);
-              return user ? user.username : '';
-          })).then(usernames => usernames.filter(Boolean)),
+          subscribedChannels: subscribedUsernames,
         },
         allVideos: allVideosForAI,
         boostByViews: 1.2,

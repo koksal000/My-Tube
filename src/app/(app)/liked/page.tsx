@@ -1,10 +1,11 @@
 "use client"
 
 import { VideoCard } from "@/components/video-card";
-import { getVideoById, getCurrentUser } from "@/lib/data";
 import { useState, useEffect } from "react";
 import type { Video } from "@/lib/types";
 import { useRouter } from "next/navigation";
+import { getCurrentUser } from "@/lib/data";
+import { getVideoAction } from "@/app/actions";
 
 export default function LikedPage() {
   const router = useRouter();
@@ -16,7 +17,7 @@ export default function LikedPage() {
       const currentUser = await getCurrentUser();
       if (currentUser) {
         if (currentUser.likedVideos && currentUser.likedVideos.length > 0) {
-            const userLikedVideos = await Promise.all(currentUser.likedVideos.map(id => getVideoById(id)));
+            const userLikedVideos = await Promise.all(currentUser.likedVideos.map(id => getVideoAction(id)));
             setLikedVideos(userLikedVideos.filter((v): v is Video => !!v));
         } else {
             setLikedVideos([]);
