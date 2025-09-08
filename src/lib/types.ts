@@ -23,7 +23,6 @@ export interface Video {
   authorId: string;
   views: number;
   likes: number;
-  dislikes: number;
   createdAt: string;
   comments: Comment[];
 }
@@ -56,3 +55,5 @@ export interface Message {
     text: string;
     createdAt: string;
 }
+
+    

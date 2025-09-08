@@ -1,4 +1,3 @@
-
 [
     {
         "id": "user1",
@@ -21,7 +20,9 @@
         "profilePicture": "https://files.catbox.moe/1aukcg.webp",
         "subscribers": 0,
         "subscriptions": [],
-        "likedVideos": [],
+        "likedVideos": [
+            "video1757338784190"
+        ],
         "viewedVideos": []
     },
     {
@@ -37,5 +38,3 @@
         "viewedVideos": []
     }
 ]
-
-    

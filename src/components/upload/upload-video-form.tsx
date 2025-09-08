@@ -65,7 +65,6 @@ export function UploadVideoForm() {
           authorId: currentUser.id,
           views: 0,
           likes: 0,
-          dislikes: 0,
           createdAt: new Date().toISOString(),
           comments: [],
       };

@@ -2,7 +2,7 @@
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { ThumbsUp, ThumbsDown, Share2, BellPlus, Send, Smile, Film, Heart } from "lucide-react";
+import { ThumbsUp, Share2, BellPlus, Send, Smile, Film, Heart } from "lucide-react";
 import { VideoCard } from "@/components/video-card";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState, Suspense } from "react";
@@ -280,15 +280,9 @@ function VideoPageClient() {
 
                 <div className="flex items-center gap-2">
                     {isVideo && (
-                        <div className="flex items-center rounded-full bg-secondary">
-                        <Button variant="ghost" className="rounded-l-full gap-2 pl-4 pr-3" onClick={handleLike}>
+                        <Button variant="secondary" className="rounded-full gap-2 px-4" onClick={handleLike}>
                             <ThumbsUp className={`h-5 w-5 ${isLiked ? 'text-primary fill-primary' : ''}`} /> {(content.likes || 0).toLocaleString()}
                         </Button>
-                        <div className="h-6 w-px bg-border"></div>
-                        <Button variant="ghost" className="rounded-r-full pl-3 pr-4">
-                            <ThumbsDown className="h-5 w-5" />
-                        </Button>
-                        </div>
                     )}
                     {isPost && (
                          <Button variant="ghost" className="rounded-full gap-2 pl-4 pr-3">
@@ -375,3 +369,5 @@ export default function VideoPage() {
         </Suspense>
     )
 }
+
+    

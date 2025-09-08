@@ -34,7 +34,6 @@ export default function HomePage() {
           username: v.author.username,
           views: v.views,
           likes: v.likes,
-          dislikes: v.dislikes,
           commentCount: (v.comments || []).length
       }));
 
@@ -87,3 +86,5 @@ export default function HomePage() {
     </div>
   );
 }
+
+    
