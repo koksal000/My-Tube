@@ -4,6 +4,9 @@
 import type { User, Video, Post, Comment, Message } from '@/lib/types';
 import fs from 'fs/promises';
 import path from 'path';
+import fetch from 'node-fetch';
+import FormData from 'form-data';
+
 
 // --- Data Persistence Layer ---
 // This file contains Server Actions that are guaranteed to only run on the server.
@@ -291,28 +294,31 @@ export async function authenticateUserAction(username: string, password_provided
     return null;
 }
 
-export async function uploadFileAction(formData: FormData): Promise<string> {
-  const file = formData.get('fileToUpload') as File | null;
+export async function uploadFileAction(clientFormData: FormData): Promise<string> {
+  const file = clientFormData.get('fileToUpload') as File | null;
   
   if (!file) {
       throw new Error('No file provided.');
   }
 
-  const serverFormData = new FormData();
-  serverFormData.append('reqtype', 'fileupload');
-  // Use the user-provided userhash
-  serverFormData.append('userhash', 'b1b84d63308d9f8700daf74dc');
-  serverFormData.append('fileToUpload', file);
+  const fileBuffer = Buffer.from(await file.arrayBuffer());
+
+  const form = new FormData();
+  form.append('reqtype', 'fileupload');
+  form.append('userhash', 'b1b84d63308d9f8700daf74dc');
+  form.append('fileToUpload', fileBuffer, file.name);
 
   try {
     const response = await fetch('https://catbox.moe/user/api.php', {
       method: 'POST',
-      body: serverFormData,
+      body: form as any, // Cast to any to satisfy fetch typing with form-data
+      headers: form.getHeaders(),
     });
 
     if (!response.ok) {
       const errorText = await response.text();
-      throw new Error(`Catbox API Error: ${response.status} ${response.statusText} - ${errorText}`);
+      console.error(`Catbox API Error Response: ${errorText}`);
+      throw new Error(`Catbox API Error: ${response.status} ${response.statusText}`);
     }
 
     const responseText = await response.text();
@@ -320,6 +326,7 @@ export async function uploadFileAction(formData: FormData): Promise<string> {
     if (responseText.startsWith('http')) {
       return responseText;
     } else {
+      console.error(`Catbox upload failed with response: ${responseText}`);
       throw new Error(`Catbox upload failed: ${responseText}`);
     }
   } catch (error) {
@@ -344,3 +351,4 @@ export async function sendMessageAction(senderId: string, recipientId: string, t
     await writeData(messagesFilePath, messages);
     return newMessage;
 }
+
