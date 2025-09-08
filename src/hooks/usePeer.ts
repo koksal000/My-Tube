@@ -15,6 +15,9 @@ export type ConnectionStatus = {
     peerId?: string;
 }
 
+const MAX_RETRY_ATTEMPTS = 5;
+const INITIAL_RETRY_DELAY = 1000; // 1 second
+
 export const usePeer = (userId: string | undefined) => {
     const [peerId, setPeerId] = useState<string | null>(null);
     const [messages, setMessages] = useState<MessagePayload[]>([]);
@@ -22,16 +25,21 @@ export const usePeer = (userId: string | undefined) => {
     
     const peerInstance = useRef<Peer | null>(null);
     const connectionInstance = useRef<DataConnection | null>(null);
+    const retryTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-    // Function to cleanly close existing connections
+    // Function to cleanly close existing connections and stop retries
     const closeConnection = () => {
+        if (retryTimeoutRef.current) {
+            clearTimeout(retryTimeoutRef.current);
+            retryTimeoutRef.current = null;
+        }
         if (connectionInstance.current) {
             connectionInstance.current.close();
         }
         connectionInstance.current = null;
         setConnectionStatus({status: 'disconnected'});
-        // Optionally clear messages of the past conversation
-        // setMessages([]); 
+        // Clear messages of the past conversation
+        setMessages([]); 
     };
 
     useEffect(() => {
@@ -80,16 +88,19 @@ export const usePeer = (userId: string | undefined) => {
         };
     }, [userId]);
 
-    const connect = (remotePeerId: string) => {
+    const connect = (remotePeerId: string, attempt = 1) => {
         if (!peerInstance.current || !userId) return;
         if (connectionInstance.current?.peer === remotePeerId && connectionStatus.status === 'connected') {
             console.log("Already connected to", remotePeerId);
             return;
         }
 
-        closeConnection(); // Ensure any old connection is closed before starting a new one
+        // Clean up previous connection attempt before starting a new one
+        if (attempt === 1) {
+             closeConnection(); 
+        }
         
-        console.log(`Attempting to connect to ${remotePeerId}...`);
+        console.log(`Attempting to connect to ${remotePeerId} (Attempt: ${attempt})...`);
         setConnectionStatus({status: 'connecting', peerId: remotePeerId});
         
         const conn = peerInstance.current.connect(remotePeerId, { reliable: true });
@@ -97,6 +108,10 @@ export const usePeer = (userId: string | undefined) => {
 
         conn.on('open', () => {
             console.log('Connection established to', remotePeerId);
+            if (retryTimeoutRef.current) {
+                clearTimeout(retryTimeoutRef.current);
+                retryTimeoutRef.current = null;
+            }
             setConnectionStatus({status: 'connected', peerId: remotePeerId});
         });
 
@@ -111,8 +126,16 @@ export const usePeer = (userId: string | undefined) => {
 
         conn.on('error', (err) => {
             console.error(`Connection error with ${remotePeerId}:`, err);
-            setConnectionStatus({status: 'error', peerId: remotePeerId});
-            closeConnection();
+            connectionInstance.current = null; // Clear failed connection
+
+            if (attempt < MAX_RETRY_ATTEMPTS) {
+                const delay = INITIAL_RETRY_DELAY * Math.pow(2, attempt - 1);
+                console.log(`Retrying connection in ${delay}ms...`);
+                retryTimeoutRef.current = setTimeout(() => connect(remotePeerId, attempt + 1), delay);
+            } else {
+                console.error(`Failed to connect to ${remotePeerId} after ${MAX_RETRY_ATTEMPTS} attempts.`);
+                setConnectionStatus({status: 'error', peerId: remotePeerId});
+            }
         })
     };
 
