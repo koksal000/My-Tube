@@ -17,20 +17,13 @@ import { useToast } from "@/hooks/use-toast"
 import type { User } from "@/lib/types"
 import { Textarea } from "./ui/textarea"
 import { Checkbox } from "./ui/checkbox"
-import { getUserByUsername, updateUser } from "@/lib/data"
-import { uploadFileAction } from "@/app/actions"
+import { getUserByUsername } from "@/lib/data"
+import { uploadFileAction, updateUserAction } from "@/app/actions"
 
 interface EditProfileDialogProps {
   user: User;
   onProfileUpdate: (updatedUser: User) => void;
 }
-
-async function uploadFile(file: File): Promise<string> {
-    const formData = new FormData();
-    formData.append('fileToUpload', file);
-    return await uploadFileAction(formData);
-}
-
 
 export function EditProfileDialog({ user, onProfileUpdate }: EditProfileDialogProps) {
     const { toast } = useToast();
@@ -73,14 +66,18 @@ export function EditProfileDialog({ user, onProfileUpdate }: EditProfileDialogPr
         try {
             let profilePictureUrl: string = user.profilePicture;
             if (newProfilePicture) {
-                profilePictureUrl = await uploadFile(newProfilePicture);
+                const profileFormData = new FormData();
+                profileFormData.append('fileToUpload', newProfilePicture);
+                profilePictureUrl = await uploadFileAction(profileFormData);
             }
 
             let bannerUrl: string | undefined = user.banner;
             if (removeBanner) {
                 bannerUrl = undefined;
             } else if (newBanner) {
-                bannerUrl = await uploadFile(newBanner);
+                const bannerFormData = new FormData();
+                bannerFormData.append('fileToUpload', newBanner);
+                bannerUrl = await uploadFileAction(bannerFormData);
             }
             
             const updatedUser: User = {
@@ -92,7 +89,7 @@ export function EditProfileDialog({ user, onProfileUpdate }: EditProfileDialogPr
                 banner: bannerUrl,
             };
 
-            await updateUser(updatedUser);
+            await updateUserAction(updatedUser);
 
             onProfileUpdate(updatedUser);
             

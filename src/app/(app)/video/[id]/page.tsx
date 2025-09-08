@@ -1,6 +1,6 @@
 "use client"
 
-import { getVideoById, getAllVideos, getCurrentUser, updateUser, addCommentToVideo, getPostById, getAllUsers } from "@/lib/data";
+import { getVideoById, getAllVideos, getCurrentUser, getAllUsers } from "@/lib/data";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { ThumbsUp, ThumbsDown, Share2, BellPlus, Send, Smile, Film, Heart } from "lucide-react";
@@ -12,6 +12,8 @@ import { useToast } from "@/hooks/use-toast";
 import { Textarea } from "@/components/ui/textarea";
 import Image from "next/image";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { getPostById } from "@/lib/data";
+import { addCommentToAction, likeVideoAction, updateUserAction } from "@/app/actions";
 
 function timeAgo(dateString: string) {
     if (!dateString) return "";
@@ -165,32 +167,24 @@ function VideoPageClient() {
   const handleLike = async () => {
     if (!currentUser || !content || !isVideo) return;
     const video = content as Video;
-
-    let updatedLikedVideos = [...(currentUser.likedVideos || [])];
-    
-    if (isLiked) {
-      updatedLikedVideos = updatedLikedVideos.filter(id => id !== video.id);
-      video.likes = (video.likes || 0) - 1;
-    } else {
-      updatedLikedVideos.push(video.id);
-      video.likes = (video.likes || 0) + 1;
-    }
+    const newIsLiked = !isLiked;
 
     try {
-      const updatedUser: User = { ...currentUser, likedVideos: updatedLikedVideos };
-      await updateUser(updatedUser);
-      // Also update the video in the database
-      const allVids = await getAllVideos();
-      const videoIndex = allVids.findIndex(v => v.id === video.id);
-      if(videoIndex !== -1) {
-        // Here we just update the video object directly. The write happens in the data layer.
-      }
-      
-      setCurrentUser(updatedUser);
-      setContent({...video});
-      setIsLiked(!isLiked);
+        // Optimistically update UI
+        setIsLiked(newIsLiked);
+        const optimisticLikes = video.likes + (newIsLiked ? 1 : -1);
+        setContent({...video, likes: optimisticLikes});
+        
+        await likeVideoAction(video.id, currentUser.id, newIsLiked);
+
+        // Optionally, re-fetch user to sync likedVideos list, though not strictly necessary for UI
+        const updatedUser = {...currentUser, likedVideos: newIsLiked ? [...currentUser.likedVideos, video.id] : currentUser.likedVideos.filter(id => id !== video.id)}
+        setCurrentUser(updatedUser)
       
     } catch (e) {
+      // Revert optimistic update on error
+      setIsLiked(!newIsLiked);
+      setContent(video);
       toast({ title: "Hata", description: "Beğenme işlemi sırasında bir sorun oluştu.", variant: "destructive" });
     }
   };
@@ -198,39 +192,46 @@ function VideoPageClient() {
   const handleSubscription = async () => {
      if (!currentUser || !author) return;
      
-     let updatedCurrentUserSubscriptions = [...(currentUser.subscriptions || [])];
-     
      const allDbUsers = await getAllUsers();
      const channelUserFromDb = allDbUsers.find(u => u.id === author.id);
-
      if(!channelUserFromDb) return;
 
-     let updatedChannelUser = {...channelUserFromDb};
+     const newIsSubscribed = !isSubscribed;
+     let updatedCurrentUserSubscriptions = [...(currentUser.subscriptions || [])];
+     let updatedChannelUserSubscribers = channelUserFromDb.subscribers || 0;
 
-
-     if (isSubscribed) {
-        updatedCurrentUserSubscriptions = updatedCurrentUserSubscriptions.filter(id => id !== author.id);
-        updatedChannelUser.subscribers = (updatedChannelUser.subscribers || 0) - 1;
-     } else {
+     if (newIsSubscribed) {
         updatedCurrentUserSubscriptions.push(author.id);
-        updatedChannelUser.subscribers = (updatedChannelUser.subscribers || 0) + 1;
+        updatedChannelUserSubscribers++;
+     } else {
+        updatedCurrentUserSubscriptions = updatedCurrentUserSubscriptions.filter(id => id !== author.id);
+        updatedChannelUserSubscribers--;
      }
     
      const updatedCurrentUser: User = {...currentUser, subscriptions: updatedCurrentUserSubscriptions};
+     const updatedChannelUser: User = {...channelUserFromDb, subscribers: updatedChannelUserSubscribers};
      
-     await updateUser(updatedCurrentUser);
-     await updateUser(updatedChannelUser);
-
+     // Optimistic UI update
      setCurrentUser(updatedCurrentUser);
      setContent({...content, author: updatedChannelUser} as Video | Post);
-     setIsSubscribed(!isSubscribed);
+     setIsSubscribed(newIsSubscribed);
+
+     try {
+        await updateUserAction(updatedCurrentUser);
+        await updateUserAction(updatedChannelUser);
      
-     toast({
-        title: isSubscribed ? "Abonelikten Çıkıldı" : "Abone Olundu!",
-        description: isSubscribed ? `${author.displayName || author.username} kanalından aboneliğinizi kaldırdınız.` : `${author.displayName || author.username} kanalına başarıyla abone oldunuz.`,
-      });
-      
-      router.refresh();
+        toast({
+            title: newIsSubscribed ? "Abone Olundu!" : "Abonelikten Çıkıldı",
+            description: newIsSubscribed ? `${author.displayName || author.username} kanalına başarıyla abone oldunuz.` : `${author.displayName || author.username} kanalından aboneliğinizi kaldırdınız.`,
+        });
+        
+        router.refresh();
+     } catch (error) {
+         // Revert UI on error
+        toast({ title: "Hata", description: "Abonelik işlemi sırasında bir hata oluştu.", variant: "destructive" });
+        setIsSubscribed(!newIsSubscribed);
+        // Revert other state changes if needed
+     }
   };
 
   const handleAddComment = async (text: string) => {
@@ -244,20 +245,22 @@ function VideoPageClient() {
       likes: 0,
     };
     
+    // Optimistic UI update
+    const hydratedComment: Comment = { ...newCommentOmitAuthor, author: currentUser, replies: [] };
+    const newContent = {...content, comments: [hydratedComment, ...(content.comments || [])] } as Video | Post
+    setContent(newContent);
+    setCommentText("");
+    setShowGiphy(false);
+    
     try {
-        if(isVideo) {
-            await addCommentToVideo(content.id, newCommentOmitAuthor);
-        }
+        const contentTypeForAction = isVideo ? 'video' : 'post';
+        await addCommentToAction(content.id, contentTypeForAction, newCommentOmitAuthor);
         
-        const hydratedComment: Comment = { ...newCommentOmitAuthor, author: currentUser, replies: [] };
-        const newContent = {...content, comments: [hydratedComment, ...(content.comments || [])] } as Video | Post
-        setContent(newContent);
-        setCommentText("");
-        setShowGiphy(false);
-
         toast({ title: "Yorum Eklendi", description: "Yorumunuz başarıyla gönderildi." });
 
     } catch(e) {
+        // Revert UI on error
+        setContent(content); // Revert to original content state
         toast({ title: "Hata", description: "Yorum eklenirken bir sorun oluştu.", variant: "destructive" });
     }
   };

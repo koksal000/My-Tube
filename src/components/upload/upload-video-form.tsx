@@ -8,14 +8,9 @@ import { Textarea } from "@/components/ui/textarea"
 import { useToast } from "@/hooks/use-toast"
 import type { Video } from "@/lib/types"
 import React from "react"
-import { addVideo, getCurrentUser } from "@/lib/data"
-import { uploadFileAction } from "@/app/actions"
+import { getCurrentUser } from "@/lib/data"
+import { uploadFileAction, addVideoAction } from "@/app/actions"
 
-async function uploadFile(file: File): Promise<string> {
-    const formData = new FormData();
-    formData.append('fileToUpload', file);
-    return await uploadFileAction(formData);
-}
 
 export function UploadVideoForm() {
   const router = useRouter()
@@ -49,9 +44,15 @@ export function UploadVideoForm() {
     try {
       toast({ title: "Yükleme Başladı", description: "Dosyalarınız yükleniyor, bu işlem biraz zaman alabilir..." });
       
+      const thumbnailFormData = new FormData();
+      thumbnailFormData.append('fileToUpload', thumbnailFile);
+      
+      const videoFormData = new FormData();
+      videoFormData.append('fileToUpload', videoFile);
+
       const [thumbnailUrl, videoUrl] = await Promise.all([
-        uploadFile(thumbnailFile),
-        uploadFile(videoFile)
+        uploadFileAction(thumbnailFormData),
+        uploadFileAction(videoFormData)
       ]);
       
       const newVideo: Omit<Video, 'author'> = {
@@ -69,7 +70,7 @@ export function UploadVideoForm() {
           comments: [],
       };
 
-      await addVideo(newVideo);
+      await addVideoAction(newVideo);
 
       toast({
           title: "Yükleme Başarılı!",

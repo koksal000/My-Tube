@@ -1,48 +1,11 @@
 import type { User, Video, Post, Comment } from './types';
-import initialUsers from '@/data/users.json';
-import initialVideos from '@/data/videos.json';
-import initialPosts from '@/data/posts.json';
-import fs from 'fs';
-import path from 'path';
+import users from '@/data/users.json';
+import videos from '@/data/videos.json';
+import posts from '@/data/posts.json';
 
-// --- Data Persistence Layer ---
-// In a typical web app, you'd use a database. As requested, for this project,
-// we are directly reading from and writing to JSON files in the `src/data` directory.
-// This makes the data persistent across server restarts within the development environment.
-
-const dataPath = path.join(process.cwd(), 'src/data');
-const usersFilePath = path.join(dataPath, 'users.json');
-const videosFilePath = path.join(dataPath, 'videos.json');
-const postsFilePath = path.join(dataPath, 'posts.json');
-
-// Helper function to read data from JSON files
-const readData = <T>(filePath: string): T => {
-    try {
-        const jsonData = fs.readFileSync(filePath, 'utf-8');
-        return JSON.parse(jsonData) as T;
-    } catch (error) {
-        console.error(`Error reading data from ${filePath}:`, error);
-        // If the file doesn't exist or is invalid, return an empty array
-        return [] as T;
-    }
-};
-
-// Helper function to write data to JSON files
-const writeData = (filePath: string, data: any): void => {
-    try {
-        fs.writeFileSync(filePath, JSON.stringify(data, null, 4), 'utf-8');
-    } catch (error) {
-        console.error(`Error writing data to ${filePath}:`, error);
-    }
-};
-
-// --- In-Memory Data Cache, loaded from files ---
-// This acts as a "live" version of our data. It's initialized from the files
-// and then updated in memory and written back to the files on every change.
-let users: User[] = readData<User[]>(usersFilePath);
-let videos: Omit<Video, 'author'>[] = readData<Omit<Video, 'author'>[]>(videosFilePath);
-let posts: Omit<Post, 'author'>[] = readData<Omit<Post, 'author'>[]>(postsFilePath);
-
+// This file now ONLY handles READING and HYDRATING data.
+// All WRITE operations have been moved to `src/app/actions.ts` as Server Actions.
+// This prevents server-only modules like 'fs' from being bundled with client-side code.
 
 const CURRENT_USER_KEY = 'myTube-currentUser-id';
 
@@ -78,30 +41,8 @@ async function hydrateData<T extends (Video | Post | Comment)>(item: T | Omit<T,
 
 // --- User Functions ---
 
-export async function addUser(user: User): Promise<void> {
-  users.push(user);
-  writeData(usersFilePath, users);
-}
-
-export async function updateUser(updatedUser: User): Promise<void> {
-    const userIndex = users.findIndex(u => u.id === updatedUser.id);
-    if (userIndex !== -1) {
-        const existingPassword = users[userIndex].password;
-        users[userIndex] = { ...updatedUser };
-        if (!users[userIndex].password && existingPassword) {
-            users[userIndex].password = existingPassword;
-        }
-        writeData(usersFilePath, users);
-    }
-    
-    const currentId = typeof window !== 'undefined' ? localStorage.getItem(CURRENT_USER_KEY) : null;
-    if (currentId && currentId === updatedUser.id) {
-        setCurrentUser(updatedUser);
-    }
-}
-
-
 export async function getUserByUsername(username: string): Promise<User | undefined> {
+    // This now reads from the imported JSON data.
     return users.find(u => u.username === username);
 }
 
@@ -133,10 +74,6 @@ export async function getVideoByAuthor(authorId: string): Promise<Video[]> {
     return Promise.all(authorVideos.map(v => hydrateData(v as Video)));
 }
 
-export async function addVideo(video: Omit<Video, 'author'>): Promise<void> {
-    videos.push(video);
-    writeData(videosFilePath, videos);
-}
 
 // --- Post Functions ---
 
@@ -153,23 +90,6 @@ export async function getPostById(id: string): Promise<Post | undefined> {
 export async function getPostsByAuthor(authorId: string): Promise<Post[]> {
     const authorPostsRaw = posts.filter(p => p.authorId === authorId);
     return Promise.all(authorPostsRaw.map(p => hydrateData(p as Post)));
-}
-
-export async function addPost(post: Omit<Post, 'author'|'comments'>): Promise<void> {
-    const postWithComments: Omit<Post, 'author'> = {...post, comments: []};
-    posts.push(postWithComments);
-    writeData(postsFilePath, posts);
-}
-
-
-// --- Comment Functions ---
-export async function addCommentToVideo(videoId: string, comment: Omit<Comment, 'author' | 'replies'>): Promise<void> {
-    const videoIndex = videos.findIndex(v => v.id === videoId);
-    if (videoIndex !== -1) {
-        if (!videos[videoIndex].comments) videos[videoIndex].comments = [];
-        videos[videoIndex].comments.unshift(comment as any);
-        writeData(videosFilePath, videos);
-    }
 }
 
 
@@ -202,6 +122,7 @@ export async function getCurrentUser(): Promise<User | null> {
         try {
             const userId = localStorage.getItem(CURRENT_USER_KEY);
             if (userId) {
+                // Read from the imported users array
                 const userFromCentralStore = users.find(u => u.id === userId);
                 if (userFromCentralStore) {
                     currentLoggedInUser = userFromCentralStore;

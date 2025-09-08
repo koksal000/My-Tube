@@ -10,9 +10,9 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { useToast } from "@/hooks/use-toast"
 import type { User } from "@/lib/types"
 import React from "react"
-import { addUser, getUserByUsername, setCurrentUser } from "@/lib/data"
+import { getUserByUsername, setCurrentUser } from "@/lib/data"
 import { Textarea } from "../ui/textarea"
-import { uploadFileAction } from "@/app/actions"
+import { uploadFileAction, addUserAction } from "@/app/actions"
 
 const MyTubeLogo = () => (
     <div className="flex items-center justify-center space-x-2 text-primary font-bold text-2xl mb-4">
@@ -23,11 +23,6 @@ const MyTubeLogo = () => (
     </div>
 )
 
-async function uploadFile(file: File): Promise<string> {
-    const formData = new FormData();
-    formData.append('fileToUpload', file);
-    return await uploadFileAction(formData);
-}
 
 export function RegisterForm() {
   const router = useRouter()
@@ -63,12 +58,16 @@ export function RegisterForm() {
     try {
         let profilePictureUrl = "https://files.catbox.moe/553pqe.jpg"; // Default
         if (profilePictureFile && profilePictureFile.size > 0) {
-          profilePictureUrl = await uploadFile(profilePictureFile);
+          const profileFormData = new FormData();
+          profileFormData.append('fileToUpload', profilePictureFile);
+          profilePictureUrl = await uploadFileAction(profileFormData);
         }
         
         let bannerUrl: string | undefined = undefined;
         if (addBanner && bannerFile && bannerFile.size > 0) {
-            bannerUrl = await uploadFile(bannerFile);
+            const bannerFormData = new FormData();
+            bannerFormData.append('fileToUpload', bannerFile);
+            bannerUrl = await uploadFileAction(bannerFormData);
         }
 
         const newUser: User = {
@@ -85,7 +84,7 @@ export function RegisterForm() {
           viewedVideos: [],
         };
         
-        await addUser(newUser);
+        await addUserAction(newUser);
         setCurrentUser(newUser);
         
         toast({

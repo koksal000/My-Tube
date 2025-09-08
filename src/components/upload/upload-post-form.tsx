@@ -8,14 +8,9 @@ import { Textarea } from "@/components/ui/textarea"
 import { useToast } from "@/hooks/use-toast"
 import type { Post } from "@/lib/types"
 import React from "react"
-import { addPost, getCurrentUser } from "@/lib/data"
-import { uploadFileAction } from "@/app/actions"
+import { getCurrentUser } from "@/lib/data"
+import { uploadFileAction, addPostAction } from "@/app/actions"
 
-async function uploadFile(file: File): Promise<string> {
-    const formData = new FormData();
-    formData.append('fileToUpload', file);
-    return await uploadFileAction(formData);
-}
 
 export function UploadPostForm() {
   const router = useRouter()
@@ -46,7 +41,9 @@ export function UploadPostForm() {
     }
     
     try {
-        const imageUrl = await uploadFile(imageFile);
+        const uploadFormData = new FormData();
+        uploadFormData.append('fileToUpload', imageFile);
+        const imageUrl = await uploadFileAction(uploadFormData);
         
         const newPost: Omit<Post, 'author' | 'comments'> = {
             id: `post-${Date.now()}`,
@@ -57,7 +54,7 @@ export function UploadPostForm() {
             createdAt: new Date().toISOString(),
         };
 
-        await addPost(newPost);
+        await addPostAction(newPost);
 
         toast({
             title: "Gönderi Oluşturuldu!",

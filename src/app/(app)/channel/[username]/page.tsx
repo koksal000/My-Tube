@@ -1,6 +1,6 @@
 "use client"
 
-import { getVideoByAuthor, getPostsByAuthor, updateUser, getCurrentUser, getUserByUsername } from "@/lib/data";
+import { getVideoByAuthor, getPostsByAuthor, getCurrentUser, getUserByUsername } from "@/lib/data";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -14,6 +14,7 @@ import { EditProfileDialog } from "@/components/profile-edit-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { MessageSquare } from "lucide-react";
 import Link from "next/link";
+import { updateUserAction } from "@/app/actions";
 
 export default function ChannelPage() {
   const router = useRouter();
@@ -76,36 +77,42 @@ export default function ChannelPage() {
     let updatedSubscriptions = [...(currentUser.subscriptions || [])];
     let updatedSubscribers = channelUser.subscribers || 0;
 
-    if (isSubscribed) {
-      // Unsubscribe
-      updatedSubscriptions = updatedSubscriptions.filter(id => id !== channelUser.id);
-      updatedSubscribers--;
-    } else {
+    const newIsSubscribed = !isSubscribed;
+
+    if (newIsSubscribed) {
       // Subscribe
       updatedSubscriptions.push(channelUser.id);
       updatedSubscribers++;
+    } else {
+      // Unsubscribe
+      updatedSubscriptions = updatedSubscriptions.filter(id => id !== channelUser.id);
+      updatedSubscribers--;
     }
 
     const updatedCurrentUser: User = { ...currentUser, subscriptions: updatedSubscriptions };
     const updatedChannelUser: User = { ...channelUser, subscribers: updatedSubscribers };
 
+    // Optimistic UI Update
+    setCurrentUser(updatedCurrentUser);
+    setChannelUser(updatedChannelUser);
+    setIsSubscribed(newIsSubscribed);
+
     try {
-      await updateUser(updatedCurrentUser);
-      await updateUser(updatedChannelUser);
-      
-      setCurrentUser(updatedCurrentUser);
-      setChannelUser(updatedChannelUser);
-      setIsSubscribed(!isSubscribed);
+      await updateUserAction(updatedCurrentUser);
+      await updateUserAction(updatedChannelUser);
       
        toast({
-        title: isSubscribed ? "Abonelikten Çıkıldı" : "Abone Olundu!",
-        description: isSubscribed ? `${channelUser.displayName} kanalından aboneliğinizi kaldırdınız.` : `${channelUser.displayName} kanalına başarıyla abone oldunuz.`,
+        title: newIsSubscribed ? "Abone Olundu!" : "Abonelikten Çıkıldı",
+        description: newIsSubscribed ? `${channelUser.displayName} kanalına başarıyla abone oldunuz.` : `${channelUser.displayName} kanalından aboneliğinizi kaldırdınız.`,
       });
 
       // Force header/sidebar refresh by navigating, even to the same page
       router.refresh();
 
     } catch (error) {
+       // Revert UI on error
+       setIsSubscribed(!newIsSubscribed);
+       // Revert other state changes if needed
        toast({ title: "Hata", description: "İşlem sırasında bir hata oluştu.", variant: "destructive" });
     }
   };
