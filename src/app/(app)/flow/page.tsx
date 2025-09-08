@@ -9,7 +9,8 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Heart, MessageCircle } from 'lucide-react';
-import { getVideosAction, getPostsAction, getCurrentUser, likeVideoAction } from '@/app/actions';
+import { getVideosAction, getPostsAction, likeVideoAction } from '@/app/actions';
+import { getCurrentUser } from '@/lib/data';
 import { useToast } from '@/hooks/use-toast';
 import { CommentSheet } from '@/components/comment-sheet';
 
