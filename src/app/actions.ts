@@ -265,7 +265,8 @@ export async function uploadFileAction(formData: FormData): Promise<string> {
 
   const serverFormData = new FormData();
   serverFormData.append('reqtype', 'fileupload');
-  serverFormData.append('userhash', '2a2859051bb86dfe906d0bf6f');
+  // Use the user-provided userhash
+  serverFormData.append('userhash', 'b1b84d63308d9f8700daf74dc');
   serverFormData.append('fileToUpload', file);
 
   try {
