@@ -1,3 +1,4 @@
+
 "use client"
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -10,8 +11,8 @@ import type { User, Video, Comment, Post } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import { Textarea } from "@/components/ui/textarea";
 import Image from "next/image";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { addCommentToAction, likeContentAction, subscribeAction, getVideosAction, getVideoAction, getPostAction } from "@/app/actions";
+import { Card, CardContent } from "@/components/ui/card";
+import { addCommentToAction, likeContentAction, subscribeAction, getVideosAction, getVideoAction, getPostAction, viewContentAction } from "@/app/actions";
 import { getCurrentUser } from "@/lib/data";
 
 function timeAgo(dateString: string) {
@@ -146,6 +147,12 @@ function VideoPageClient() {
 
         if (contentData) {
             setContent(contentData);
+
+            if(isVideo && loggedInUser) {
+                // Increment view count
+                viewContentAction(contentData.id, 'video', loggedInUser.id);
+            }
+
             if (contentData.author) {
               setIsSubscribed((loggedInUser.subscriptions || []).includes(contentData.author.id));
             }
@@ -158,11 +165,14 @@ function VideoPageClient() {
             } else if (isPost) {
                  setIsLiked((loggedInUser.likedPosts || []).includes(contentData.id));
             }
+        } else {
+            toast({ title: "İçerik Bulunamadı", variant: "destructive" });
+            router.push("/home");
         }
         setLoading(false);
     }
     fetchContentData();
-  }, [params.id, router, contentType]);
+  }, [params.id, router, contentType, toast]);
 
   const handleLike = async () => {
     if (!currentUser || !content) return;
@@ -171,56 +181,70 @@ function VideoPageClient() {
     const contentTypeForAction = isVideo ? 'video' : 'post';
     const newIsLiked = !isLiked;
 
-    const originalContent = { ...content };
-    const originalUser = { ...currentUser };
-
+    // Optimistic UI Update
+    setIsLiked(newIsLiked);
+    setContent(prev => prev ? { ...prev, likes: prev.likes + (newIsLiked ? 1 : -1) } : null);
+    
     try {
-        setIsLiked(newIsLiked);
-        const optimisticLikes = content.likes + (newIsLiked ? 1 : -1);
-        setContent({...content, likes: optimisticLikes });
-        
-        const updatedUser = { ...currentUser };
-        if(contentTypeForAction === 'video') {
-            updatedUser.likedVideos = newIsLiked ? [...(updatedUser.likedVideos || []), contentId] : (updatedUser.likedVideos || []).filter(id => id !== contentId);
-        } else {
-            updatedUser.likedPosts = newIsLiked ? [...(updatedUser.likedPosts || []), contentId] : (updatedUser.likedPosts || []).filter(id => id !== contentId);
-        }
-        setCurrentUser(updatedUser);
-
-        await likeContentAction(contentId, currentUser.id, contentTypeForAction);
+      await likeContentAction(contentId, currentUser.id, contentTypeForAction);
       
+      // Refetch user data to ensure state is in sync
+      const updatedUser = await getCurrentUser();
+      setCurrentUser(updatedUser);
+
     } catch (e) {
+      // Revert UI on failure
       setIsLiked(!newIsLiked);
-      setContent(originalContent);
-      setCurrentUser(originalUser);
+      setContent(prev => prev ? { ...prev, likes: prev.likes - (newIsLiked ? 1 : -1) } : null);
       toast({ title: "Hata", description: "Beğenme işlemi sırasında bir sorun oluştu.", variant: "destructive" });
     }
   };
 
   const handleSubscription = async () => {
-     if (!currentUser || !author) return;
+     if (!currentUser || !author || isIntroVideo) return;
      
      const newIsSubscribed = !isSubscribed;
      
+     // Optimistic UI Update
      setIsSubscribed(newIsSubscribed);
      if (author) {
-       const optimisticSubs = author.subscribers + (newIsSubscribed ? 1 : -1);
-       setContent({...content, author: {...author, subscribers: optimisticSubs}} as Video | Post)
+        setContent(prev => {
+            if(!prev || !prev.author) return prev;
+            return {
+                ...prev,
+                author: {
+                    ...prev.author,
+                    subscribers: prev.author.subscribers + (newIsSubscribed ? 1 : -1)
+                }
+            }
+        });
      }
 
      try {
         await subscribeAction(currentUser.id, author.id);
-        const updatedUser = {...currentUser, subscriptions: newIsSubscribed ? [...(currentUser.subscriptions || []), author.id] : (currentUser.subscriptions || []).filter(id => id !== author.id)}
+        const updatedUser = await getCurrentUser();
         setCurrentUser(updatedUser);
 
         toast({
             title: newIsSubscribed ? "Abone Olundu!" : "Abonelikten Çıkıldı",
-            description: newIsSubScribed ? `${author.displayName || author.username} kanalına başarıyla abone oldunuz.` : `${author.displayName || author.username} kanalından aboneliğinizi kaldırdınız.`,
+            description: newIsSubscribed ? `${author.displayName || author.username} kanalına başarıyla abone oldunuz.` : `${author.displayName || author.username} kanalından aboneliğinizi kaldırdınız.`,
         });
         
-        router.refresh();
      } catch (error) {
+        // Revert UI
         setIsSubscribed(!newIsSubscribed);
+         if (author) {
+            setContent(prev => {
+                if(!prev || !prev.author) return prev;
+                return {
+                    ...prev,
+                    author: {
+                        ...prev.author,
+                        subscribers: prev.author.subscribers - (newIsSubscribed ? 1 : -1)
+                    }
+                }
+            });
+         }
         toast({ title: "Hata", description: "Abonelik işlemi sırasında bir hata oluştu.", variant: "destructive" });
      }
   };

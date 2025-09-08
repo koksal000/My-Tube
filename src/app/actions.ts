@@ -224,61 +224,72 @@ export async function addCommentToAction(contentId: string, contentType: 'video'
 
 export async function likeContentAction(contentId: string, userId: string, contentType: 'video' | 'post'): Promise<void> {
     const users = await readData<User>(usersFilePath);
-    const user = users.find(u => u.id === userId);
-    if (!user) throw new Error("User not found");
+    const userIndex = users.findIndex(u => u.id === userId);
+    if (userIndex === -1) throw new Error("User not found");
+
+    const user = users[userIndex];
+    let contentList, contentPath;
 
     if (contentType === 'video') {
-        const videos = await readData<Video>(videosFilePath);
-        const content = videos.find(v => v.id === contentId);
-        if (!content) throw new Error("Video not found");
-
+        contentList = await readData<Video>(videosFilePath);
+        contentPath = videosFilePath;
         const isLiking = !(user.likedVideos || []).includes(contentId);
         if (isLiking) {
-            content.likes = (content.likes || 0) + 1;
             user.likedVideos = [...(user.likedVideos || []), contentId];
         } else {
-            content.likes = Math.max(0, (content.likes || 0) - 1);
             user.likedVideos = (user.likedVideos || []).filter(id => id !== contentId);
         }
-        await writeData(videosFilePath, videos);
-
     } else { // 'post'
-        const posts = await readData<Post>(postsFilePath);
-        const content = posts.find(p => p.id === contentId);
-        if (!content) throw new Error("Post not found");
-
+        contentList = await readData<Post>(postsFilePath);
+        contentPath = postsFilePath;
         const isLiking = !(user.likedPosts || []).includes(contentId);
         if (isLiking) {
-            content.likes = (content.likes || 0) + 1;
             user.likedPosts = [...(user.likedPosts || []), contentId];
         } else {
-            content.likes = Math.max(0, (content.likes || 0) - 1);
             user.likedPosts = (user.likedPosts || []).filter(id => id !== contentId);
         }
-        await writeData(postsFilePath, posts);
+    }
+
+    const contentIndex = contentList.findIndex(c => c.id === contentId);
+    if (contentIndex === -1) throw new Error("Content not found");
+    
+    const isLikingContent = (contentType === 'video' && (user.likedVideos || []).includes(contentId)) || 
+                           (contentType === 'post' && (user.likedPosts || []).includes(contentId));
+                           
+    if (isLikingContent) {
+        contentList[contentIndex].likes = (contentList[contentIndex].likes || 0) + 1;
+    } else {
+        contentList[contentIndex].likes = Math.max(0, (contentList[contentIndex].likes || 0) - 1);
     }
     
-    await writeData(usersFilePath, users);
+    users[userIndex] = user;
+
+    await Promise.all([
+        writeData(contentPath, contentList),
+        writeData(usersFilePath, users)
+    ]);
 }
 
 export async function subscribeAction(currentUserId: string, channelUserId: string): Promise<void> {
     const users = await readData<User>(usersFilePath);
     
-    const currentUser = users.find(u => u.id === currentUserId);
-    const channelUser = users.find(u => u.id === channelUserId);
+    const currentUserIndex = users.findIndex(u => u.id === currentUserId);
+    const channelUserIndex = users.findIndex(u => u.id === channelUserId);
 
-    if (currentUser && channelUser) {
-        const isSubscribing = !(currentUser.subscriptions || []).includes(channelUserId);
+    if (currentUserIndex !== -1 && channelUserIndex !== -1) {
+        const isSubscribing = !(users[currentUserIndex].subscriptions || []).includes(channelUserId);
 
         if (isSubscribing) {
-            currentUser.subscriptions = [...(currentUser.subscriptions || []), channelUserId];
-            channelUser.subscribers = (channelUser.subscribers || 0) + 1;
+            users[currentUserIndex].subscriptions = [...(users[currentUserIndex].subscriptions || []), channelUserId];
+            users[channelUserIndex].subscribers = (users[channelUserIndex].subscribers || 0) + 1;
         } else {
-            currentUser.subscriptions = (currentUser.subscriptions || []).filter(id => id !== channelUserId);
-            channelUser.subscribers = Math.max(0, (channelUser.subscribers || 0) - 1);
+            users[currentUserIndex].subscriptions = (users[currentUserIndex].subscriptions || []).filter(id => id !== channelUserId);
+            users[channelUserIndex].subscribers = Math.max(0, (users[channelUserIndex].subscribers || 0) - 1);
         }
         
         await writeData(usersFilePath, users);
+    } else {
+      throw new Error("User or channel not found");
     }
 }
 
@@ -312,7 +323,6 @@ export async function uploadFileAction(clientFormData: FormData): Promise<string
     const response = await fetch('https://catbox.moe/user/api.php', {
       method: 'POST',
       body: form as any, // Cast to any to satisfy fetch typing with form-data
-      headers: form.getHeaders(),
     });
 
     if (!response.ok) {
@@ -352,3 +362,41 @@ export async function sendMessageAction(senderId: string, recipientId: string, t
     return newMessage;
 }
 
+export async function viewContentAction(contentId: string, contentType: 'video' | 'post', userId: string): Promise<void> {
+    const users = await readData<User>(usersFilePath);
+    const userIndex = users.findIndex(u => u.id === userId);
+    if (userIndex === -1) return; // Don't throw error, just exit if user not found for some reason
+
+    const user = users[userIndex];
+    let contentList, contentPath;
+
+    if (contentType === 'video') {
+        // Prevent re-counting view for the same session
+        if ((user.viewedVideos || []).includes(contentId)) return;
+        
+        contentList = await readData<Video>(videosFilePath);
+        contentPath = videosFilePath;
+        user.viewedVideos = [...(user.viewedVideos || []), contentId];
+
+    } else { // 'post'
+        // Posts don't have views, but we can track them if needed in the future.
+        // For now, we just add to user's history if they "view" a post page.
+        // Let's assume a post view isn't a metric we show, so we just track for user history.
+        return; 
+    }
+
+    const contentIndex = contentList.findIndex(c => c.id === contentId);
+    if (contentIndex === -1) return; // Exit if content is not found
+
+    // Increment view count
+    if ('views' in contentList[contentIndex]) {
+        (contentList[contentIndex] as Video).views = ((contentList[contentIndex] as Video).views || 0) + 1;
+    }
+    
+    users[userIndex] = user;
+
+    await Promise.all([
+        writeData(contentPath, contentList),
+        writeData(usersFilePath, users)
+    ]);
+}

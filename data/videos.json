@@ -25,6 +25,13 @@
         "createdAt": "2025-09-08T13:39:44.190Z",
         "comments": [
             {
+                "id": "comment-1757339787927",
+                "authorId": "user-1757337355751",
+                "text": "file:///C:/Users/K%C3%B6ksal/Downloads/MicrosoftWindows.Client.CBS_cw5n1h2txyewy!InputApp/PoutKissGIF.gif",
+                "createdAt": "2025-09-08T13:56:27.927Z",
+                "likes": 0
+            },
+            {
                 "id": "comment-1757338810738",
                 "authorId": "user-1757337251654",
                 "text": "https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExaG9tbnFjN2YwZWU5a3hpaHQyZzlha3h1aDBlb3FqNmt1ajQzNXplZCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/8Odq0zzKM596g/giphy.gif",

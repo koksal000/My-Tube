@@ -1,4 +1,3 @@
-
 [
     {
         "id": "user1",
@@ -20,11 +19,9 @@
         "password": "koksal2011",
         "about": "Merhaba My-Tube.",
         "profilePicture": "https://files.catbox.moe/1aukcg.webp",
-        "subscribers": 0,
+        "subscribers": 1,
         "subscriptions": [],
-        "likedVideos": [
-            "video1757338784190"
-        ],
+        "likedVideos": [],
         "viewedVideos": [],
         "likedPosts": []
     },
@@ -36,8 +33,12 @@
         "about": "rdtfhgj",
         "profilePicture": "https://files.catbox.moe/wu168c.jpg",
         "subscribers": 0,
-        "subscriptions": [],
-        "likedVideos": [],
+        "subscriptions": [
+            "user-1757337251654"
+        ],
+        "likedVideos": [
+            "video1757338784190"
+        ],
         "viewedVideos": [],
         "likedPosts": []
     }
