@@ -89,7 +89,10 @@ export const usePeer = (userId: string | undefined) => {
     }, [userId]);
 
     const connect = (remotePeerId: string, attempt = 1) => {
-        if (!peerInstance.current || !userId) return;
+        if (!peerInstance.current || !userId || !remotePeerId) {
+            console.error("Cannot connect: PeerJS not initialized, missing user ID, or missing remote peer ID.");
+            return;
+        }
         if (connectionInstance.current?.peer === remotePeerId && connectionStatus.status === 'connected') {
             console.log("Already connected to", remotePeerId);
             return;

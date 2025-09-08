@@ -78,8 +78,8 @@ function MessagesPageClient() {
 
     const handleSelectConversation = (user: User) => {
         setSelectedUser(user);
-        if (user.id !== connectionStatus.peerId) {
-             connect(user.id);
+        if (user.id) {
+           connect(user.id);
         }
     }
     
@@ -109,7 +109,7 @@ function MessagesPageClient() {
                                 <div 
                                     key={convoUser.id} 
                                     onClick={() => handleSelectConversation(convoUser)}
-                                    className={`flex items-center gap-3 p-3 cursor-pointer border-b transition-colors ${selectedUser?.username === convoUser.username ? 'bg-secondary' : 'hover:bg-secondary/50'}`}>
+                                    className={`flex items-center gap-3 p-3 cursor-pointer border-b transition-colors ${selectedUser?.id === convoUser.id ? 'bg-secondary' : 'hover:bg-secondary/50'}`}>
                                     <Avatar className="h-10 w-10">
                                         <AvatarImage src={convoUser.profilePicture} alt={convoUser.displayName || convoUser.username} data-ai-hint="person face" />
                                         <AvatarFallback>{(convoUser.displayName || convoUser.username || 'U').charAt(0)}</AvatarFallback>
