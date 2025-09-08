@@ -13,6 +13,7 @@ import { useToast } from "@/hooks/use-toast";
 import { usePeer } from "@/hooks/usePeer";
 import type { MessagePayload, ConnectionStatus } from "@/hooks/usePeer";
 import { getUsersAction } from "@/app/actions";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const ChatMessage = ({ msg, isOwnMessage, author }: { msg: MessagePayload; isOwnMessage: boolean, author?: User }) => (
   <div className={`flex items-end gap-2 ${isOwnMessage ? 'justify-end' : ''}`}>
@@ -30,41 +31,36 @@ const ChatMessage = ({ msg, isOwnMessage, author }: { msg: MessagePayload; isOwn
 );
 
 
-function MessagesPageClient() {
+function MessagesChat({ currentUser }: { currentUser: User }) {
     const searchParams = useSearchParams();
     const routerUser = searchParams.get('to');
     const { toast } = useToast();
     
-    const [currentUser, setCurrentUser] = useState<User | null>(null);
     const [selectedUser, setSelectedUser] = useState<User | null>(null);
     const [conversations, setConversations] = useState<User[]>([]);
     const [messageInput, setMessageInput] = useState("");
     
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
-    // Defer peer initialization until we have a user
-    const peerData = usePeer(currentUser?.id);
+    // usePeer is now guaranteed to receive a valid userId.
+    const peerData = usePeer(currentUser.id);
 
     useEffect(() => {
-        const init = async () => {
-            const user = await getCurrentUser();
-            if (!user) return;
-            setCurrentUser(user);
-            
+        const initConversations = async () => {
             const allUsers = await getUsersAction();
-            const conversationUsers = allUsers.filter(u => u.id !== user.id && u.username !== 'admin');
+            const conversationUsers = allUsers.filter(u => u.id !== currentUser.id && u.username !== 'admin');
             setConversations(conversationUsers);
             
-            // If peer is initialized and there's a user in the URL, connect
-            if (routerUser && peerData.connect) {
+            // If there's a user in the URL, select them for chat
+            if (routerUser) {
                 const targetUser = allUsers.find(u => u.username === routerUser);
                 if (targetUser) {
                    handleSelectConversation(targetUser);
                 }
             }
         }
-        init();
-    }, [routerUser, peerData.connect]); // Depend on connect to re-run when it's available
+        initConversations();
+    }, [routerUser, currentUser.id]);
 
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -179,11 +175,63 @@ function MessagesPageClient() {
     );
 }
 
+function MessagesPageLoader() {
+    const [currentUser, setCurrentUser] = useState<User | null>(null);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        const init = async () => {
+            const user = await getCurrentUser();
+            setCurrentUser(user);
+            setLoading(false);
+        }
+        init();
+    }, []);
+
+    if (loading) {
+        return (
+             <div className="grid h-[calc(100vh-10rem)] grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="md:col-span-1 flex flex-col">
+                    <Card className="flex-grow flex flex-col">
+                        <CardHeader>
+                            <Skeleton className="h-8 w-32" />
+                            <Skeleton className="h-8 w-full" />
+                        </CardHeader>
+                        <CardContent className="p-0 flex-grow overflow-y-auto space-y-1">
+                           {[...Array(5)].map((_, i) => (
+                             <div key={i} className="flex items-center gap-3 p-3 border-b">
+                                <Skeleton className="h-10 w-10 rounded-full" />
+                                <div className="flex-grow space-y-2">
+                                    <Skeleton className="h-4 w-24" />
+                                    <Skeleton className="h-3 w-32" />
+                                </div>
+                            </div>
+                           ))}
+                        </CardContent>
+                    </Card>
+                </div>
+                <div className="md:col-span-2 flex flex-col">
+                    <Card className="h-full flex flex-col items-center justify-center">
+                        <AlertCircle className="h-12 w-12 text-primary" />
+                        <p className="text-lg font-medium mt-4">Sohbetler yükleniyor...</p>
+                    </Card>
+                </div>
+             </div>
+        );
+    }
+    
+    if (!currentUser) {
+        // This can be a login prompt or a redirect in a real app
+        return <div className="text-center py-20">Sohbetleri görüntülemek için lütfen giriş yapın.</div>;
+    }
+
+    return <MessagesChat currentUser={currentUser} />;
+}
 
 export default function MessagesPage() {
     return (
         <Suspense fallback={<div className="text-center py-20">Sohbetler yükleniyor...</div>}>
-            <MessagesPageClient />
+            <MessagesPageLoader />
         </Suspense>
     )
 }
