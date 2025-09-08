@@ -3,9 +3,10 @@ import initialUsers from '@/data/users.json';
 import initialVideos from '@/data/videos.json';
 import initialPosts from '@/data/posts.json';
 
-// --- Data Simulation ---
+// --- Data Simulation as a Central Database ---
 // In a real app, this would be a database. For this prototype, we're using in-memory arrays
-// initialized from JSON files. This simulates a shared backend for all users.
+// initialized from JSON files. These act as our single source of truth for all users.
+// Any "write" operations modify these arrays in memory.
 let users: User[] = JSON.parse(JSON.stringify(initialUsers));
 let videos: Omit<Video, 'author'>[] = JSON.parse(JSON.stringify(initialVideos));
 let posts: Omit<Post, 'author'>[] = JSON.parse(JSON.stringify(initialPosts));
@@ -13,18 +14,18 @@ let posts: Omit<Post, 'author'>[] = JSON.parse(JSON.stringify(initialPosts));
 
 const CURRENT_USER_KEY = 'myTube-currentUser-id';
 
-// Helper to hydrate authors into video/post/comment objects
+// Helper to hydrate authors into video/post/comment objects from the central user array
 async function hydrateData<T extends (Video | Post | Comment)>(item: T | Omit<T, 'author'>): Promise<T> {
     if (!item) return item as T;
 
     const hydratedItem = { ...item } as T;
 
     if ('authorId' in hydratedItem && hydratedItem.authorId && !hydratedItem.author) {
-        const author = await getUserById(hydratedItem.authorId);
-        if (author) hydratedItem.author = author;
+        // Use the central `users` array instead of calling getUserById to avoid circular dependencies
+        const author = users.find(u => u.id === hydratedItem.authorId);
+        if (author) hydratedItem.author = { ...author }; // Return a copy to prevent mutation issues
     }
     
-    // Recursively hydrate comments and replies
     if ('comments' in hydratedItem && Array.isArray(hydratedItem.comments)) {
         hydratedItem.comments = await Promise.all(
             (hydratedItem.comments as (Comment | Omit<Comment, 'author'>)[])
@@ -46,17 +47,21 @@ async function hydrateData<T extends (Video | Post | Comment)>(item: T | Omit<T,
 // --- User Functions ---
 
 export async function addUser(user: User): Promise<void> {
-  // We don't store passwords in our main user object for this simulation
-  const { password, ...userToAdd } = user;
-  users.push(userToAdd);
+  // This now "persists" the user to our central in-memory array.
+  users.push(user);
 }
 
 export async function updateUser(updatedUser: User): Promise<void> {
-    const { password, ...userToUpdate } = updatedUser;
-    const userIndex = users.findIndex(u => u.id === userToUpdate.id);
+    const userIndex = users.findIndex(u => u.id === updatedUser.id);
     if (userIndex !== -1) {
-        users[userIndex] = { ...users[userIndex], ...userToUpdate };
+        // Persist password if it's not included in the update payload
+        const existingPassword = users[userIndex].password;
+        users[userIndex] = { ...updatedUser };
+        if (!users[userIndex].password && existingPassword) {
+            users[userIndex].password = existingPassword;
+        }
     }
+    // If the currently logged-in user is the one being updated, update the session as well.
     const currentId = typeof window !== 'undefined' ? localStorage.getItem(CURRENT_USER_KEY) : null;
     if (currentId && currentId === updatedUser.id) {
         setCurrentUser(updatedUser);
@@ -65,26 +70,20 @@ export async function updateUser(updatedUser: User): Promise<void> {
 
 
 export async function getUserByUsername(username: string): Promise<User | undefined> {
-    const user = users.find(u => u.username === username);
-    if (user) {
-        // Find the original user from the initial data to get the password for this prototype
-        const originalUser = (initialUsers as User[]).find(u => u.username === username);
-        if (originalUser && !user.password) {
-           return { ...user, password: originalUser.password };
-        }
-        return user;
-    }
-    return undefined;
+    // Finds the user from our central, "live" user array.
+    return users.find(u => u.username === username);
 }
 
 
 export async function getUserById(id: string): Promise<User | undefined> {
     if(!id) return undefined;
+    // Finds the user from our central, "live" user array.
     return users.find(u => u.id === id);
 }
 
 export async function getAllUsers(): Promise<User[]> {
-    return users;
+    // Returns all users from our central store.
+    return [...users];
 }
 
 
@@ -106,14 +105,14 @@ export async function getVideoByAuthor(authorId: string): Promise<Video[]> {
 }
 
 export async function addVideo(video: Omit<Video, 'author'>): Promise<void> {
+    // "Saves" the new video to the central video array.
     videos.push(video);
 }
 
 // --- Post Functions ---
 
 export async function getAllPosts(): Promise<Post[]> {
-    const allPosts = await Promise.all(posts.map(p => hydrateData(p as Post)));
-    return allPosts;
+    return Promise.all(posts.map(p => hydrateData(p as Post)));
 }
 
 export async function getPostById(id: string): Promise<Post | undefined> {
@@ -129,6 +128,7 @@ export async function getPostsByAuthor(authorId: string): Promise<Post[]> {
 
 export async function addPost(post: Omit<Post, 'author'|'comments'>): Promise<void> {
     const postWithComments: Omit<Post, 'author'> = {...post, comments: []};
+    // "Saves" the new post to the central post array.
     posts.push(postWithComments);
 }
 
@@ -147,6 +147,7 @@ export async function addCommentToVideo(videoId: string, comment: Omit<Comment, 
 
 let currentLoggedInUser: User | null = null;
 
+// This sets the user for the CURRENT session, both in memory and localStorage.
 export function setCurrentUser(user: User | null): void {
     currentLoggedInUser = user;
     if (typeof window !== 'undefined') {
@@ -162,17 +163,19 @@ export function setCurrentUser(user: User | null): void {
     }
 }
 
+// This retrieves the user for the current session, ensuring data is fresh from the central store.
 export async function getCurrentUser(): Promise<User | null> {
+    // Return from memory if already fetched in this session
     if (currentLoggedInUser) return currentLoggedInUser;
 
     if (typeof window !== 'undefined') {
         try {
             const userId = localStorage.getItem(CURRENT_USER_KEY);
             if (userId) {
-                const userFromDb = await getUserById(userId);
-                if (userFromDb) {
-                    const fullUser = await getUserByUsername(userFromDb.username)
-                    currentLoggedInUser = fullUser || userFromDb;
+                // IMPORTANT: Fetch the user from the central 'users' array, not a separate call.
+                const userFromCentralStore = users.find(u => u.id === userId);
+                if (userFromCentralStore) {
+                    currentLoggedInUser = userFromCentralStore;
                     return currentLoggedInUser;
                 }
             }
@@ -181,10 +184,18 @@ export async function getCurrentUser(): Promise<User | null> {
         }
     }
     
+    // If no user is found, ensure everything is cleared.
     setCurrentUser(null);
     return null;
 }
 
 export function logout(): void {
-    setCurrentUser(null);
+    currentLoggedInUser = null;
+    if (typeof window !== 'undefined') {
+        try {
+            localStorage.removeItem(CURRENT_USER_KEY);
+        } catch (error) {
+            console.error("Could not clear user session from localStorage", error);
+        }
+    }
 }
