@@ -1,1 +1,9 @@
-[]
+[
+    {
+        "id": "msg-1757338061278",
+        "senderId": "user-1757337355751",
+        "recipientId": "user-1757337251654",
+        "text": "merhaba",
+        "createdAt": "2025-09-08T13:27:41.278Z"
+    }
+]
