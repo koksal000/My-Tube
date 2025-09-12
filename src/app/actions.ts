@@ -1,4 +1,5 @@
 
+
 'use server';
 
 import type { User, Video, Post, Comment, Message, Notification } from '@/lib/types';
@@ -290,12 +291,14 @@ export async function addCommentToAction(contentId: string, contentType: 'video'
     }
 
     // Handle mentions
-    const mentions = text.match(/@(\w+)/g);
-    if (mentions) {
-        const mentionedUsernames = mentions.map(m => m.substring(1));
-        const mentionedUsers = allUsers.filter(u => mentionedUsernames.includes(u.username));
-        for (const mentionedUser of mentionedUsers) {
-            if (mentionedUser && mentionedUser.id !== authorId) { // Don't notify for self-mention
+    const mentionMatches = text.match(/@(\w+)/g);
+    if (mentionMatches) {
+        const mentionedUsernames = mentionMatches.map(m => m.substring(1));
+        const uniqueMentionedUsernames = [...new Set(mentionedUsernames)]; // Remove duplicates
+        
+        uniqueMentionedUsernames.forEach(async (username) => {
+            const mentionedUser = allUsers.find(u => u.username === username);
+            if (mentionedUser && mentionedUser.id !== authorId) { // Check if user exists and not self-mention
                  await createNotificationAction({
                     recipientId: mentionedUser.id,
                     senderId: authorId,
@@ -305,7 +308,7 @@ export async function addCommentToAction(contentId: string, contentType: 'video'
                     text: text,
                 });
             }
-        }
+        });
     }
 
     return newComment;
@@ -368,7 +371,7 @@ export async function likeContentAction(contentId: string, userId: string, conte
     users[userIndex] = user;
 
     await Promise.all([
-        writeData(contentPath, contentList),
+        writeData(contentPath, contentList as any[]),
         writeData(usersFilePath, users)
     ]);
 }
@@ -425,7 +428,7 @@ export async function uploadFileAction(clientFormData: FormData): Promise<string
 
   const form = new FormData();
   form.append('reqtype', 'fileupload');
-  form.append('userhash', 'b1b84d63308d9f8700daf74dc');
+  form.append('userhash', ''); // Catbox.moe allows anonymous uploads without a userhash
   form.append('fileToUpload', fileBuffer, file.name);
 
   try {
@@ -521,8 +524,9 @@ export async function viewContentAction(contentId: string, contentType: 'video' 
     users[userIndex] = user;
 
     await Promise.all([
-        writeData(contentPath, contentList),
+        writeData(contentPath, contentList as any[]),
         writeData(usersFilePath, users)
     ]);
 }
+
 
