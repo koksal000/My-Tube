@@ -295,7 +295,7 @@ export async function addCommentToAction(contentId: string, contentType: 'video'
         const mentionedUsernames = mentions.map(m => m.substring(1));
         const mentionedUsers = allUsers.filter(u => mentionedUsernames.includes(u.username));
         for (const mentionedUser of mentionedUsers) {
-            if (mentionedUser.id !== authorId) { // Don't notify for self-mention
+            if (mentionedUser && mentionedUser.id !== authorId) { // Don't notify for self-mention
                  await createNotificationAction({
                     recipientId: mentionedUser.id,
                     senderId: authorId,
