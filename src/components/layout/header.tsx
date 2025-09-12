@@ -17,23 +17,44 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import Link from "next/link"
 import { useRouter } from "next/navigation";
 import React, { useEffect, useState } from "react"
-import type { User } from "@/lib/types"
+import type { User, Notification } from "@/lib/types"
 import { getCurrentUser, logout } from "@/lib/data"
+import { getNotificationsAction } from "@/app/actions"
 
 export default function Header() {
   const router = useRouter();
   const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [unreadNotifications, setUnreadNotifications] = useState(0);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchUser = async () => {
+    const fetchUserAndData = async () => {
       setLoading(true);
       const user = await getCurrentUser();
       setCurrentUser(user);
+      if (user) {
+        const notifications = await getNotificationsAction(user.id);
+        setUnreadNotifications(notifications.filter(n => !n.read).length);
+      }
       setLoading(false);
     }
-    fetchUser();
-  }, [router]);
+    fetchUserAndData();
+
+    // Poll for notifications
+     const interval = setInterval(async () => {
+        const user = await getCurrentUser();
+        if (user) {
+            const notifications = await getNotificationsAction(user.id);
+            const newUnreadCount = notifications.filter(n => !n.read).length;
+            if (newUnreadCount !== unreadNotifications) {
+                setUnreadNotifications(newUnreadCount);
+            }
+        }
+    }, 5000); // every 5 seconds
+
+    return () => clearInterval(interval);
+
+  }, [router, unreadNotifications]);
   
   const handleLogout = () => {
     logout();
@@ -74,9 +95,15 @@ export default function Header() {
             />
           </div>
         </form>
-        <Button variant="ghost" size="icon" className="rounded-full" asChild>
+        <Button variant="ghost" size="icon" className="rounded-full relative" asChild>
           <Link href="/notifications">
             <Bell className="h-5 w-5" />
+            {unreadNotifications > 0 && (
+                <span className="absolute top-1.5 right-1.5 flex h-2.5 w-2.5">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-primary"></span>
+                </span>
+            )}
             <span className="sr-only">Bildirimleri aç/kapat</span>
           </Link>
         </Button>

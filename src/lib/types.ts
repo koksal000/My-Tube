@@ -26,7 +26,7 @@ export interface Video extends Content {
   title: string;
   description: string;
   thumbnailUrl: string;
-  videoUrl: string;
+  videoUrl:string;
   duration: number; // in seconds
   views: number;
 }
@@ -51,5 +51,18 @@ export interface Message {
     senderId: string;
     recipientId: string;
     text: string;
+    createdAt: string;
+}
+
+export interface Notification {
+    id: string;
+    recipientId: string;
+    senderId: string;
+    sender?: User;
+    type: 'like' | 'comment' | 'subscribe' | 'mention' | 'reply' | 'new_video' | 'message';
+    contentId?: string; // ID of the video, post, or comment
+    contentType?: 'video' | 'post';
+    text?: string; // For comments, mentions, or messages
+    read: boolean;
     createdAt: string;
 }

@@ -1,7 +1,7 @@
 
 'use server';
 
-import type { User, Video, Post, Comment, Message } from '@/lib/types';
+import type { User, Video, Post, Comment, Message, Notification } from '@/lib/types';
 import fs from 'fs/promises';
 import path from 'path';
 import fetch from 'node-fetch';
@@ -17,6 +17,7 @@ const usersFilePath = path.join(dataPath, 'users.json');
 const videosFilePath = path.join(dataPath, 'videos.json');
 const postsFilePath = path.join(dataPath, 'posts.json');
 const messagesFilePath = path.join(dataPath, 'messages.json');
+const notificationsFilePath = path.join(dataPath, 'notifications.json');
 
 
 // --- Utility Functions ---
@@ -24,13 +25,14 @@ const messagesFilePath = path.join(dataPath, 'messages.json');
 const readData = async <T>(filePath: string): Promise<T[]> => {
     try {
         await fs.mkdir(dataPath, { recursive: true });
+        const fileExists = await fs.access(filePath).then(() => true).catch(() => false);
+        if (!fileExists) {
+             await fs.writeFile(filePath, '[]', 'utf-8');
+             return [];
+        }
         const jsonData = await fs.readFile(filePath, 'utf-8');
         return JSON.parse(jsonData) as T[];
     } catch (error) {
-        if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
-            await fs.writeFile(filePath, '[]', 'utf-8');
-            return [];
-        }
         console.error(`Error reading data from ${filePath}:`, error);
         throw error;
     }
@@ -46,32 +48,72 @@ const writeData = async <T>(filePath: string, data: T[]): Promise<void> => {
     }
 };
 
-async function hydrateData<T extends (Video | Post | Comment)>(item: T | Omit<T, 'author'>, allUsers: User[]): Promise<T> {
+async function hydrateData<T extends (Video | Post | Comment | Notification)>(item: T | Omit<T, 'author' | 'sender'>, allUsers: User[]): Promise<T> {
     if (!item) return item as T;
 
     const hydratedItem = { ...item } as T;
 
-    if ('authorId' in hydratedItem && hydratedItem.authorId && !hydratedItem.author) {
-        const author = allUsers.find(u => u.id === hydratedItem.authorId);
-        if (author) hydratedItem.author = { ...author, password: '' };
+    if ('authorId' in hydratedItem && hydratedItem.authorId && !('author' in hydratedItem && hydratedItem.author)) {
+        const author = allUsers.find(u => u.id === (hydratedItem as any).authorId);
+        if (author) (hydratedItem as any).author = { ...author, password: '' };
+    }
+
+    if ('senderId' in hydratedItem && hydratedItem.senderId && !('sender' in hydratedItem && hydratedItem.sender)) {
+        const sender = allUsers.find(u => u.id === (hydratedItem as any).senderId);
+        if (sender) (hydratedItem as any).sender = { ...sender, password: '' };
     }
     
-    if ('comments' in hydratedItem && Array.isArray(hydratedItem.comments)) {
-        hydratedItem.comments = await Promise.all(
-            (hydratedItem.comments as (Comment | Omit<Comment, 'author'>)[])
+    if ('comments' in hydratedItem && Array.isArray((hydratedItem as any).comments)) {
+        (hydratedItem as any).comments = await Promise.all(
+            ((hydratedItem as any).comments as (Comment | Omit<Comment, 'author'>)[])
                 .map(c => hydrateData(c as Comment, allUsers))
         );
     }
     
-    if ('replies' in hydratedItem && Array.isArray(hydratedItem.replies)) {
-         hydratedItem.replies = await Promise.all(
-            (hydratedItem.replies as (Comment | Omit<Comment, 'author'>)[])
+    if ('replies' in hydratedItem && Array.isArray((hydratedItem as any).replies)) {
+         (hydratedItem as any).replies = await Promise.all(
+            ((hydratedItem as any).replies as (Comment | Omit<Comment, 'author'>)[])
                 .map(r => hydrateData(r as Comment, allUsers))
         );
     }
 
     return hydratedItem;
 }
+
+// --- NOTIFICATION ACTIONS ---
+
+export async function createNotificationAction(notification: Omit<Notification, 'id' | 'createdAt' | 'read'>): Promise<void> {
+    const notifications = await readData<Notification>(notificationsFilePath);
+    const newNotification: Notification = {
+        ...notification,
+        id: `notif-${Date.now()}`,
+        createdAt: new Date().toISOString(),
+        read: false,
+    };
+    notifications.unshift(newNotification);
+    await writeData(notificationsFilePath, notifications);
+}
+
+export async function getNotificationsAction(userId: string): Promise<Notification[]> {
+    const [notifications, allUsers] = await Promise.all([
+        readData<Notification>(notificationsFilePath),
+        readData<User>(usersFilePath)
+    ]);
+    const userNotifications = notifications.filter(n => n.recipientId === userId);
+    return Promise.all(userNotifications.map(n => hydrateData(n, allUsers)));
+}
+
+export async function markNotificationsAsReadAction(userId: string): Promise<void> {
+    const notifications = await readData<Notification>(notificationsFilePath);
+    const updatedNotifications = notifications.map(n => {
+        if (n.recipientId === userId && !n.read) {
+            return { ...n, read: true };
+        }
+        return n;
+    });
+    await writeData(notificationsFilePath, updatedNotifications);
+}
+
 
 // --- DATA READING ACTIONS ---
 
@@ -158,6 +200,18 @@ export async function addVideoAction(video: Omit<Video, 'id' | 'author'>): Promi
     videos.push(newVideo as any); // Pushing unhydrated version
     await writeData(videosFilePath, videos);
 
+    // Notify subscribers
+    const subscribers = users.filter(u => u.subscriptions.includes(author.id));
+    for (const sub of subscribers) {
+        await createNotificationAction({
+            recipientId: sub.id,
+            senderId: author.id,
+            type: 'new_video',
+            contentId: newVideo.id,
+            contentType: 'video',
+        });
+    }
+
     const { password, ...authorWithoutPassword } = author;
     return { ...newVideo, author: authorWithoutPassword };
 }
@@ -201,10 +255,13 @@ export async function addCommentToAction(contentId: string, contentType: 'video'
         likes: 0,
     };
     
+    let contentAuthorId: string | undefined;
+
     if (contentType === 'video') {
         const videos = await readData<Video>(videosFilePath);
         const videoIndex = videos.findIndex(v => v.id === contentId);
         if (videoIndex !== -1) {
+            contentAuthorId = videos[videoIndex].authorId;
             if (!videos[videoIndex].comments) videos[videoIndex].comments = [];
             videos[videoIndex].comments.unshift(commentForDb as any);
             await writeData(videosFilePath, videos);
@@ -213,9 +270,41 @@ export async function addCommentToAction(contentId: string, contentType: 'video'
         const posts = await readData<Post>(postsFilePath);
         const postIndex = posts.findIndex(p => p.id === contentId);
         if (postIndex !== -1) {
+            contentAuthorId = posts[postIndex].authorId;
             if (!posts[postIndex].comments) posts[postIndex].comments = [];
             posts[postIndex].comments.unshift(commentForDb as any);
             await writeData(postsFilePath, posts);
+        }
+    }
+
+    // Create Notification
+    if (contentAuthorId && contentAuthorId !== authorId) {
+        await createNotificationAction({
+            recipientId: contentAuthorId,
+            senderId: authorId,
+            type: 'comment',
+            contentId: contentId,
+            contentType: contentType,
+            text: text,
+        });
+    }
+
+    // Handle mentions
+    const mentions = text.match(/@(\w+)/g);
+    if (mentions) {
+        const mentionedUsernames = mentions.map(m => m.substring(1));
+        const mentionedUsers = allUsers.filter(u => mentionedUsernames.includes(u.username));
+        for (const mentionedUser of mentionedUsers) {
+            if (mentionedUser.id !== authorId) { // Don't notify for self-mention
+                 await createNotificationAction({
+                    recipientId: mentionedUser.id,
+                    senderId: authorId,
+                    type: 'mention',
+                    contentId: contentId,
+                    contentType: contentType,
+                    text: text,
+                });
+            }
         }
     }
 
@@ -230,6 +319,7 @@ export async function likeContentAction(contentId: string, userId: string, conte
     const user = users[userIndex];
     let contentList, contentPath;
     let isAlreadyLiked: boolean;
+    let contentAuthorId: string | undefined;
     
     if (contentType === 'video') {
         contentList = await readData<Video>(videosFilePath);
@@ -243,6 +333,8 @@ export async function likeContentAction(contentId: string, userId: string, conte
 
     const contentIndex = contentList.findIndex(c => c.id === contentId);
     if (contentIndex === -1) throw new Error("Content not found");
+    
+    contentAuthorId = contentList[contentIndex].authorId;
 
     if (isAlreadyLiked) {
         // Unlike
@@ -259,6 +351,17 @@ export async function likeContentAction(contentId: string, userId: string, conte
             user.likedVideos = [...(user.likedVideos || []), contentId];
         } else {
             user.likedPosts = [...(user.likedPosts || []), contentId];
+        }
+
+        // Create Notification, but not for self-likes
+        if(contentAuthorId && contentAuthorId !== userId) {
+            await createNotificationAction({
+                recipientId: contentAuthorId,
+                senderId: userId,
+                type: 'like',
+                contentId: contentId,
+                contentType: contentType,
+            });
         }
     }
     
@@ -282,6 +385,12 @@ export async function subscribeAction(currentUserId: string, channelUserId: stri
         if (isSubscribing) {
             users[currentUserIndex].subscriptions = [...(users[currentUserIndex].subscriptions || []), channelUserId];
             users[channelUserIndex].subscribers = (users[channelUserIndex].subscribers || 0) + 1;
+            // Create notification for the channel owner
+            await createNotificationAction({
+                recipientId: channelUserId,
+                senderId: currentUserId,
+                type: 'subscribe',
+            });
         } else {
             users[currentUserIndex].subscriptions = (users[currentUserIndex].subscriptions || []).filter(id => id !== channelUserId);
             users[channelUserIndex].subscribers = Math.max(0, (users[channelUserIndex].subscribers || 0) - 1);
@@ -359,6 +468,15 @@ export async function sendMessageAction(senderId: string, recipientId: string, t
     };
     messages.push(newMessage);
     await writeData(messagesFilePath, messages);
+    
+    // Create notification for the recipient
+    await createNotificationAction({
+        recipientId: recipientId,
+        senderId: senderId,
+        type: 'message',
+        text: text,
+    });
+
     return newMessage;
 }
 
@@ -371,17 +489,19 @@ export async function viewContentAction(contentId: string, contentType: 'video' 
     let contentList, contentPath;
 
     if (contentType === 'video') {
-        // Prevent re-counting view for the same session
-        if ((user.viewedVideos || []).includes(contentId)) return;
-        
         contentList = await readData<Video>(videosFilePath);
         contentPath = videosFilePath;
-        user.viewedVideos = [...(user.viewedVideos || []), contentId];
+        
+        // Prevent re-counting view for the same session if already in list
+        if (!(user.viewedVideos || []).includes(contentId)) {
+            user.viewedVideos = [...(user.viewedVideos || []), contentId];
+        } else {
+            // If already viewed, don't increment view count again.
+            return;
+        }
 
     } else { // 'post'
         // Posts don't have views, but we can track them if needed in the future.
-        // For now, we just add to user's history if they "view" a post page.
-        // Let's assume a post view isn't a metric we show, so we just track for user history.
         return; 
     }
 
