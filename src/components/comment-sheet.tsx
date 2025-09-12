@@ -5,17 +5,15 @@ import {
   SheetContent,
   SheetHeader,
   SheetTitle,
-  SheetDescription,
 } from "@/components/ui/sheet"
 import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import type { Video, Post, Comment, User } from "@/lib/types";
-import { Textarea } from "./ui/textarea";
-import { Button } from "./ui/button";
-import { Send, Film } from "lucide-react";
+import { Film } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import { addCommentToAction } from "@/app/actions";
 import { useToast } from "@/hooks/use-toast";
+import { CommentInput } from "./comment-input";
 
 function timeAgo(dateString: string) {
     if (!dateString) return "";
@@ -47,7 +45,7 @@ const CommentDisplay = ({ comment }: { comment: Comment }) => {
         return <div className="flex gap-3">Yorum Yükleniyor...</div>;
     }
 
-    const isGif = comment.text.startsWith('https://media.giphy.com');
+    const isGif = comment.text.startsWith('http') && (comment.text.includes('.gif') || comment.text.includes('.webp'));
 
     return (
         <div className="flex gap-3">
@@ -86,21 +84,21 @@ interface CommentSheetProps {
 }
 
 export function CommentSheet({ content, currentUser, isOpen, onClose, onCommentAdded }: CommentSheetProps) {
-    const [commentText, setCommentText] = useState("");
     const { toast } = useToast();
     const isVideo = 'videoUrl' in content;
 
-    const handleAddComment = async () => {
-        if (!commentText.trim()) return;
+    const handleAddComment = async (text: string): Promise<boolean> => {
+        if (!text.trim()) return false;
 
         try {
             const contentTypeForAction = isVideo ? 'video' : 'post';
-            const newComment = await addCommentToAction(content.id, contentTypeForAction, currentUser.id, commentText);
+            const newComment = await addCommentToAction(content.id, contentTypeForAction, currentUser.id, text);
             onCommentAdded(newComment);
-            setCommentText("");
             toast({ title: "Yorum Eklendi", description: "Yorumunuz başarıyla gönderildi." });
+            return true; // Indicate success to clear the input
         } catch (error) {
             toast({ title: "Hata", description: "Yorum eklenirken bir sorun oluştu.", variant: "destructive" });
+            return false;
         }
     };
 
@@ -131,21 +129,7 @@ export function CommentSheet({ content, currentUser, isOpen, onClose, onCommentA
                             <AvatarImage src={currentUser?.profilePicture} alt={currentUser?.displayName || currentUser?.username} data-ai-hint="person face" />
                             <AvatarFallback>{(currentUser?.displayName || currentUser?.username || 'U').charAt(0)}</AvatarFallback>
                         </Avatar>
-                        <div className="flex-grow space-y-2">
-                            <div className="relative">
-                                <Textarea 
-                                    placeholder="Yorum ekle..." 
-                                    value={commentText}
-                                    onChange={(e) => setCommentText(e.target.value)}
-                                    className="pr-12"
-                                />
-                                <div className="absolute top-1/2 right-1 -translate-y-1/2 flex items-center">
-                                     <Button variant="ghost" size="icon" onClick={handleAddComment} disabled={!commentText.trim()}>
-                                        <Send className="h-5 w-5" />
-                                    </Button>
-                                </div>
-                            </div>
-                        </div>
+                        <CommentInput onSubmit={handleAddComment} />
                     </div>
                 </div>
             </SheetContent>
