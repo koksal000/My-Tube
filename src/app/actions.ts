@@ -229,37 +229,37 @@ export async function likeContentAction(contentId: string, userId: string, conte
 
     const user = users[userIndex];
     let contentList, contentPath;
-
+    let isAlreadyLiked: boolean;
+    
     if (contentType === 'video') {
         contentList = await readData<Video>(videosFilePath);
         contentPath = videosFilePath;
-        const isLiking = !(user.likedVideos || []).includes(contentId);
-        if (isLiking) {
-            user.likedVideos = [...(user.likedVideos || []), contentId];
-        } else {
-            user.likedVideos = (user.likedVideos || []).filter(id => id !== contentId);
-        }
+        isAlreadyLiked = (user.likedVideos || []).includes(contentId);
     } else { // 'post'
         contentList = await readData<Post>(postsFilePath);
         contentPath = postsFilePath;
-        const isLiking = !(user.likedPosts || []).includes(contentId);
-        if (isLiking) {
-            user.likedPosts = [...(user.likedPosts || []), contentId];
-        } else {
-            user.likedPosts = (user.likedPosts || []).filter(id => id !== contentId);
-        }
+        isAlreadyLiked = (user.likedPosts || []).includes(contentId);
     }
 
     const contentIndex = contentList.findIndex(c => c.id === contentId);
     if (contentIndex === -1) throw new Error("Content not found");
-    
-    const isLikingContent = (contentType === 'video' && (user.likedVideos || []).includes(contentId)) || 
-                           (contentType === 'post' && (user.likedPosts || []).includes(contentId));
-                           
-    if (isLikingContent) {
-        contentList[contentIndex].likes = (contentList[contentIndex].likes || 0) + 1;
-    } else {
+
+    if (isAlreadyLiked) {
+        // Unlike
         contentList[contentIndex].likes = Math.max(0, (contentList[contentIndex].likes || 0) - 1);
+        if (contentType === 'video') {
+            user.likedVideos = (user.likedVideos || []).filter(id => id !== contentId);
+        } else {
+            user.likedPosts = (user.likedPosts || []).filter(id => id !== contentId);
+        }
+    } else {
+        // Like
+        contentList[contentIndex].likes = (contentList[contentIndex].likes || 0) + 1;
+        if (contentType === 'video') {
+            user.likedVideos = [...(user.likedVideos || []), contentId];
+        } else {
+            user.likedPosts = [...(user.likedPosts || []), contentId];
+        }
     }
     
     users[userIndex] = user;
