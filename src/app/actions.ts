@@ -202,7 +202,7 @@ export async function addVideoAction(video: Omit<Video, 'id' | 'author'>): Promi
     await writeData(videosFilePath, videos);
 
     // Notify subscribers
-    const subscribers = users.filter(u => u.subscriptions.includes(author.id));
+    const subscribers = users.filter(u => u.subscriptions && u.subscriptions.includes(author.id));
     for (const sub of subscribers) {
         await createNotificationAction({
             recipientId: sub.id,
@@ -531,3 +531,6 @@ export async function viewContentAction(contentId: string, contentType: 'video' 
 
 
 
+
+
+    
