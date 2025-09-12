@@ -1,6 +1,6 @@
 "use client"
 
-import { BellRing, ThumbsUp, MessageCircle, UserPlus, GitMerge, Video, MessageSquare } from "lucide-react";
+import { BellRing, ThumbsUp, MessageCircle, UserPlus, GitMerge, Video, MessageSquare, Newspaper } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -68,6 +68,11 @@ const NotificationItem = ({ notification }: { notification: Notification }) => {
             icon = <Video className="h-5 w-5 text-primary" />;
             text = <p><span className="font-semibold">{notification.sender?.displayName}</span> yeni bir video yükledi.</p>;
             link = `/video/${notification.contentId}`;
+            break;
+        case "new_post":
+            icon = <Newspaper className="h-5 w-5 text-green-600" />;
+            text = <p><span className="font-semibold">{notification.sender?.displayName}</span> yeni bir gönderi yayınladı.</p>;
+            link = `/video/${notification.contentId}?type=post`;
             break;
         case "mention":
             icon = <GitMerge className="h-5 w-5 text-yellow-500" />;

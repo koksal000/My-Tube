@@ -45,12 +45,13 @@ export function UploadPostForm() {
         uploadFormData.append('fileToUpload', imageFile);
         const imageUrl = await uploadFileAction(uploadFormData);
         
-        const newPostData: Omit<Post, 'id' | 'author' | 'comments'> = {
+        const newPostData: Omit<Post, 'id' | 'author'> = {
             caption,
             imageUrl,
             authorId: currentUser.id,
             likes: 0,
             createdAt: new Date().toISOString(),
+            comments: []
         };
 
         const newPost = await addPostAction(newPostData);

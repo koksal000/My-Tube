@@ -217,16 +217,28 @@ export async function addVideoAction(video: Omit<Video, 'id' | 'author'>): Promi
     return { ...newVideo, author: authorWithoutPassword };
 }
 
-export async function addPostAction(post: Omit<Post, 'id' | 'author' | 'comments'>): Promise<Post> {
+export async function addPostAction(post: Omit<Post, 'id' | 'author'>): Promise<Post> {
     const posts = await readData<Post>(postsFilePath);
     const users = await readData<User>(usersFilePath);
     const author = users.find(u => u.id === post.authorId);
     if (!author) throw new Error("Author not found");
 
-    const newPost: Omit<Post, 'author'> = {...post, id: `post-${Date.now()}`, comments: [] };
+    const newPost: Omit<Post, 'author'> = {...post, id: `post-${Date.now()}` };
     posts.push(newPost as any); // Pushing unhydrated version
     await writeData(postsFilePath, posts);
 
+    // Notify subscribers
+    const subscribers = users.filter(u => u.subscriptions && u.subscriptions.includes(author.id));
+    for (const sub of subscribers) {
+        await createNotificationAction({
+            recipientId: sub.id,
+            senderId: author.id,
+            type: 'new_post',
+            contentId: newPost.id,
+            contentType: 'post',
+        });
+    }
+    
     const { password, ...authorWithoutPassword } = author;
     return { ...newPost, author: authorWithoutPassword };
 }
@@ -298,7 +310,8 @@ export async function addCommentToAction(contentId: string, contentType: 'video'
         
         uniqueMentionedUsernames.forEach(async (username) => {
             const mentionedUser = allUsers.find(u => u.username === username);
-            if (mentionedUser && mentionedUser.id !== authorId) { // Check if user exists and not self-mention
+            // Check if user exists and not self-mention
+            if (mentionedUser && mentionedUser.id !== authorId) { 
                  await createNotificationAction({
                     recipientId: mentionedUser.id,
                     senderId: authorId,
