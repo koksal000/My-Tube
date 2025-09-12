@@ -223,7 +223,7 @@ export async function addPostAction(post: Omit<Post, 'id' | 'author'>): Promise<
     const author = users.find(u => u.id === post.authorId);
     if (!author) throw new Error("Author not found");
 
-    const newPost: Omit<Post, 'author'> = {...post, id: `post-${Date.now()}` };
+    const newPost: Omit<Post, 'author'> = { ...post, id: `post-${Date.now()}`, comments: [] };
     posts.push(newPost as any); // Pushing unhydrated version
     await writeData(postsFilePath, posts);
 
@@ -541,9 +541,3 @@ export async function viewContentAction(contentId: string, contentType: 'video' 
         writeData(usersFilePath, users)
     ]);
 }
-
-
-
-
-
-    

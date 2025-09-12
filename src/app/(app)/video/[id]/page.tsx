@@ -128,8 +128,13 @@ function VideoPageClient() {
             setContent(contentData);
 
             if(isVideo && loggedInUser) {
-                // Increment view count
-                viewContentAction(contentData.id, 'video', loggedInUser.id);
+                // Increment view count and add to history
+                await viewContentAction(contentData.id, 'video', loggedInUser.id);
+                // Refresh content to get updated view count
+                const refreshedVideo = await getVideoAction(params.id as string);
+                if (refreshedVideo) {
+                    setContent(refreshedVideo);
+                }
             }
 
             if (contentData.author) {

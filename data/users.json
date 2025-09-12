@@ -11,37 +11,5 @@
         "likedVideos": [],
         "viewedVideos": [],
         "likedPosts": []
-    },
-    {
-        "id": "user-1757337251654",
-        "username": "muctebakoksal",
-        "displayName": "Mücteba Köksal",
-        "password": "koksal2011",
-        "about": "Merhaba My-Tube.",
-        "profilePicture": "https://files.catbox.moe/1aukcg.webp",
-        "subscribers": 1,
-        "subscriptions": [],
-        "likedVideos": [],
-        "viewedVideos": [],
-        "likedPosts": [
-            "post-1757708670157"
-        ]
-    },
-    {
-        "id": "user-1757337355751",
-        "username": "muctebakksldeneme",
-        "displayName": "koksalmctb",
-        "password": "koksal2011",
-        "about": "rdtfhgj",
-        "profilePicture": "https://files.catbox.moe/wu168c.jpg",
-        "subscribers": 0,
-        "subscriptions": [
-            "user-1757337251654"
-        ],
-        "likedVideos": [
-            "video1757338784190"
-        ],
-        "viewedVideos": [],
-        "likedPosts": []
     }
 ]

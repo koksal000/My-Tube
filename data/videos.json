@@ -11,33 +11,5 @@
         "likes": 12000,
         "createdAt": "2024-07-22T12:00:00.000Z",
         "comments": []
-    },
-    {
-        "id": "video1757338784190",
-        "title": "video",
-        "description": "deneme",
-        "thumbnailUrl": "https://files.catbox.moe/neji8c.webp",
-        "videoUrl": "https://files.catbox.moe/82tqrl.mp4",
-        "duration": 0,
-        "authorId": "user-1757337251654",
-        "views": 0,
-        "likes": 1,
-        "createdAt": "2025-09-08T13:39:44.190Z",
-        "comments": [
-            {
-                "id": "comment-1757339787927",
-                "authorId": "user-1757337355751",
-                "text": "file:///C:/Users/K%C3%B6ksal/Downloads/MicrosoftWindows.Client.CBS_cw5n1h2txyewy!InputApp/PoutKissGIF.gif",
-                "createdAt": "2025-09-08T13:56:27.927Z",
-                "likes": 0
-            },
-            {
-                "id": "comment-1757338810738",
-                "authorId": "user-1757337251654",
-                "text": "https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExaG9tbnFjN2YwZWU5a3hpaHQyZzlha3h1aDBlb3FqNmt1ajQzNXplZCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/8Odq0zzKM596g/giphy.gif",
-                "createdAt": "2025-09-08T13:40:10.739Z",
-                "likes": 0
-            }
-        ]
     }
 ]

@@ -9,7 +9,8 @@
         "subscribers": 0,
         "subscriptions": [],
         "likedVideos": [],
-        "viewedVideos": []
+        "viewedVideos": [],
+        "likedPosts": []
     },
     {
         "id": "user-1757336923932",
@@ -21,6 +22,7 @@
         "subscribers": 0,
         "subscriptions": [],
         "likedVideos": [],
-        "viewedVideos": []
+        "viewedVideos": [],
+        "likedPosts": []
     }
 ]
