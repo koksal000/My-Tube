@@ -431,7 +431,8 @@ export async function uploadFileAction(clientFormData: FormData): Promise<string
   try {
     const response = await fetch('https://catbox.moe/user/api.php', {
       method: 'POST',
-      body: form as any, // Cast to any to satisfy fetch typing with form-data
+      body: form as any,
+      timeout: 30000, // 30 saniye zaman aşımı
     });
 
     if (!response.ok) {
@@ -451,6 +452,10 @@ export async function uploadFileAction(clientFormData: FormData): Promise<string
   } catch (error) {
     console.error('Error in uploadFileAction:', error);
     if (error instanceof Error) {
+        // node-fetch zaman aşımı hatasını kontrol et
+        if (error.name === 'FetchError' && error.message.includes('timeout')) {
+             throw new Error('Yükleme zaman aşımına uğradı. Lütfen daha sonra tekrar deneyin.');
+        }
         throw new Error(`Failed to upload file: ${error.message}`);
     }
     throw new Error('An unknown error occurred during file upload.');
@@ -520,3 +525,4 @@ export async function viewContentAction(contentId: string, contentType: 'video' 
         writeData(usersFilePath, users)
     ]);
 }
+
