@@ -46,19 +46,26 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const gifs = {
     'mutlu': 'https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExaWFjZHVrZG5lYjZzeXNlM3B4MnRxaXJ0bWJqaXE3enp6eG5sNm5hayZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/3o72FfM5HJydzafgUE/giphy.gif',
+    'gülme': 'https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExM3o2ZDN0dW5qNTI4bDYxMWw2OHk2Z2x0cWJ2amx0b3E4dGZ5M2o0eCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/3ohhwlR8bB4J2T0L2U/giphy.gif',
     'öpücük': 'https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExZWM3YjRyb3U0bWEzamNmbjN0ZHd3M3p1ZzM2d2tkZGYzazl2c3Z6eCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/3o7TKRAlSoSAybyNqg/giphy.gif',
+    'aşk': 'https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExMnU4aWlwdnZpY2VpcjVucjd0cDNtMGd6N3lxa3U4MHlqMGRqcmdxeiZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/26uf42I2hYF233jsA/giphy.gif',
     'üzgün': 'https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExaG9tbnFjN2YwZWU5a3hpaHQyZzlha3h1aDBlb3FqNmt1ajQzNXplZCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/8Odq0zzKM596g/giphy.gif',
+    'ağlama': 'https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExZ3NnaW1xbm95amtycDI2cHJ4ZnNqemQ5bHNpNmFudmNjeHgwZDF4dCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/3o6wreayjDgoi2A0Xm/giphy.gif',
     'dans': 'https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExdzY5aWZ2aTNjMnRoNjR2aTZjMWhnaGU0ZGk5bWVmcTN1c3h2d294biZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/cXblnKZRjFnOE/giphy.gif',
     'alkış': 'https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExM2d0eXhzZXdjdmo0ZnpwZDVpMHY0amM5Z3dncTYxZzRzM2V0aDNodyZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/s2qXK8wAvkHTO/giphy.gif',
-    'şaşkın': 'https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExbDVqZm5kaXQ1bHBxcTI4bjg3YWp0cHg5eHZtb2I5aXhoNzhrcjJyeSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/6nWhy3clIxbS8/giphy.gif'
+    'tebrikler': 'https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExbTdrYnF2bGIwZDA5cW1jYjVjYXZ0bWd3azYweGozN3Z3enNxbTdzZSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/wACls5lR9g1sA/giphy.gif',
+    'şaşkın': 'https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExbDVqZm5kaXQ1bHBxcTI4bjg3YWp0cHg5eHZtb2I5aXhoNzhrcjJyeSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/6nWhy3clIxbS8/giphy.gif',
+    'şok': 'https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExcnJnaXc5dGZuZXZxZ3liY215eDludTNmNnJxc3ZzMWk3a3JpMjhkayZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/l3q2K5jinAlChoCLS/giphy.gif',
+    'kızgın': 'https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExazlpaDAyN2FjcHlpNXZ0dmpuMGNtaXBzNmdtc2l3ZGlmZnJmM2JseSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/1AbK3T6A2z4j4c/giphy.gif'
 };
 
+
 const emojiCategories = {
-    'İfadeler': ['😂', '😍', '👍', '🔥', '❤️', '🤔', '😊', '😭', '😡', '🤯', '😱', '🥳'],
-    'İnsanlar': ['👋', '👌', '✌️', '🙏', '🙌', '💪', '👀', '👤', '🧑‍💻', '👩‍🎨', '👨‍🚀', '👮'],
-    'Hayvanlar': ['🐶', '🐱', '🐭', '🐹', '🐰', '🦊', '🐻', '🐼', '🐨', '🐯', '🦁', '🐮'],
-    'Yiyecek': ['🍏', '🍎', '🍐', '🍊', '🍋', '🍌', '🍉', '🍇', '🍓', '🍈', '🍒', '🍑'],
-    'Aktiviteler': ['⚽️', '🏀', '🏈', '⚾️', '🥎', '🎾', '🏐', '🏉', '🎱', '🏓', '🏸', '🏒']
+    'İfadeler ve Yüzler': ['😀', '😃', '😄', '😁', '😆', '😅', '😂', '🤣', '😊', '😇', '🙂', '🙃', '😉', '😌', '😍', '🥰', '😘', '😗', '😙', '😚', '😋', '😛', '😝', '😜', '🤪', '🤨', '🧐', '🤓', '😎', '🤩', '🥳', '😏', '😒', '😞', '😔', '😟', '😕', '🙁', '☹️', '😣', '😖', '😫', '😩', '🥺', '😢', '😭', '😤', '😠', '😡', '🤬', '🤯', '😳', '🥵', '🥶', '😱', '😨', '😰', '😥', '😓', '🤗', '🤔', '🤭', '🤫', '🤥', '😶', '😐', '😑', '😬', '🙄', '😯', '😦', '😧', '😮', '😲', '🥱', '😴', '🤤', '😪', '😵', '🤐', '🥴', '🤢', '🤮', '🤧', '😷', '🤒', '🤕', '🤑', '🤠', '😈', '👿', '👹', '👺', '🤡', '💩', '👻', '💀', '☠️', '👽', '👾', '🤖', '🎃'],
+    'İnsanlar ve Vücut': ['👋', '🤚', '🖐️', '✋', '🖖', '👌', '🤌', '🤏', '✌️', '🤞', '🤟', '🤘', '🤙', '👈', '👉', '👆', '🖕', '👇', '☝️', '👍', '👎', '✊', '👊', '🤛', '🤜', '👏', '🙌', '👐', '🤲', '🤝', '🙏', '✍️', '💅', '🤳', '💪', '🦾', '🦿', '🦵', '🦶', '👂', '🦻', '👃', '🧠', '🫀', '🫁', '🦷', '🦴', '👀', '👁️', '👅', '👄', '💋', '👶', '🧒', '👦', '👧', '🧑', '👱', '👨', '🧔', '👨‍🦰', '👨‍🦱', '👨‍🦳', '👨‍🦲', '👩', '👩‍🦰', '👩‍🦱', '👩‍🦳', '👩‍🦲', '🧓', '👴', '👵', '🙍', '🙎', '🙅', '🙆', '💁', '🙋', '🧏', '🙇', '🤦', '🤷', '👮', '🕵️', '💂', '🥷', '👷', '🤴', '👸', '👳', '👲', '🧕', '🤵', '👰', '🤰', '🤱'],
+    'Hayvanlar ve Doğa': ['🐶', '🐱', '🐭', '🐹', '🐰', '🦊', '🐻', '🐼', '🐻‍❄️', '🐨', '🐯', '🦁', '🐮', '🐷', '🐽', '🐸', '🐵', '🙈', '🙉', '🙊', '🐒', '🐔', '🐧', '🐦', '🐤', '🐣', '🐥', '🦆', '🦅', '🦉', '🦇', '🐺', '🐗', '🐴', '🦄', '🐝', '🐛', '🦋', '🐌', '🐞', '🐜', '🦟', '🦗', '🕷️', '🦂', '🐢', '🐍', '🦎', '🦖', '🦕', '🐙', '🦑', '🦐', '🦞', '🦀', '🐡', '🐠', '🐟', '🐬', '🐳', '🐋', '🦈', '🐊', '🐅', '🐆', '🦓', '🦍', '🦧', '🐘', '🦛', '🦏', '🐪', '🐫', '🦒', '🦘', '🐃', '🐂', '🐄', '🐎', '🐖', '🐏', '🐑', '🦙', '🐐', '🦌', '🐕', '🐩', '🦮', '🐕‍🦺', '🐈', '🐈‍⬛', '🐓', '🦃', '🦚', '🦜', '🦢', '🦩', '🕊️', '🐇', '🦝', '🦨', '🦡', '🦦', '🦥', '🐁', '🐀', '🐿️', '🦔', '🐾', '🌵', '🎄', '🌲', '🌳', '🌴', '🌱', '🌿', '☘️', '🍀', '🎍', '🎋', '🍃', '🍂', '🍁', '🍄', '🐚', '🌾', '💐', '🌷', '🌹', '🥀', '🌺', '🌸', '🌼', '🌻', '🌞', '🌝', '🌛', '🌜', '🌚', '🌕', '🌖', '🌗', '🌘', '🌑', '🌒', '🌓', '🌔', '🌙', '🌎', '🌍', '🌏', '🪐', '💫', '⭐️', '🌟', '✨', '⚡️', '☄️', '💥', '🔥', '🌪️', '🌈', '☀️', '🌤️', '⛅️', '🌥️', '☁️', '🌦️', '🌧️', '⛈️', '🌩️', '🌨️', '❄️', '☃️', '⛄️', '🌬️', '💨', '💧', '💦', '☔️', '💧', '🌊', '🌫️'],
+    'Yiyecek ve İçecek': ['🍏', '🍎', '🍐', '🍊', '🍋', '🍌', '🍉', '🍇', '🍓', '🍈', '🍒', '🍑', '🥭', '🍍', '🥥', '🥝', '🍅', '🍆', '🥑', '🥦', '🥬', '🥒', '🌶️', '🫑', '🌽', '🥕', '🫒', '🧄', '🧅', '🥔', '🍠', '🥐', '🥯', '🍞', '🥖', '🥨', '🧀', '🥚', '🍳', '🧈', '🥞', '🧇', '🥓', '🥩', '🍗', '🍖', '🦴', '핫도그', '🍔', '🍟', '🍕', '🥪', '🥙', '🧆', '🌮', '🌯', '🥗', '🥘', '🥫', '🍝', '🍜', '🍲', '🍛', '🍣', '🍱', '🥟', '🍤', '🍙', '🍚', '🍘', '🍥', '🥠', '🥮', '🍢', '🍡', '🍧', '🍨', '🍦', '🥧', '🧁', '🍰', '🎂', '🍮', '🍭', '🍬', '🍫', '🍿', '🍩', '🍪', '🌰', '🥜', '🍯', '🥛', '🍼', '☕️', '🍵', '🧃', '🥤', '🍶', '🍺', '🍻', '🥂', '🍷', '🥃', '🍸', '🍹', '🧉', '🧊'],
+    'Aktiviteler': ['⚽️', '🏀', '🏈', '⚾️', '🥎', '🎾', '🏐', '🏉', '🥏', '🎱', '🪀', '🏓', '🏸', '🏒', '🏑', '🥍', '🏏', '🪃', '🥅', '⛳️', '🪁', '🏹', '🎣', '🤿', '🥊', '🥋', '🎽', '🛹', '🛷', '⛸️', '🥌', '🎿', '⛷️', '🏂', '🪂', '🏋️', '🤼', '🤸', '🤺', '🤸‍♀️', '🤺', '🏇', '🧘', '🏄', '🏊', '🤽', '🚣', '🧗', '🚴', '🚵', '🏆', '🥇', '🥈', '🥉', '🏅', '🎖️', '🏵️', '🎗️', '🎫', '🎟️', '🎪', '🤹', '🎭', '🩰', '🎨', '🎬', '🎤', '🎧', '🎼', '🎹', '🥁', '🪘', '🎷', '🎺', '🪗', '🎸', '🪕', '🎻', '🎲', '♟️', '🎯', '🎳', '🎮', '🎰', '🧩']
 };
 
 const CommentAccessoryPicker = ({ onSelectGif, onSelectEmoji }: { onSelectGif: (url: string) => void, onSelectEmoji: (emoji: string) => void }) => {
@@ -80,15 +87,17 @@ const CommentAccessoryPicker = ({ onSelectGif, onSelectEmoji }: { onSelectGif: (
                         onChange={(e) => setSearchTerm(e.target.value)}
                         className="h-8"
                      />
-                    <div className="grid grid-cols-3 gap-2">
-                        {filteredGifs.map(([name, url]) => (
+                    <div className="grid grid-cols-3 gap-2 max-h-48 overflow-y-auto">
+                        {filteredGifs.length > 0 ? filteredGifs.map(([name, url]) => (
                             <div key={url} className="relative aspect-square cursor-pointer group" onClick={() => onSelectGif(url)}>
                                 <img src={url} className="w-full h-full object-cover rounded" alt={name} />
                                 <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                                     <p className="text-white text-xs font-bold capitalize">{name}</p>
                                 </div>
                             </div>
-                        ))}
+                        )) : (
+                            <div className="col-span-3 text-center text-muted-foreground p-4">Sonuç bulunamadı.</div>
+                        )}
                     </div>
                 </TabsContent>
                 <TabsContent value="emojis" className="mt-2 max-h-48 overflow-y-auto">
@@ -119,7 +128,7 @@ const CommentDisplay = ({ comment }: { comment: Comment }) => {
         return <div className="flex gap-3">Yorum Yükleniyor...</div>;
     }
 
-    const isGif = comment.text.startsWith('https://media.giphy.com');
+    const isGif = Object.values(gifs).includes(comment.text);
 
     return (
         <div className="flex gap-3">
@@ -450,3 +459,5 @@ export default function VideoPage() {
         </Suspense>
     )
 }
+
+    
