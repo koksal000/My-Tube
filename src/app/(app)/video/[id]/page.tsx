@@ -4,7 +4,7 @@
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { ThumbsUp, Share2, BellPlus, Send, Smile, Film, Heart } from "lucide-react";
+import { ThumbsUp, BellPlus, Film, Heart } from "lucide-react";
 import { VideoCard } from "@/components/video-card";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState, Suspense } from "react";
@@ -15,6 +15,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { addCommentToAction, likeContentAction, subscribeAction, getVideosAction, getVideoAction, getPostAction, viewContentAction } from "@/app/actions";
 import { getCurrentUser } from "@/lib/data";
 import { CommentInput } from "@/components/comment-input";
+import { ShareDialog } from "@/components/share-dialog";
 
 function timeAgo(dateString: string) {
     if (!dateString) return "";
@@ -54,7 +55,8 @@ const CommentDisplay = ({ comment }: { comment: Comment }) => {
         return <div className="flex gap-3">Yorum Yükleniyor...</div>;
     }
 
-    const isGif = comment.text.startsWith('http') && comment.text.endsWith('.gif');
+    const isGif = comment.text.startsWith('http') && (comment.text.endsWith('.gif') || comment.text.endsWith('.webp'));
+
 
     return (
         <div className="flex gap-3">
@@ -227,7 +229,7 @@ function VideoPageClient() {
   };
 
   const handleAddComment = async (text: string) => {
-    if (!currentUser || !content || !text.trim()) return;
+    if (!currentUser || !content || !text.trim()) return false;
     
     const contentTypeForAction = isVideo ? 'video' : 'post';
     const newComment = await addCommentToAction(content.id, contentTypeForAction, currentUser.id, text);
@@ -302,9 +304,7 @@ function VideoPageClient() {
                             <Heart className={`h-5 w-5 ${isLiked ? 'text-primary fill-primary' : ''}`} /> {(content.likes || 0).toLocaleString()}
                         </Button>
                     )}
-                    <Button variant="ghost" className="rounded-full gap-2">
-                    <Share2 className="h-5 w-5" /> Paylaş
-                    </Button>
+                    {content && <ShareDialog content={content} />}
                 </div>
                 </div>
             )}
