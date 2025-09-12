@@ -11,14 +11,15 @@ import type { User, Video, Post } from "@/lib/types";
 import { useParams, useRouter, usePathname } from "next/navigation";
 import { EditProfileDialog } from "@/components/profile-edit-dialog";
 import { useToast } from "@/hooks/use-toast";
-import { MessageSquare } from "lucide-react";
+import { MessageSquare, MoreVertical, Trash2 } from "lucide-react";
 import Link from "next/link";
-import { subscribeAction, getUsersAction, getVideosAction, getPostsAction } from "@/app/actions";
+import { subscribeAction, getUsersAction, getVideosAction, getPostsAction, deleteContentAction } from "@/app/actions";
 import { getCurrentUser } from "@/lib/data";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 
 export default function ChannelPage() {
   const router = useRouter();
-  const pathname = usePathname();
   const params = useParams<{ username: string }>();
   const { toast } = useToast();
   const [currentUser, setCurrentUser] = useState<User | null>(null);
@@ -27,6 +28,7 @@ export default function ChannelPage() {
   const [userPosts, setUserPosts] = useState<Post[]>([]);
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [isOwnProfile, setIsOwnProfile] = useState(false);
+  const [contentToDelete, setContentToDelete] = useState<{id: string, type: 'video' | 'post'} | null>(null);
   
   useEffect(() => {
     const init = async () => {
@@ -80,7 +82,6 @@ export default function ChannelPage() {
 
     const newIsSubscribed = !isSubscribed;
     
-    // Optimistic UI Update
     setIsSubscribed(newIsSubscribed);
     if(channelUser){
       const optimisticSubscribers = channelUser.subscribers + (newIsSubscribed ? 1 : -1);
@@ -108,6 +109,23 @@ export default function ChannelPage() {
     } catch (error) {
        setIsSubscribed(!newIsSubscribed);
        toast({ title: "Hata", description: "İşlem sırasında bir hata oluştu.", variant: "destructive" });
+    }
+  };
+  
+   const handleDeleteConfirm = async () => {
+    if (!contentToDelete || !currentUser) return;
+    try {
+      await deleteContentAction(contentToDelete.id, contentToDelete.type, currentUser.id);
+      if (contentToDelete.type === 'video') {
+        setUserVideos(prev => prev.filter(v => v.id !== contentToDelete.id));
+      } else {
+        setUserPosts(prev => prev.filter(p => p.id !== contentToDelete.id));
+      }
+      toast({ title: "İçerik Silindi" });
+    } catch (error) {
+      toast({ title: "Hata", description: "İçerik silinirken bir hata oluştu.", variant: "destructive" });
+    } finally {
+      setContentToDelete(null);
     }
   };
 
@@ -160,7 +178,24 @@ export default function ChannelPage() {
                 <div className="grid grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                     {userVideos.length > 0 ? (
                        userVideos.map(video => (
-                           <VideoCard key={video.id} video={video} />
+                          <div key={video.id} className="relative">
+                            <VideoCard video={video} />
+                            {isOwnProfile && (
+                                <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                        <Button variant="ghost" size="icon" className="absolute top-2 right-2 h-7 w-7 rounded-full bg-black/50 hover:bg-black/70">
+                                            <MoreVertical className="h-4 w-4 text-white" />
+                                        </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end">
+                                        <DropdownMenuItem onClick={() => setContentToDelete({ id: video.id, type: 'video' })} className="text-destructive focus:text-destructive">
+                                            <Trash2 className="mr-2 h-4 w-4" />
+                                            <span>Sil</span>
+                                        </DropdownMenuItem>
+                                    </DropdownMenuContent>
+                                </DropdownMenu>
+                            )}
+                          </div>
                        ))
                     ) : (
                         <div className="col-span-full text-center text-muted-foreground py-10">Bu kanal henüz video yüklemedi.</div>
@@ -171,16 +206,33 @@ export default function ChannelPage() {
                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3">
                     {userPosts.length > 0 ? (
                         userPosts.map(post => (
-                            <Link href={`/video/${post.id}?type=post`} key={post.id} className="group">
-                              <Card className="overflow-hidden">
-                                  <CardContent className="p-0">
-                                      {post.imageUrl && <Image src={post.imageUrl} alt={post.caption} width={400} height={300} className="w-full h-48 object-cover transition-transform duration-300 group-hover:scale-105" data-ai-hint="user post" />}
-                                      <div className="p-4">
-                                        <p className="line-clamp-2">{post.caption}</p>
-                                      </div>
-                                  </CardContent>
-                              </Card>
-                            </Link>
+                            <div key={post.id} className="relative group">
+                              <Link href={`/video/${post.id}?type=post`}>
+                                <Card className="overflow-hidden h-full">
+                                    <CardContent className="p-0">
+                                        {post.imageUrl && <Image src={post.imageUrl} alt={post.caption} width={400} height={300} className="w-full h-48 object-cover transition-transform duration-300 group-hover:scale-105" data-ai-hint="user post" />}
+                                        <div className="p-4">
+                                          <p className="line-clamp-2">{post.caption}</p>
+                                        </div>
+                                    </CardContent>
+                                </Card>
+                              </Link>
+                              {isOwnProfile && (
+                                  <DropdownMenu>
+                                      <DropdownMenuTrigger asChild>
+                                          <Button variant="ghost" size="icon" className="absolute top-2 right-2 h-7 w-7 rounded-full bg-black/50 hover:bg-black/70 opacity-0 group-hover:opacity-100 transition-opacity">
+                                              <MoreVertical className="h-4 w-4 text-white" />
+                                          </Button>
+                                      </DropdownMenuTrigger>
+                                      <DropdownMenuContent align="end">
+                                          <DropdownMenuItem onClick={() => setContentToDelete({ id: post.id, type: 'post' })} className="text-destructive focus:text-destructive">
+                                              <Trash2 className="mr-2 h-4 w-4" />
+                                              <span>Sil</span>
+                                          </DropdownMenuItem>
+                                      </DropdownMenuContent>
+                                  </DropdownMenu>
+                              )}
+                            </div>
                         ))
                     ) : (
                         <div className="col-span-full text-center text-muted-foreground py-10">Bu kanal henüz gönderi oluşturmadı.</div>
@@ -195,6 +247,21 @@ export default function ChannelPage() {
                 </Card>
             </TabsContent>
         </Tabs>
+        
+        <AlertDialog open={!!contentToDelete} onOpenChange={(open) => !open && setContentToDelete(null)}>
+            <AlertDialogContent>
+                <AlertDialogHeader>
+                    <AlertDialogTitle>Emin misiniz?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                        Bu eylem geri alınamaz. Bu içerik kalıcı olarak sunucularımızdan silinecektir.
+                    </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                    <AlertDialogCancel onClick={() => setContentToDelete(null)}>İptal</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleDeleteConfirm} className="bg-destructive hover:bg-destructive/90">Sil</AlertDialogAction>
+                </AlertDialogFooter>
+            </AlertDialogContent>
+        </AlertDialog>
     </div>
   );
 }

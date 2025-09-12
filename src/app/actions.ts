@@ -1,5 +1,3 @@
-
-
 'use server';
 
 import type { User, Video, Post, Comment, Message, Notification } from '@/lib/types';
@@ -49,7 +47,7 @@ const writeData = async <T>(filePath: string, data: T[]): Promise<void> => {
     }
 };
 
-async function hydrateData<T extends (Video | Post | Comment | Notification)>(item: T | Omit<T, 'author' | 'sender'>, allUsers: User[]): Promise<T> {
+async function hydrateData<T extends (Video | Post | Comment | Notification)>(item: T | Omit<T, 'author' | 'sender' | 'replies'>, allUsers: User[]): Promise<T> {
     if (!item) return item as T;
 
     const hydratedItem = { ...item } as T;
@@ -260,12 +258,13 @@ export async function addCommentToAction(contentId: string, contentType: 'video'
     };
     
     // We need to write the un-hydrated comment to the JSON file
-    const commentForDb: Omit<Comment, 'author' | 'replies'> = {
+    const commentForDb: Omit<Comment, 'author'> = {
         id: newComment.id,
         authorId: newComment.authorId,
         text: newComment.text,
         createdAt: newComment.createdAt,
         likes: 0,
+        replies: [],
     };
     
     let contentAuthorId: string | undefined;
@@ -540,4 +539,125 @@ export async function viewContentAction(contentId: string, contentType: 'video' 
         writeData(contentPath, contentList as any[]),
         writeData(usersFilePath, users)
     ]);
+}
+
+export async function deleteContentAction(contentId: string, contentType: 'video' | 'post', userId: string): Promise<boolean> {
+    let contentList, contentPath;
+    if (contentType === 'video') {
+        contentList = await readData<Video>(videosFilePath);
+        contentPath = videosFilePath;
+    } else {
+        contentList = await readData<Post>(postsFilePath);
+        contentPath = postsFilePath;
+    }
+    const contentIndex = contentList.findIndex(c => c.id === contentId);
+    if (contentIndex === -1) {
+        throw new Error("Content not found");
+    }
+    if (contentList[contentIndex].authorId !== userId) {
+        throw new Error("User not authorized to delete this content");
+    }
+    contentList.splice(contentIndex, 1);
+    await writeData(contentPath, contentList);
+    return true;
+}
+
+export async function deleteCommentAction(contentId: string, contentType: 'video' | 'post', commentId: string, userId: string, parentCommentId?: string): Promise<boolean> {
+    let contentList, contentPath;
+    if (contentType === 'video') {
+        contentList = await readData<Video>(videosFilePath);
+        contentPath = videosFilePath;
+    } else {
+        contentList = await readData<Post>(postsFilePath);
+        contentPath = postsFilePath;
+    }
+
+    const contentIndex = contentList.findIndex(c => c.id === contentId);
+    if (contentIndex === -1) throw new Error("Content not found");
+
+    const content = contentList[contentIndex];
+    let commentToDelete: Comment | undefined;
+    let parentArray: Comment[];
+
+    if (parentCommentId) { // It's a reply
+        const parentComment = content.comments.find(c => c.id === parentCommentId);
+        if (!parentComment || !parentComment.replies) throw new Error("Parent comment not found");
+        commentToDelete = parentComment.replies.find(r => r.id === commentId);
+        parentArray = parentComment.replies;
+    } else { // It's a top-level comment
+        commentToDelete = content.comments.find(c => c.id === commentId);
+        parentArray = content.comments;
+    }
+
+    if (!commentToDelete) throw new Error("Comment not found");
+
+    // Check permissions
+    const canDelete = (commentToDelete.authorId === userId) || (content.authorId === userId);
+    if (!canDelete) throw new Error("User not authorized to delete this comment");
+
+    const commentIndexToDelete = parentArray.findIndex(c => c.id === commentId);
+    if (commentIndexToDelete > -1) {
+        parentArray.splice(commentIndexToDelete, 1);
+        await writeData(contentPath, contentList);
+        return true;
+    }
+    return false;
+}
+
+export async function addReplyToAction(contentId: string, contentType: 'video' | 'post', parentCommentId: string, authorId: string, text: string): Promise<Comment> {
+    let contentList, contentPath;
+    if (contentType === 'video') {
+        contentList = await readData<Video>(videosFilePath);
+        contentPath = videosFilePath;
+    } else {
+        contentList = await readData<Post>(postsFilePath);
+        contentPath = postsFilePath;
+    }
+    
+    const allUsers = await readData<User>(usersFilePath);
+    const author = allUsers.find(u => u.id === authorId);
+    if (!author) throw new Error("Reply author not found");
+
+    const contentIndex = contentList.findIndex(c => c.id === contentId);
+    if (contentIndex === -1) throw new Error("Content not found");
+
+    const parentComment = contentList[contentIndex].comments.find(c => c.id === parentCommentId);
+    if (!parentComment) throw new Error("Parent comment not found");
+
+    const newReply: Comment = {
+      id: `comment-${Date.now()}`,
+      authorId: authorId,
+      author: { ...author, password: '' },
+      text: text,
+      createdAt: new Date().toISOString(),
+      likes: 0,
+      replies: [],
+    };
+    
+    const replyForDb: Omit<Comment, 'author'> = {
+        id: newReply.id,
+        authorId: newReply.authorId,
+        text: newReply.text,
+        createdAt: newReply.createdAt,
+        likes: 0,
+        replies: [],
+    };
+
+    if (!parentComment.replies) parentComment.replies = [];
+    parentComment.replies.unshift(replyForDb as any);
+    await writeData(contentPath, contentList);
+
+    // Create notification for the original comment author
+    if (parentComment.authorId !== authorId) {
+        await createNotificationAction({
+            recipientId: parentComment.authorId,
+            senderId: authorId,
+            type: 'reply',
+            contentId: contentId,
+            contentType: contentType,
+            text: text,
+        });
+    }
+
+    return newReply;
 }

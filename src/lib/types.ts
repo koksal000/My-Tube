@@ -61,8 +61,4 @@ export interface Notification {
     sender?: User;
     type: 'like' | 'comment' | 'subscribe' | 'mention' | 'reply' | 'new_video' | 'new_post' | 'message';
     contentId?: string; // ID of the video, post, or comment
-    contentType?: 'video' | 'post';
-    text?: string; // For comments, mentions, or messages
-    read: boolean;
-    createdAt: string;
-}
+    contentType?: 'video' | 'post
