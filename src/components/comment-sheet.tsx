@@ -45,7 +45,7 @@ const CommentDisplay = ({ comment }: { comment: Comment }) => {
         return <div className="flex gap-3">Yorum Yükleniyor...</div>;
     }
 
-    const isGif = comment.text.startsWith('http') && (comment.text.includes('.gif') || comment.text.includes('.webp'));
+    const isGif = comment.text.startsWith('http') && (comment.text.endsWith('.gif') || comment.text.endsWith('.webp'));
 
     return (
         <div className="flex gap-3">
