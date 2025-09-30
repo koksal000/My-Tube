@@ -7,27 +7,14 @@ interface SplashScreenProps {
 }
 
 export function SplashScreen({ onVideoEnd }: SplashScreenProps) {
-  const videoRef1 = useRef<HTMLVideoElement>(null);
-  const videoRef2 = useRef<HTMLVideoElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
   const introVideoUrl = "https://files.catbox.moe/a23vjd.mp4";
 
   useEffect(() => {
-    const playVideo = (ref: React.RefObject<HTMLVideoElement>) => {
-      if (ref.current) {
-        // Muted videos can usually autoplay without user interaction
-        ref.current.play().catch(error => {
-          console.error("Video oynatılamadı:", error);
-        });
-      }
-    };
-
-    const videoElement = videoRef2.current;
+    const videoElement = videoRef.current;
     if (videoElement) {
         videoElement.addEventListener('ended', onVideoEnd);
     }
-    
-    playVideo(videoRef1);
-    playVideo(videoRef2);
     
     return () => {
         if (videoElement) {
@@ -42,8 +29,8 @@ export function SplashScreen({ onVideoEnd }: SplashScreenProps) {
       <div className="relative w-64 h-64 md:w-96 md:h-96">
         {/* Background blurred video */}
         <video
-          ref={videoRef1}
           src={introVideoUrl}
+          autoPlay
           loop
           muted
           playsInline
@@ -52,8 +39,9 @@ export function SplashScreen({ onVideoEnd }: SplashScreenProps) {
         {/* Foreground video */}
         <div className="relative w-full h-full rounded-2xl overflow-hidden shadow-2xl ring-4 ring-primary/20">
           <video
-            ref={videoRef2}
+            ref={videoRef}
             src={introVideoUrl}
+            autoPlay
             muted
             playsInline
             className="w-full h-full object-cover"
