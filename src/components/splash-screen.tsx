@@ -8,7 +8,7 @@ interface SplashScreenProps {
 
 export function SplashScreen({ onVideoEnd }: SplashScreenProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
-  const introVideoUrl = "/uploads/intro.mp4";
+  const introVideoUrl = "https://files.catbox.moe/8pv901.mp4";
 
   useEffect(() => {
     const videoElement = videoRef.current;
