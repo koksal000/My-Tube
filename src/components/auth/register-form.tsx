@@ -57,7 +57,7 @@ export function RegisterForm() {
     }
     
     try {
-        let profilePictureUrl = "/uploads/default-avatar.png"; // Default
+        let profilePictureUrl = "https://files.catbox.moe/tqo828.png"; // Default
         if (profilePictureFile && profilePictureFile.size > 0) {
           const profileFormData = new FormData();
           profileFormData.append('fileToUpload', profilePictureFile);

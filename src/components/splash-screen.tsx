@@ -9,6 +9,7 @@ interface SplashScreenProps {
 export function SplashScreen({ onVideoEnd }: SplashScreenProps) {
   const videoRef1 = useRef<HTMLVideoElement>(null);
   const videoRef2 = useRef<HTMLVideoElement>(null);
+  const introVideoUrl = "https://files.catbox.moe/a23vjd.mp4";
 
   useEffect(() => {
     const playVideo = (ref: React.RefObject<HTMLVideoElement>) => {
@@ -42,7 +43,7 @@ export function SplashScreen({ onVideoEnd }: SplashScreenProps) {
         {/* Background blurred video */}
         <video
           ref={videoRef1}
-          src="/uploads/intro.mp4"
+          src={introVideoUrl}
           loop
           muted
           playsInline
@@ -52,7 +53,7 @@ export function SplashScreen({ onVideoEnd }: SplashScreenProps) {
         <div className="relative w-full h-full rounded-2xl overflow-hidden shadow-2xl ring-4 ring-primary/20">
           <video
             ref={videoRef2}
-            src="/uploads/intro.mp4"
+            src={introVideoUrl}
             muted
             playsInline
             className="w-full h-full object-cover"

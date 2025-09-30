@@ -4,7 +4,7 @@
         "username": "admin",
         "displayName": "Geliştirici Takımı",
         "password": "admin",
-        "profilePicture": "/uploads/default-avatar.png",
+        "profilePicture": "https://files.catbox.moe/tqo828.png",
         "about": "Burası My-Tube Reborn geliştirme ekibinin resmi kanalıdır. Platformun en son güncellemeleri ve özellikleri hakkında bilgi almak için takipte kalın.",
         "subscribers": 0,
         "subscriptions": [],
@@ -12,4 +12,4 @@
         "viewedVideos": [],
         "likedPosts": []
     }
-
+]
