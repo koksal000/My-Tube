@@ -9,7 +9,7 @@ import { useToast } from "@/hooks/use-toast"
 import type { Video } from "@/lib/types"
 import React from "react"
 import { uploadFileAction, addVideoAction } from "@/app/actions"
-import { useDatabase } from "@/lib/db"
+import { useDatabase } from "@/lib/db-provider"
 
 export function UploadVideoForm() {
   const router = useRouter()

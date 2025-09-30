@@ -15,7 +15,7 @@ import { addCommentToAction, addReplyToAction, likeContentAction, subscribeActio
 import { CommentInput } from "@/components/comment-input";
 import { ShareDialog } from "@/components/share-dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { useDatabase } from "@/lib/db";
+import { useDatabase } from "@/lib/db-provider";
 import Link from "next/link";
 
 function timeAgo(dateString: string) {

@@ -12,7 +12,7 @@ import type { User } from "@/lib/types"
 import React from "react"
 import { Textarea } from "../ui/textarea"
 import { uploadFileAction, addUserAction, getUsersAction } from "@/app/actions"
-import { useDatabase } from "@/lib/db"
+import { useDatabase } from "@/lib/db-provider"
 
 const MyTubeLogo = () => (
     <div className="flex items-center justify-center space-x-2 text-primary font-bold text-2xl mb-4">

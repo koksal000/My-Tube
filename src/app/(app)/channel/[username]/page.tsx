@@ -16,7 +16,7 @@ import Link from "next/link";
 import { subscribeAction, deleteContentAction } from "@/app/actions";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { useDatabase } from "@/lib/db";
+import { useDatabase } from "@/lib/db-provider";
 
 
 export default function ChannelPage() {

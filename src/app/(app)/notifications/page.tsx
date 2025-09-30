@@ -11,7 +11,7 @@ import type { Notification, User } from "@/lib/types";
 import { markNotificationsAsReadAction } from "@/app/actions";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useDatabase } from "@/lib/db";
+import { useDatabase } from "@/lib/db-provider";
 import { Button } from "@/components/ui/button";
 
 // Helper functions to interact with localStorage

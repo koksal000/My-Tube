@@ -1,9 +1,8 @@
 "use client"
 
-import React, { createContext, useContext, useEffect, useState } from 'react';
 import { openDB, type IDBPDatabase, type DBSchema } from 'idb';
 import { getPostsAction, getUsersAction, getVideosAction, getNotificationsAction } from '@/app/actions';
-import type { User, Video, Post, Comment, Notification, Message } from './types';
+import type { User, Video, Post, Comment, Notification } from './types';
 
 const DB_NAME = 'my-tube-db';
 const DB_VERSION = 1;
@@ -16,41 +15,6 @@ interface MyDB extends DBSchema {
   notifications: { key: string; value: Notification; };
 }
 
-// This context will hold the database instance
-const DatabaseContext = createContext<MyTubeDatabase | null>(null);
-
-export function DatabaseProvider({ children }: { children: React.ReactNode }) {
-    const [db, setDb] = useState<MyTubeDatabase | null>(null);
-
-    useEffect(() => {
-        const initDB = async () => {
-            const dbInstance = await new MyTubeDatabase().init();
-            setDb(dbInstance);
-        };
-        initDB();
-    }, []);
-    
-    if (!db) {
-        // You can return a loading spinner here if you want
-        return <div className="fixed inset-0 bg-background z-50 flex items-center justify-center text-foreground">Veritabanı başlatılıyor...</div>;
-    }
-
-    return (
-        <DatabaseContext.Provider value={db}>
-            {children}
-        </DatabaseContext.Provider>
-    );
-}
-
-export function useDatabase() {
-    const context = useContext(DatabaseContext);
-    if (!context) {
-        throw new Error('useDatabase must be used within a DatabaseProvider');
-    }
-    return context;
-}
-
-
 export class MyTubeDatabase {
     private db: IDBPDatabase<MyDB> | null = null;
     private readonly CURRENT_USER_KEY = 'myTube-currentUser-id';
@@ -59,10 +23,18 @@ export class MyTubeDatabase {
         if (!this.db) {
             this.db = await openDB<MyDB>(DB_NAME, DB_VERSION, {
                 upgrade(db) {
-                    db.createObjectStore('users', { keyPath: 'id' });
-                    db.createObjectStore('videos', { keyPath: 'id' });
-                    db.createObjectStore('posts', { keyPath: 'id' });
-                    db.createObjectStore('notifications', { keyPath: 'id' });
+                    if (!db.objectStoreNames.contains('users')) {
+                        db.createObjectStore('users', { keyPath: 'id' });
+                    }
+                    if (!db.objectStoreNames.contains('videos')) {
+                        db.createObjectStore('videos', { keyPath: 'id' });
+                    }
+                    if (!db.objectStoreNames.contains('posts')) {
+                        db.createObjectStore('posts', { keyPath: 'id' });
+                    }
+                     if (!db.objectStoreNames.contains('notifications')) {
+                        db.createObjectStore('notifications', { keyPath: 'id' });
+                    }
                 },
             });
             await this.syncData();
@@ -79,7 +51,6 @@ export class MyTubeDatabase {
     
     async syncData() {
         const isSynced = localStorage.getItem(SYNC_STATUS_KEY);
-        // Basic sync check, in a real app this would be more robust (e.g., check version/timestamp)
         if (isSynced) {
             console.log('Data already synced.');
             return;
@@ -196,7 +167,7 @@ export class MyTubeDatabase {
             return (await this.getDb()).put(storeName, content as any);
         }
     }
-    async addReplyToComment(parentCommentId: string, reply: Comment) {
+    async addReplyToComment(parentCommentId: string, newReply: Comment) {
         // This is more complex as it requires finding the comment in a video or post.
         // For simplicity, we can refetch the content from DB after a reply is added server-side.
         // A full implementation would find and update the nested comment.

@@ -18,7 +18,7 @@ import type { User } from "@/lib/types"
 import { Textarea } from "./ui/textarea"
 import { Checkbox } from "./ui/checkbox"
 import { uploadFileAction, updateUserAction } from "@/app/actions"
-import { useDatabase } from "@/lib/db"
+import { useDatabase } from "@/lib/db-provider"
 
 interface EditProfileDialogProps {
   user: User;

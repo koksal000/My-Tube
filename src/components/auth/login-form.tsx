@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label"
 import { useToast } from "@/hooks/use-toast"
 import React from "react"
 import { authenticateUserAction } from "@/app/actions"
-import { useDatabase } from "@/lib/db"
+import { useDatabase } from "@/lib/db-provider"
 
 const MyTubeLogo = () => (
     <div className="flex items-center justify-center space-x-2 text-primary font-bold text-2xl mb-4">

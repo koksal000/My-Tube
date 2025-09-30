@@ -9,7 +9,7 @@ import { useToast } from "@/hooks/use-toast"
 import type { Post } from "@/lib/types"
 import React from "react"
 import { uploadFileAction, addPostAction } from "@/app/actions"
-import { useDatabase } from "@/lib/db"
+import { useDatabase } from "@/lib/db-provider"
 
 export function UploadPostForm() {
   const router = useRouter()

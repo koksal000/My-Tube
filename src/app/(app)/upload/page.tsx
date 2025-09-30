@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { UploadVideoForm } from "@/components/upload/upload-video-form"
 import { UploadPostForm } from "@/components/upload/upload-post-form"
-import { useDatabase } from "@/lib/db"
+import { useDatabase } from "@/lib/db-provider"
 import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
 

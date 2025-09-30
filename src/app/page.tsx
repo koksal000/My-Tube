@@ -2,7 +2,7 @@
 
 import { SplashScreen } from '@/components/splash-screen';
 import { useRouter } from 'next/navigation';
-import { DatabaseProvider, useDatabase } from '@/lib/db';
+import { DatabaseProvider, useDatabase } from '@/lib/db-provider';
 
 function InitialPage() {
     const router = useRouter();

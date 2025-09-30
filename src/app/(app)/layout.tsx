@@ -1,6 +1,6 @@
 import { SidebarProvider } from "@/components/ui/sidebar"
 import MainLayout from "@/components/layout/main-layout"
-import { DatabaseProvider } from "@/lib/db"
+import { DatabaseProvider } from "@/lib/db-provider"
 
 export default function AppLayout({
   children,

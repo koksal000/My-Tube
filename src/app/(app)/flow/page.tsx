@@ -12,7 +12,7 @@ import { Heart, MessageCircle } from 'lucide-react';
 import { likeContentAction } from '@/app/actions';
 import { useToast } from '@/hooks/use-toast';
 import { CommentSheet } from '@/components/comment-sheet';
-import { useDatabase } from '@/lib/db';
+import { useDatabase } from '@/lib/db-provider';
 
 const FlowPost = ({ post, onCommentClick, onLikeClick, isLiked }: { post: Post, onCommentClick: () => void, onLikeClick: () => void, isLiked: boolean }) => {
     const { ref, inView } = useInView({ threshold: 0.9 });

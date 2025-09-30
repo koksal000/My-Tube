@@ -5,7 +5,7 @@ import { generateVideoRecommendations, VideoRecommendationsInput } from "@/ai/fl
 import React, { useEffect, useState } from "react";
 import type { Video } from "@/lib/types";
 import { useRouter } from "next/navigation";
-import { useDatabase } from "@/lib/db";
+import { useDatabase } from "@/lib/db-provider";
 
 export default function HomePage() {
   const router = useRouter();

@@ -8,7 +8,7 @@ import { VideoCard } from "@/components/video-card";
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { useDatabase } from "@/lib/db";
+import { useDatabase } from "@/lib/db-provider";
 
 function SearchResults({ query }: { query: string }) {
   const router = useRouter();

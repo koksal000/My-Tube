@@ -4,7 +4,7 @@ import { VideoCard } from "@/components/video-card";
 import { useState, useEffect } from "react";
 import type { Video } from "@/lib/types";
 import { useRouter } from "next/navigation";
-import { useDatabase } from "@/lib/db";
+import { useDatabase } from "@/lib/db-provider";
 
 export default function HistoryPage() {
     const router = useRouter();

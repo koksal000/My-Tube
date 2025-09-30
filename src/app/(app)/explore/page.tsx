@@ -6,7 +6,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/card";
 import Image from "next/image";
-import { useDatabase } from "@/lib/db";
+import { useDatabase } from "@/lib/db-provider";
 
 // A component for displaying posts in the explore grid
 const PostCard = ({ post }: { post: Post }) => (

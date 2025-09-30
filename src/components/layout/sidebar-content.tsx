@@ -23,7 +23,7 @@ import { usePathname } from "next/navigation"
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
 import React, { useEffect, useState } from "react"
 import type { User } from "@/lib/types"
-import { useDatabase } from "@/lib/db"
+import { useDatabase } from "@/lib/db-provider"
 
 const MyTubeLogo = () => (
     <Link href="/home" className="flex items-center gap-2 text-primary font-bold text-xl">
@@ -100,7 +100,7 @@ export default function SidebarContentComponent() {
                 <Link href="/subscriptions">
                     <Youtube />
                     <span>Abonelikler</span>
-                </Link>
+                </Link>SERIAL_TOOL_OUTPUT
                 </SidebarMenuButton>
             </SidebarMenuItem>
            )}

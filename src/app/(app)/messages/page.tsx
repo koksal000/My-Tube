@@ -11,7 +11,7 @@ import type { User, Message } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import { getMessagesAction, sendMessageAction } from "@/app/actions";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useDatabase } from "@/lib/db";
+import { useDatabase } from "@/lib/db-provider";
 
 const ChatMessage = ({ msg, isOwnMessage, author }: { msg: Message; isOwnMessage: boolean, author?: User }) => (
   <div className={`flex items-end gap-2 ${isOwnMessage ? 'justify-end' : ''}`}>
