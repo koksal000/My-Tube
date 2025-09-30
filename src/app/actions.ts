@@ -427,8 +427,8 @@ export async function authenticateUserAction(username: string, password_provided
     return null;
 }
 
-export async function uploadFileAction(clientFormData: FormData): Promise<string> {
-  const file = clientFormData.get('fileToUpload') as File | null;
+export async function uploadFileAction(formData: FormData): Promise<string> {
+  const file = formData.get('fileToUpload') as File | null;
   
   if (!file) {
       throw new Error('No file provided.');
