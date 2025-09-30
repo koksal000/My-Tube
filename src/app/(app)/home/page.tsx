@@ -59,7 +59,7 @@ export default function HomePage() {
         const recommendedVideoIds = recommendations.map(rec => rec.id);
         const sortedVideos = allDBVideos.filter(v => recommendedVideoIds.includes(v.id))
                                       .sort((a, b) => recommendedVideoIds.indexOf(a.id) - recommendedVideoIds.indexOf(b.id));
-        // If AI returns nothing, show shuffled videos as a fallback.
+        
         if (sortedVideos.length > 0) {
             setRecommendedVideos(sortedVideos);
         } else {
