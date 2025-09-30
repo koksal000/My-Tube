@@ -3,9 +3,6 @@
 import type { User, Video, Post, Comment, Message, Notification } from '@/lib/types';
 import fs from 'fs/promises';
 import path from 'path';
-import fetch from 'node-fetch';
-import FormData from 'form-data';
-
 
 // --- Data Persistence Layer ---
 // This file contains Server Actions that are guaranteed to only run on the server.
@@ -17,6 +14,7 @@ const videosFilePath = path.join(dataPath, 'videos.json');
 const postsFilePath = path.join(dataPath, 'posts.json');
 const messagesFilePath = path.join(dataPath, 'messages.json');
 const notificationsFilePath = path.join(dataPath, 'notifications.json');
+const uploadsPath = path.join(process.cwd(), 'public', 'uploads');
 
 
 // --- Utility Functions ---
@@ -215,14 +213,14 @@ export async function addVideoAction(video: Omit<Video, 'id' | 'author'>): Promi
     return { ...newVideo, author: authorWithoutPassword };
 }
 
-export async function addPostAction(post: Omit<Post, 'id' | 'author'>): Promise<Post> {
+export async function addPostAction(post: Omit<Post, 'id' | 'author' | 'comments'>): Promise<Post> {
     const posts = await readData<Post>(postsFilePath);
     const users = await readData<User>(usersFilePath);
     const author = users.find(u => u.id === post.authorId);
     if (!author) throw new Error("Author not found");
 
-    const newPost: Omit<Post, 'author'> = { ...post, id: `post-${Date.now()}`, comments: [] };
-    posts.push(newPost as any); // Pushing unhydrated version
+    const newPostData: Omit<Post, 'author'> = { ...post, id: `post-${Date.now()}`, comments: [] };
+    posts.push(newPostData as any); // Pushing unhydrated version
     await writeData(postsFilePath, posts);
 
     // Notify subscribers
@@ -232,13 +230,13 @@ export async function addPostAction(post: Omit<Post, 'id' | 'author'>): Promise<
             recipientId: sub.id,
             senderId: author.id,
             type: 'new_post',
-            contentId: newPost.id,
+            contentId: newPostData.id,
             contentType: 'post',
         });
     }
     
     const { password, ...authorWithoutPassword } = author;
-    return { ...newPost, author: authorWithoutPassword };
+    return { ...newPostData, author: authorWithoutPassword };
 }
 
 
@@ -435,46 +433,19 @@ export async function uploadFileAction(clientFormData: FormData): Promise<string
   if (!file) {
       throw new Error('No file provided.');
   }
+  
+  await fs.mkdir(uploadsPath, { recursive: true });
 
   const fileBuffer = Buffer.from(await file.arrayBuffer());
+  const fileExtension = path.extname(file.name);
+  const uniqueFilename = `${Date.now()}-${Math.round(Math.random() * 1E9)}${fileExtension}`;
+  const filePath = path.join(uploadsPath, uniqueFilename);
+  
+  await fs.writeFile(filePath, fileBuffer);
+  
+  const fileUrl = `/uploads/${uniqueFilename}`;
 
-  const form = new FormData();
-  form.append('reqtype', 'fileupload');
-  form.append('userhash', ''); // Catbox.moe allows anonymous uploads without a userhash
-  form.append('fileToUpload', fileBuffer, file.name);
-
-  try {
-    const response = await fetch('https://catbox.moe/user/api.php', {
-      method: 'POST',
-      body: form as any,
-      timeout: 30000, // 30 saniye zaman aşımı
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error(`Catbox API Error Response: ${errorText}`);
-      throw new Error(`Catbox API Error: ${response.status} ${response.statusText}`);
-    }
-
-    const responseText = await response.text();
-
-    if (responseText.startsWith('http')) {
-      return responseText;
-    } else {
-      console.error(`Catbox upload failed with response: ${responseText}`);
-      throw new Error(`Catbox upload failed: ${responseText}`);
-    }
-  } catch (error) {
-    console.error('Error in uploadFileAction:', error);
-    if (error instanceof Error) {
-        // node-fetch zaman aşımı hatasını kontrol et
-        if (error.name === 'FetchError' && error.message.includes('timeout')) {
-             throw new Error('Yükleme zaman aşımına uğradı. Lütfen daha sonra tekrar deneyin.');
-        }
-        throw new Error(`Failed to upload file: ${error.message}`);
-    }
-    throw new Error('An unknown error occurred during file upload.');
-  }
+  return fileUrl;
 }
 
 export async function sendMessageAction(senderId: string, recipientId: string, text: string): Promise<Message> {

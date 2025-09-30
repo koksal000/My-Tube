@@ -42,7 +42,7 @@ export function SplashScreen({ onVideoEnd }: SplashScreenProps) {
         {/* Background blurred video */}
         <video
           ref={videoRef1}
-          src="https://files.catbox.moe/aa0k70.mp4"
+          src="/uploads/intro.mp4"
           loop
           muted
           playsInline
@@ -52,7 +52,7 @@ export function SplashScreen({ onVideoEnd }: SplashScreenProps) {
         <div className="relative w-full h-full rounded-2xl overflow-hidden shadow-2xl ring-4 ring-primary/20">
           <video
             ref={videoRef2}
-            src="https://files.catbox.moe/aa0k70.mp4"
+            src="/uploads/intro.mp4"
             muted
             playsInline
             className="w-full h-full object-cover"
