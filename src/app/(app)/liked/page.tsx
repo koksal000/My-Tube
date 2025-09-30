@@ -4,21 +4,22 @@ import { VideoCard } from "@/components/video-card";
 import { useState, useEffect } from "react";
 import type { Video } from "@/lib/types";
 import { useRouter } from "next/navigation";
-import { getCurrentUser } from "@/lib/data";
-import { getVideoAction } from "@/app/actions";
+import { useDatabase } from "@/lib/db";
 
 export default function LikedPage() {
   const router = useRouter();
   const [likedVideos, setLikedVideos] = useState<Video[]>([]);
   const [loading, setLoading] = useState(true);
+  const db = useDatabase();
 
   useEffect(() => {
+    if (!db) return;
     const fetchLikedVideos = async () => {
-      const currentUser = await getCurrentUser();
+      const currentUser = await db.getCurrentUser();
       if (currentUser) {
         if (currentUser.likedVideos && currentUser.likedVideos.length > 0) {
-            const userLikedVideos = await Promise.all(currentUser.likedVideos.map(id => getVideoAction(id)));
-            setLikedVideos(userLikedVideos.filter((v): v is Video => !!v));
+            const userLikedVideos = await Promise.all(currentUser.likedVideos.map(id => db.getVideo(id)));
+            setLikedVideos(userLikedVideos.filter((v): v is Video => !!v).reverse());
         } else {
             setLikedVideos([]);
         }
@@ -28,9 +29,9 @@ export default function LikedPage() {
       setLoading(false);
     };
     fetchLikedVideos();
-  }, [router]);
+  }, [router, db]);
 
-  if (loading) {
+  if (loading || !db) {
       return <div>Beğenilen videolar yükleniyor...</div>
   }
 

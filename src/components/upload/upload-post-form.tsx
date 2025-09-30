@@ -8,18 +8,19 @@ import { Textarea } from "@/components/ui/textarea"
 import { useToast } from "@/hooks/use-toast"
 import type { Post } from "@/lib/types"
 import React from "react"
-import { getCurrentUser } from "@/lib/data"
 import { uploadFileAction, addPostAction } from "@/app/actions"
-
+import { useDatabase } from "@/lib/db"
 
 export function UploadPostForm() {
   const router = useRouter()
   const { toast } = useToast();
+  const db = useDatabase();
   const [isUploading, setIsUploading] = React.useState(false);
 
 
   const handlePostUpload = async (event: React.FormEvent) => {
     event.preventDefault()
+    if (!db) return;
     setIsUploading(true);
 
     const form = event.target as HTMLFormElement;
@@ -27,7 +28,7 @@ export function UploadPostForm() {
     const caption = formData.get("caption") as string;
     const imageFile = formData.get("image") as File;
     
-    const currentUser = await getCurrentUser();
+    const currentUser = await db.getCurrentUser();
     if (!currentUser) {
         toast({ title: "Hata", description: "Gönderi oluşturmak için giriş yapmalısınız.", variant: "destructive" });
         setIsUploading(false);
@@ -53,7 +54,8 @@ export function UploadPostForm() {
             createdAt: new Date().toISOString(),
         };
 
-        const newPost = await addPostAction(newPostData as any);
+        const newPost = await addPostAction(newPostData);
+        await db.addPost(newPost);
 
         toast({
             title: "Gönderi Oluşturuldu!",
@@ -79,7 +81,7 @@ export function UploadPostForm() {
         <Label htmlFor="image">Resim</Label>
         <Input id="image" name="image" type="file" accept="image/*" required disabled={isUploading} />
       </div>
-      <Button type="submit" className="w-full" disabled={isUploading}>
+      <Button type="submit" className="w-full" disabled={isUploading || !db}>
         {isUploading ? 'Gönderiliyor...' : 'Gönderi Oluştur'}
       </Button>
     </form>

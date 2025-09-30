@@ -8,49 +8,51 @@ import { Card, CardContent } from "@/components/ui/card";
 import Image from "next/image";
 import { useEffect, useState } from "react";
 import type { User, Video, Post } from "@/lib/types";
-import { useParams, useRouter, usePathname } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { EditProfileDialog } from "@/components/profile-edit-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { MessageSquare, MoreVertical, Trash2 } from "lucide-react";
 import Link from "next/link";
-import { subscribeAction, getUsersAction, getVideosAction, getPostsAction, deleteContentAction } from "@/app/actions";
-import { getCurrentUser } from "@/lib/data";
+import { subscribeAction, deleteContentAction } from "@/app/actions";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { useDatabase } from "@/lib/db";
+
 
 export default function ChannelPage() {
   const router = useRouter();
   const params = useParams<{ username: string }>();
   const { toast } = useToast();
+  const db = useDatabase();
+
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [channelUser, setChannelUser] = useState<User | null>(null);
   const [userVideos, setUserVideos] = useState<Video[]>([]);
   const [userPosts, setUserPosts] = useState<Post[]>([]);
+  
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [isOwnProfile, setIsOwnProfile] = useState(false);
   const [contentToDelete, setContentToDelete] = useState<{id: string, type: 'video' | 'post'} | null>(null);
   
   useEffect(() => {
+    if (!db) return;
+
     const init = async () => {
       if(!params.username) return;
 
-      const allUsers = await getUsersAction();
-      const foundChannelUser = allUsers.find(u => u.username === params.username);
-
-      const loggedInUser = await getCurrentUser();
-      
+      const loggedInUser = await db.getCurrentUser();
       if (!loggedInUser) {
         router.push('/login');
         return;
       }
       setCurrentUser(loggedInUser);
+      
+      const foundChannelUser = await db.getUserByUsername(params.username);
 
       if (foundChannelUser) {
         setChannelUser(foundChannelUser);
-         const allVideos = await getVideosAction();
-         const allPosts = await getPostsAction();
-         const videos = allVideos.filter(v => v.authorId === foundChannelUser.id);
-         const posts = allPosts.filter(p => p.authorId === foundChannelUser.id);
+         const videos = await db.getVideosByAuthor(foundChannelUser.id);
+         const posts = await db.getPostsByAuthor(foundChannelUser.id);
          setUserVideos(videos);
          setUserPosts(posts);
 
@@ -67,58 +69,59 @@ export default function ChannelPage() {
     }
     init();
     
-  }, [params.username, router, toast]);
+  }, [params.username, router, toast, db]);
 
-  const handleProfileUpdate = (updatedUser: User) => {
+  const handleProfileUpdate = async (updatedUser: User) => {
+    if (!db) return;
+    await db.updateUser(updatedUser); // Update DB
     setChannelUser(updatedUser);
-    setCurrentUser(updatedUser); // Update currentUser in state as well
+    setCurrentUser(updatedUser); 
     if (updatedUser.username !== params.username) {
       router.push(`/channel/${updatedUser.username}`);
     }
   }
 
   const handleSubscription = async () => {
-    if (!currentUser || !channelUser || isOwnProfile) return;
+    if (!currentUser || !channelUser || isOwnProfile || !db) return;
 
-    const newIsSubscribed = !isSubscribed;
-    
-    setIsSubscribed(newIsSubscribed);
-    if(channelUser){
-      const optimisticSubscribers = channelUser.subscribers + (newIsSubscribed ? 1 : -1);
-      setChannelUser({...channelUser, subscribers: optimisticSubscribers });
-    }
+    const originalSubscribed = isSubscribed;
+    const optimisticSubscribers = channelUser.subscribers + (originalSubscribed ? -1 : 1);
+
+    setIsSubscribed(!originalSubscribed);
+    setChannelUser({...channelUser, subscribers: optimisticSubscribers });
 
     try {
-      await subscribeAction(currentUser.id, channelUser.id);
-
-      const updatedCurrentUser: User = { 
-        ...currentUser, 
-        subscriptions: newIsSubscribed 
-          ? [...(currentUser.subscriptions || []), channelUser.id]
-          : (currentUser.subscriptions || []).filter(id => id !== channelUser.id)
-      };
-      setCurrentUser(updatedCurrentUser);
+      const { updatedCurrentUser, updatedChannelUser } = await subscribeAction(currentUser.id, channelUser.id);
       
-       toast({
-        title: newIsSubscribed ? "Abone Olundu!" : "Abonelikten Çıkıldı",
-        description: newIsSubscribed ? `${channelUser.displayName} kanalına başarıyla abone oldunuz.` : `${channelUser.displayName} kanalından aboneliğinizi kaldırdınız.`,
+      await Promise.all([
+        db.updateUser(updatedCurrentUser),
+        db.updateUser(updatedChannelUser)
+      ]);
+
+      setCurrentUser(updatedCurrentUser);
+      setChannelUser(updatedChannelUser);
+      
+      toast({
+        title: !originalSubscribed ? "Abone Olundu!" : "Abonelikten Çıkıldı",
       });
 
-      router.refresh();
-
     } catch (error) {
-       setIsSubscribed(!newIsSubscribed);
+       setIsSubscribed(originalSubscribed);
+       setChannelUser({...channelUser, subscribers: channelUser.subscribers }); // Revert
        toast({ title: "Hata", description: "İşlem sırasında bir hata oluştu.", variant: "destructive" });
     }
   };
   
    const handleDeleteConfirm = async () => {
-    if (!contentToDelete || !currentUser) return;
+    if (!contentToDelete || !currentUser || !db) return;
     try {
       await deleteContentAction(contentToDelete.id, contentToDelete.type, currentUser.id);
+      
       if (contentToDelete.type === 'video') {
+        await db.deleteVideo(contentToDelete.id);
         setUserVideos(prev => prev.filter(v => v.id !== contentToDelete.id));
       } else {
+        await db.deletePost(contentToDelete.id);
         setUserPosts(prev => prev.filter(p => p.id !== contentToDelete.id));
       }
       toast({ title: "İçerik Silindi" });
@@ -130,7 +133,7 @@ export default function ChannelPage() {
   };
 
 
-  if (!channelUser) {
+  if (!channelUser || !db) {
     return <div className="text-center py-20">Kanal Yükleniyor...</div>;
   }
 

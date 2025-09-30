@@ -1,5 +1,6 @@
 import { SidebarProvider } from "@/components/ui/sidebar"
 import MainLayout from "@/components/layout/main-layout"
+import { DatabaseProvider } from "@/lib/db"
 
 export default function AppLayout({
   children,
@@ -7,8 +8,10 @@ export default function AppLayout({
   children: React.ReactNode
 }) {
   return (
-    <SidebarProvider>
-      <MainLayout>{children}</MainLayout>
-    </SidebarProvider>
+    <DatabaseProvider>
+      <SidebarProvider>
+        <MainLayout>{children}</MainLayout>
+      </SidebarProvider>
+    </DatabaseProvider>
   )
 }

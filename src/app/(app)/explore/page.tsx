@@ -6,7 +6,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/card";
 import Image from "next/image";
-import { getVideosAction, getPostsAction } from "@/app/actions";
+import { useDatabase } from "@/lib/db";
 
 // A component for displaying posts in the explore grid
 const PostCard = ({ post }: { post: Post }) => (
@@ -29,26 +29,27 @@ const PostCard = ({ post }: { post: Post }) => (
 export default function ExplorePage() {
   const [exploreContent, setExploreContent] = useState<(Video | Post)[]>([]);
   const [loading, setLoading] = useState(true);
+  const db = useDatabase();
 
   useEffect(() => {
+    if (!db) return;
+
     const fetchContent = async () => {
       setLoading(true);
-      const allVideos = await getVideosAction();
-      const allPosts = await getPostsAction();
+      const allVideos = await db.getAllVideos();
+      const allPosts = await db.getAllPosts();
       
-      // admin contentini keşfetten çıkar ve yazarı olmayanları filtrele
-      const filteredVideos = allVideos.filter(v => v.author && v.author.username !== 'admin');
-      const filteredPosts = allPosts.filter(p => p.author && p.author.username !== 'admin');
+      const filteredVideos = allVideos.filter(v => v.author?.username !== 'admin');
+      const filteredPosts = allPosts.filter(p => p.author?.username !== 'admin');
       
       const combinedContent = [...filteredVideos, ...filteredPosts];
       
-      // İçerikleri karıştır
       const shuffled = [...combinedContent].sort(() => 0.5 - Math.random());
       setExploreContent(shuffled);
       setLoading(false);
     }
     fetchContent();
-  }, []);
+  }, [db]);
 
   if (loading) {
     return <div>İçerikler yükleniyor...</div>

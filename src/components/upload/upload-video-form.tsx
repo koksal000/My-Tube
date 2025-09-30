@@ -8,17 +8,18 @@ import { Textarea } from "@/components/ui/textarea"
 import { useToast } from "@/hooks/use-toast"
 import type { Video } from "@/lib/types"
 import React from "react"
-import { getCurrentUser } from "@/lib/data"
 import { uploadFileAction, addVideoAction } from "@/app/actions"
-
+import { useDatabase } from "@/lib/db"
 
 export function UploadVideoForm() {
   const router = useRouter()
   const { toast } = useToast();
+  const db = useDatabase();
   const [isUploading, setIsUploading] = React.useState(false);
 
   const handleVideoUpload = async (event: React.FormEvent) => {
     event.preventDefault()
+    if (!db) return;
     setIsUploading(true);
 
     const form = event.target as HTMLFormElement;
@@ -28,7 +29,7 @@ export function UploadVideoForm() {
     const thumbnailFile = formData.get("thumbnail") as File;
     const videoFile = formData.get("video") as File;
     
-    const currentUser = await getCurrentUser();
+    const currentUser = await db.getCurrentUser();
     if (!currentUser) {
         toast({ title: "Hata", description: "Yükleme yapmak için giriş yapmalısınız.", variant: "destructive" });
         setIsUploading(false);
@@ -55,7 +56,7 @@ export function UploadVideoForm() {
         uploadFileAction(videoFormData)
       ]);
       
-      const newVideoData: Omit<Video, 'id' | 'author'> = {
+      const newVideoData: Omit<Video, 'id' | 'author' | 'comments'> = {
           title,
           description,
           thumbnailUrl,
@@ -65,10 +66,10 @@ export function UploadVideoForm() {
           views: 0,
           likes: 0,
           createdAt: new Date().toISOString(),
-          comments: [],
       };
 
       const newVideo = await addVideoAction(newVideoData);
+      await db.addVideo(newVideo);
 
       toast({
           title: "Yükleme Başarılı!",
@@ -102,7 +103,7 @@ export function UploadVideoForm() {
         <Label htmlFor="video">Video</Label>
         <Input id="video" name="video" type="file" accept="video/*" required disabled={isUploading}/>
       </div>
-      <Button type="submit" className="w-full" disabled={isUploading}>
+      <Button type="submit" className="w-full" disabled={isUploading || !db}>
         {isUploading ? 'Yükleniyor...' : 'Video Yükle'}
       </Button>
     </form>

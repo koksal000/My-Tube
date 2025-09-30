@@ -14,6 +14,7 @@ import React, { useEffect, useState } from "react";
 import { addCommentToAction } from "@/app/actions";
 import { useToast } from "@/hooks/use-toast";
 import { CommentInput } from "./comment-input";
+import type { MyTubeDatabase } from "@/lib/db";
 
 function timeAgo(dateString: string) {
     if (!dateString) return "";
@@ -33,13 +34,6 @@ function timeAgo(dateString: string) {
 }
 
 const CommentDisplay = ({ comment }: { comment: Comment }) => {
-    const [showGifs, setShowGifs] = useState(true);
-     useEffect(() => {
-        if (typeof window !== 'undefined') {
-            const savedSetting = localStorage.getItem('myTube-showGifs');
-            setShowGifs(savedSetting ? JSON.parse(savedSetting) : true);
-        }
-    }, []);
 
     if (!comment || !comment.author) {
         return <div className="flex gap-3">Yorum Yükleniyor...</div>;
@@ -59,13 +53,7 @@ const CommentDisplay = ({ comment }: { comment: Comment }) => {
                     <p className="text-xs text-muted-foreground">{timeAgo(comment.createdAt)}</p>
                 </div>
                 {isGif ? (
-                    showGifs ? (
-                        <img src={comment.text} alt="Yorum GIF'i" className="mt-2 rounded-lg max-w-xs" />
-                    ) : (
-                        <div className="mt-2 p-2 border rounded-md bg-secondary text-muted-foreground text-sm flex items-center gap-2">
-                           <Film className="h-4 w-4" /> GIF
-                        </div>
-                    )
+                    <img src={comment.text} alt="Yorum GIF'i" className="mt-2 rounded-lg max-w-xs" />
                 ) : (
                     <p>{comment.text}</p>
                 )}
@@ -78,12 +66,13 @@ const CommentDisplay = ({ comment }: { comment: Comment }) => {
 interface CommentSheetProps {
     content: Video | Post;
     currentUser: User;
+    db: MyTubeDatabase;
     isOpen: boolean;
     onClose: () => void;
     onCommentAdded: (comment: Comment) => void;
 }
 
-export function CommentSheet({ content, currentUser, isOpen, onClose, onCommentAdded }: CommentSheetProps) {
+export function CommentSheet({ content, currentUser, db, isOpen, onClose, onCommentAdded }: CommentSheetProps) {
     const { toast } = useToast();
     const isVideo = 'videoUrl' in content;
 
@@ -93,6 +82,7 @@ export function CommentSheet({ content, currentUser, isOpen, onClose, onCommentA
         try {
             const contentTypeForAction = isVideo ? 'video' : 'post';
             const newComment = await addCommentToAction(content.id, contentTypeForAction, currentUser.id, text);
+            await db.addCommentToContent(content.id, newComment, contentTypeForAction);
             onCommentAdded(newComment);
             toast({ title: "Yorum Eklendi", description: "Yorumunuz başarıyla gönderildi." });
             return true; // Indicate success to clear the input

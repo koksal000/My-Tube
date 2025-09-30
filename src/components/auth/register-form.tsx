@@ -10,9 +10,9 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { useToast } from "@/hooks/use-toast"
 import type { User } from "@/lib/types"
 import React from "react"
-import { setCurrentUser } from "@/lib/data"
 import { Textarea } from "../ui/textarea"
 import { uploadFileAction, addUserAction, getUsersAction } from "@/app/actions"
+import { useDatabase } from "@/lib/db"
 
 const MyTubeLogo = () => (
     <div className="flex items-center justify-center space-x-2 text-primary font-bold text-2xl mb-4">
@@ -27,12 +27,17 @@ const MyTubeLogo = () => (
 export function RegisterForm() {
   const router = useRouter()
   const { toast } = useToast();
+  const db = useDatabase();
   const [addBanner, setAddBanner] = React.useState(false);
   const [isRegistering, setIsRegistering] = React.useState(false);
 
 
   const handleRegister = async (event: React.FormEvent) => {
     event.preventDefault()
+    if (!db) {
+        toast({ title: "Veritabanı hazır değil, lütfen bekleyin.", variant: "destructive" });
+        return;
+    }
     setIsRegistering(true);
     const form = event.target as HTMLFormElement;
     const formData = new FormData(form);
@@ -43,8 +48,7 @@ export function RegisterForm() {
     const profilePictureFile = formData.get("profile-picture") as File | null;
     const bannerFile = formData.get("banner") as File | null;
     
-    const allUsers = await getUsersAction();
-    const existingUser = allUsers.find(u => u.username === username);
+    const existingUser = await db.getUserByUsername(username);
 
     if (existingUser) {
       toast({
@@ -57,7 +61,7 @@ export function RegisterForm() {
     }
     
     try {
-        let profilePictureUrl = "https://files.catbox.moe/tqo828.png"; // Default
+        let profilePictureUrl = "/uploads/default-avatar.png"; 
         if (profilePictureFile && profilePictureFile.size > 0) {
           const profileFormData = new FormData();
           profileFormData.append('fileToUpload', profilePictureFile);
@@ -86,7 +90,8 @@ export function RegisterForm() {
         };
         
         const createdUser = await addUserAction(newUser);
-        setCurrentUser(createdUser);
+        await db.addUser(createdUser);
+        await db.setCurrentUser(createdUser);
         
         toast({
             title: "Kayıt Başarılı!",
@@ -116,26 +121,26 @@ export function RegisterForm() {
         <form onSubmit={handleRegister} className="grid gap-4">
           <div className="grid gap-2">
             <Label htmlFor="username">Kullanıcı Adı</Label>
-            <Input id="username" name="username" placeholder="kullanıcıadınız" required disabled={isRegistering}/>
+            <Input id="username" name="username" placeholder="kullanıcıadınız" required disabled={isRegistering || !db}/>
           </div>
           <div className="grid gap-2">
             <Label htmlFor="displayName">Görünen Ad</Label>
-            <Input id="displayName" name="displayName" placeholder="Adınız" required disabled={isRegistering}/>
+            <Input id="displayName" name="displayName" placeholder="Adınız" required disabled={isRegistering || !db}/>
           </div>
           <div className="grid gap-2">
             <Label htmlFor="password">Şifre</Label>
-            <Input id="password" name="password" type="password" required disabled={isRegistering}/>
+            <Input id="password" name="password" type="password" required disabled={isRegistering || !db}/>
           </div>
           <div className="grid gap-2">
             <Label htmlFor="profile-picture">Profil Resmi</Label>
-            <Input id="profile-picture" name="profile-picture" type="file" accept="image/*" disabled={isRegistering}/>
+            <Input id="profile-picture" name="profile-picture" type="file" accept="image/*" disabled={isRegistering || !db}/>
           </div>
            <div className="grid gap-2">
             <Label htmlFor="about">Hakkında</Label>
-            <Textarea id="about" name="about" placeholder="Herkese kendinizden biraz bahsedin." disabled={isRegistering}/>
+            <Textarea id="about" name="about" placeholder="Herkese kendinizden biraz bahsedin." disabled={isRegistering || !db}/>
           </div>
           <div className="flex items-center space-x-2">
-            <Checkbox id="add-banner" checked={addBanner} onCheckedChange={(checked) => setAddBanner(checked as boolean)} disabled={isRegistering}/>
+            <Checkbox id="add-banner" checked={addBanner} onCheckedChange={(checked) => setAddBanner(checked as boolean)} disabled={isRegistering || !db}/>
             <label
               htmlFor="add-banner"
               className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
@@ -146,11 +151,11 @@ export function RegisterForm() {
            {addBanner && (
             <div className="grid gap-2">
               <Label htmlFor="banner">Kanal Banner'ı</Label>
-              <Input id="banner" name="banner" type="file" accept="image/*" required={addBanner} disabled={isRegistering}/>
+              <Input id="banner" name="banner" type="file" accept="image/*" required={addBanner} disabled={isRegistering || !db}/>
             </div>
            )}
-          <Button type="submit" className="w-full" disabled={isRegistering}>
-            {isRegistering ? "Kaydediliyor..." : "Hesap Oluştur"}
+          <Button type="submit" className="w-full" disabled={isRegistering || !db}>
+            { !db ? "Veritabanı Yükleniyor..." : isRegistering ? "Kaydediliyor..." : "Hesap Oluştur" }
           </Button>
         </form>
         <div className="mt-4 text-center text-sm">

@@ -17,7 +17,8 @@ import { useToast } from "@/hooks/use-toast"
 import type { User } from "@/lib/types"
 import { Textarea } from "./ui/textarea"
 import { Checkbox } from "./ui/checkbox"
-import { uploadFileAction, updateUserAction, getUsersAction } from "@/app/actions"
+import { uploadFileAction, updateUserAction } from "@/app/actions"
+import { useDatabase } from "@/lib/db"
 
 interface EditProfileDialogProps {
   user: User;
@@ -26,6 +27,7 @@ interface EditProfileDialogProps {
 
 export function EditProfileDialog({ user, onProfileUpdate }: EditProfileDialogProps) {
     const { toast } = useToast();
+    const db = useDatabase();
     const [isOpen, setIsOpen] = React.useState(false);
     const [isSaving, setIsSaving] = React.useState(false);
     const [username, setUsername] = React.useState(user.username);
@@ -48,10 +50,10 @@ export function EditProfileDialog({ user, onProfileUpdate }: EditProfileDialogPr
     }, [isOpen, user]);
 
     const handleSaveChanges = async () => {
+        if (!db) return;
         setIsSaving(true);
         if (username !== user.username) {
-            const allUsers = await getUsersAction();
-            const existingUser = allUsers.find(u => u.username === username);
+            const existingUser = await db.getUserByUsername(username);
             if (existingUser) {
                 toast({
                     title: "Kullanıcı adı alınmış",
@@ -80,7 +82,7 @@ export function EditProfileDialog({ user, onProfileUpdate }: EditProfileDialogPr
                 bannerUrl = await uploadFileAction(bannerFormData);
             }
             
-            const updatedUser: User = {
+            const userToUpdate: User = {
                 ...user,
                 username,
                 displayName,
@@ -89,8 +91,7 @@ export function EditProfileDialog({ user, onProfileUpdate }: EditProfileDialogPr
                 banner: bannerUrl,
             };
 
-            await updateUserAction(updatedUser);
-
+            const updatedUser = await updateUserAction(userToUpdate);
             onProfileUpdate(updatedUser);
             
             toast({
@@ -203,5 +204,3 @@ export function EditProfileDialog({ user, onProfileUpdate }: EditProfileDialogPr
     </Dialog>
   )
 }
-
-    

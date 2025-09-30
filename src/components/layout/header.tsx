@@ -17,50 +17,53 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import Link from "next/link"
 import { useRouter } from "next/navigation";
 import React, { useEffect, useState } from "react"
-import type { User, Notification } from "@/lib/types"
-import { getCurrentUser, logout } from "@/lib/data"
-import { getNotificationsAction } from "@/app/actions"
+import type { User } from "@/lib/types"
+import { useDatabase } from "@/lib/db"
 
 export default function Header() {
   const router = useRouter();
+  const db = useDatabase();
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [unreadNotifications, setUnreadNotifications] = useState(0);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (!db) return;
+
     const fetchUserAndData = async () => {
       setLoading(true);
-      const user = await getCurrentUser();
+      const user = await db.getCurrentUser();
       setCurrentUser(user);
       if (user) {
-        const notifications = await getNotificationsAction(user.id);
+        const notifications = await db.getNotifications(user.id);
         setUnreadNotifications(notifications.filter(n => !n.read).length);
       }
       setLoading(false);
     }
     fetchUserAndData();
 
-    // Poll for notifications
+    // Polling is less ideal with a local DB, but we keep it for now
+    // A better approach would be custom events or a library like BroadcastChannel
      const interval = setInterval(async () => {
-        const user = await getCurrentUser();
+        if (!db) return;
+        const user = await db.getCurrentUser();
         if (user) {
-            const notifications = await getNotificationsAction(user.id);
+            const notifications = await db.getNotifications(user.id);
             const newUnreadCount = notifications.filter(n => !n.read).length;
-            if (newUnreadCount !== unreadNotifications) {
-                setUnreadNotifications(newUnreadCount);
-            }
+            setUnreadNotifications(newUnreadCount);
         }
-    }, 5000); // every 5 seconds
+    }, 5000); 
 
     return () => clearInterval(interval);
 
-  }, [router, unreadNotifications]);
+  }, [db]);
   
-  const handleLogout = () => {
-    logout();
+  const handleLogout = async () => {
+    if (!db) return;
+    await db.logout();
     setCurrentUser(null);
     router.push('/login');
-    router.refresh(); // To update sidebar etc.
+    router.refresh(); 
   };
 
   const handleSearch = (event: React.FormEvent<HTMLFormElement>) => {
@@ -75,7 +78,15 @@ export default function Header() {
   if (loading || !currentUser) {
     return (
        <header className="sticky top-0 z-10 flex h-16 shrink-0 items-center gap-4 border-b bg-background/80 px-4 backdrop-blur-sm md:px-6">
-        {/* Render a loading state or a slimmed-down header for logged-out users */}
+         <SidebarTrigger className="md:hidden" />
+          <div className="flex w-full items-center gap-4 md:ml-auto md:gap-2 lg:gap-4 justify-end">
+            <Button asChild>
+                <Link href="/login">Giriş Yap</Link>
+            </Button>
+             <Button variant="outline" asChild>
+                <Link href="/register">Kayıt Ol</Link>
+            </Button>
+          </div>
        </header>
     )
   }

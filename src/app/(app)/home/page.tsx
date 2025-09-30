@@ -3,27 +3,29 @@
 import { VideoCard } from "@/components/video-card";
 import { generateVideoRecommendations, VideoRecommendationsInput } from "@/ai/flows/video-recommendations";
 import React, { useEffect, useState } from "react";
-import type { User, Video } from "@/lib/types";
+import type { Video } from "@/lib/types";
 import { useRouter } from "next/navigation";
-import { getCurrentUser } from "@/lib/data";
-import { getVideosAction, getUserAction } from "@/app/actions";
+import { useDatabase } from "@/lib/db";
 
 export default function HomePage() {
   const router = useRouter();
   const [recommendedVideos, setRecommendedVideos] = useState<Video[]>([]);
   const [loading, setLoading] = useState(true);
+  const db = useDatabase();
 
   useEffect(() => {
+    if (!db) return;
+
     const fetchRecommendations = async () => {
       setLoading(true);
-      const currentUser = await getCurrentUser();
+      const currentUser = await db.getCurrentUser();
       
       if (!currentUser) {
         router.push('/login');
         return;
       }
       
-      const allDBVideos = await getVideosAction();
+      const allDBVideos = await db.getAllVideos();
       
       const allVideosForAI = allDBVideos
         .filter(v => v.author) // Filter out videos without an author
@@ -37,7 +39,7 @@ export default function HomePage() {
           commentCount: (v.comments || []).length
       }));
 
-      const subscribedUsers = await Promise.all((currentUser.subscriptions || []).map(id => getUserAction(id)));
+      const subscribedUsers = await Promise.all((currentUser.subscriptions || []).map(id => db.getUser(id)));
       const subscribedUsernames = subscribedUsers.filter(Boolean).map(u => u!.username);
 
       const recommendationInput: VideoRecommendationsInput = {
@@ -70,9 +72,9 @@ export default function HomePage() {
     };
 
     fetchRecommendations();
-  }, [router]);
+  }, [router, db]);
 
-  if (loading) {
+  if (loading || !db) {
     return <div>Öneriler yükleniyor...</div>
   }
   
@@ -86,5 +88,3 @@ export default function HomePage() {
     </div>
   );
 }
-
-    

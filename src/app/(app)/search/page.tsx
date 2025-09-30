@@ -3,28 +3,30 @@
 import { Suspense, useEffect, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { searchContent, SearchContentInput } from "@/ai/flows/contextual-search";
-import type { Video, User, Post } from "@/lib/types";
+import type { Video, User } from "@/lib/types";
 import { VideoCard } from "@/components/video-card";
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { getVideosAction, getUsersAction } from "@/app/actions";
+import { useDatabase } from "@/lib/db";
 
 function SearchResults({ query }: { query: string }) {
   const router = useRouter();
+  const db = useDatabase();
   const [channels, setChannels] = useState<User[]>([]);
   const [videos, setVideos] = useState<Video[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (!db) return;
     const performSearch = async () => {
       setLoading(true);
 
-      const allDBVideos = await getVideosAction();
-      const allDBUsers = await getUsersAction();
+      const allDBVideos = await db.getAllVideos();
+      const allDBUsers = await db.getAllUsers();
       
       const allContentForAI = [
-        ...allDBVideos.filter(v => v.author).map(v => ({ id: v.id, title: v.title, description: v.description, username: v.author.username, type: 'video' })),
+        ...allDBVideos.filter(v => v.author).map(v => ({ id: v.id, title: v.title, description: v.description, username: v.author!.username, type: 'video' })),
         ...allDBUsers.map(u => ({ id: u.id, title: u.displayName, description: u.about || '', username: u.username, type: 'channel' }))
       ];
 
@@ -75,9 +77,9 @@ function SearchResults({ query }: { query: string }) {
       setVideos([]);
       setChannels([]);
     }
-  }, [query]);
+  }, [query, db]);
 
-  if (loading) {
+  if (loading || !db) {
     return <div className="text-center py-20">Arama sonuçları yükleniyor...</div>;
   }
   

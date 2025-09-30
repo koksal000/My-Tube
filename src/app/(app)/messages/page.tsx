@@ -7,11 +7,11 @@ import { Input } from "@/components/ui/input";
 import { Send, AlertCircle } from "lucide-react";
 import { useState, useEffect, useRef, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
-import { getCurrentUser } from "@/lib/data";
 import type { User, Message } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
-import { getUsersAction, getMessagesAction, sendMessageAction } from "@/app/actions";
+import { getMessagesAction, sendMessageAction } from "@/app/actions";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useDatabase } from "@/lib/db";
 
 const ChatMessage = ({ msg, isOwnMessage, author }: { msg: Message; isOwnMessage: boolean, author?: User }) => (
   <div className={`flex items-end gap-2 ${isOwnMessage ? 'justify-end' : ''}`}>
@@ -32,6 +32,7 @@ const ChatMessage = ({ msg, isOwnMessage, author }: { msg: Message; isOwnMessage
 function MessagesChat({ currentUser }: { currentUser: User }) {
     const searchParams = useSearchParams();
     const routerUser = searchParams.get('to');
+    const db = useDatabase();
     
     const [selectedUser, setSelectedUser] = useState<User | null>(null);
     const [conversations, setConversations] = useState<User[]>([]);
@@ -42,20 +43,21 @@ function MessagesChat({ currentUser }: { currentUser: User }) {
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
+        if (!db) return;
         const initConversations = async () => {
-            const allUsers = await getUsersAction();
+            const allUsers = await db.getAllUsers();
             const conversationUsers = allUsers.filter(u => u.id !== currentUser.id && u.username !== 'admin');
             setConversations(conversationUsers);
             
             if (routerUser) {
-                const targetUser = allUsers.find(u => u.username === routerUser);
+                const targetUser = await db.getUserByUsername(routerUser);
                 if (targetUser) {
                    handleSelectConversation(targetUser);
                 }
             }
         }
         initConversations();
-    }, [routerUser, currentUser.id]);
+    }, [routerUser, currentUser.id, db]);
 
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -91,6 +93,8 @@ function MessagesChat({ currentUser }: { currentUser: User }) {
         setMessages(allMessages);
         setLoadingMessages(false);
     }
+
+    if (!db) return null;
 
     return (
         <div className="grid h-[calc(100vh-10rem)] grid-cols-1 md:grid-cols-3 gap-6">
@@ -179,17 +183,19 @@ function MessagesChat({ currentUser }: { currentUser: User }) {
 function MessagesPageLoader() {
     const [currentUser, setCurrentUser] = useState<User | null>(null);
     const [loading, setLoading] = useState(true);
+    const db = useDatabase();
 
     useEffect(() => {
+        if (!db) return;
         const init = async () => {
-            const user = await getCurrentUser();
+            const user = await db.getCurrentUser();
             setCurrentUser(user);
             setLoading(false);
         }
         init();
-    }, []);
+    }, [db]);
 
-    if (loading) {
+    if (loading || !db) {
         return (
              <div className="grid h-[calc(100vh-10rem)] grid-cols-1 md:grid-cols-3 gap-6">
                 <div className="md:col-span-1 flex flex-col">
@@ -221,7 +227,6 @@ function MessagesPageLoader() {
     }
     
     if (!currentUser) {
-        // This can be a login prompt or a redirect in a real app
         return <div className="text-center py-20">Sohbetleri görüntülemek için lütfen giriş yapın.</div>;
     }
 

@@ -5,8 +5,33 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { UploadVideoForm } from "@/components/upload/upload-video-form"
 import { UploadPostForm } from "@/components/upload/upload-post-form"
+import { useDatabase } from "@/lib/db"
+import { useRouter } from "next/navigation"
+import { useEffect, useState } from "react"
 
 export default function UploadPage() {
+    const db = useDatabase();
+    const router = useRouter();
+    const [isReady, setIsReady] = useState(false);
+
+    useEffect(() => {
+        if (db) {
+            const checkUser = async () => {
+                const user = await db.getCurrentUser();
+                if (!user) {
+                    router.push('/login');
+                } else {
+                    setIsReady(true);
+                }
+            };
+            checkUser();
+        }
+    }, [db, router]);
+
+    if (!isReady) {
+        return <div className="text-center py-20">Yükleniyor...</div>;
+    }
+
     return (
         <div className="max-w-2xl mx-auto">
             <Tabs defaultValue="video" className="w-full">

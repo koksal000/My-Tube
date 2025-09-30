@@ -1,10 +1,9 @@
-
-
 "use client"
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { ThumbsUp, BellPlus, Film, Heart, MessageSquare, Trash2, Reply, Share2 } from "lucide-react";
+import { Heart, MessageSquare, Trash2, Reply, Share2 } from "lucide-react";
+import { Separator } from "@/components/ui/separator";
 import { VideoCard } from "@/components/video-card";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState, Suspense } from "react";
@@ -12,11 +11,12 @@ import type { User, Video, Comment, Post } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import Image from "next/image";
 import { Card, CardContent } from "@/components/ui/card";
-import { addCommentToAction, addReplyToAction, likeContentAction, subscribeAction, getVideosAction, getVideoAction, getPostAction, viewContentAction, deleteContentAction, deleteCommentAction } from "@/app/actions";
-import { getCurrentUser } from "@/lib/data";
+import { addCommentToAction, addReplyToAction, likeContentAction, subscribeAction, viewContentAction, deleteContentAction, deleteCommentAction } from "@/app/actions";
 import { CommentInput } from "@/components/comment-input";
 import { ShareDialog } from "@/components/share-dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { useDatabase } from "@/lib/db";
+import Link from "next/link";
 
 function timeAgo(dateString: string) {
     if (!dateString) return "";
@@ -44,18 +44,11 @@ function formatViews(views: number) {
 }
 
 const CommentDisplay = ({ comment, currentUser, content, onReply, onDelete, parentCommentId }: { comment: Comment, currentUser: User, content: Video | Post, onReply: (parentCommentId: string, reply: Comment) => void, onDelete: (commentId: string, parentCommentId?: string) => void, parentCommentId?: string }) => {
-    const [showGifs, setShowGifs] = useState(true);
     const [showReplyInput, setShowReplyInput] = useState(false);
     const { toast } = useToast();
+    const db = useDatabase();
     
-     useEffect(() => {
-        if (typeof window !== 'undefined') {
-            const savedSetting = localStorage.getItem('myTube-showGifs');
-            setShowGifs(savedSetting ? JSON.parse(savedSetting) : true);
-        }
-    }, []);
-
-    if (!comment || !comment.author) {
+    if (!comment || !comment.author || !db) {
         return <div className="flex gap-3">Yorum Yükleniyor...</div>;
     }
 
@@ -63,6 +56,7 @@ const CommentDisplay = ({ comment, currentUser, content, onReply, onDelete, pare
         const contentTypeForAction = 'videoUrl' in content ? 'video' : 'post';
         try {
             const newReply = await addReplyToAction(content.id, contentTypeForAction, comment.id, currentUser.id, text);
+            await db.addReplyToComment(parentCommentId || comment.id, newReply);
             onReply(comment.id, newReply);
             setShowReplyInput(false);
             toast({ title: "Yanıt Eklendi" });
@@ -73,7 +67,7 @@ const CommentDisplay = ({ comment, currentUser, content, onReply, onDelete, pare
         }
     };
     
-    const canDelete = currentUser.id === comment.author.id || currentUser.id === content.author.id;
+    const canDelete = currentUser.id === comment.author.id || currentUser.id === content.authorId;
     const isGif = comment.text.startsWith('http') && (comment.text.endsWith('.gif') || comment.text.endsWith('.webp') || comment.text.endsWith('.png') || comment.text.endsWith('.jpg'));
 
     return (
@@ -88,13 +82,7 @@ const CommentDisplay = ({ comment, currentUser, content, onReply, onDelete, pare
                     <p className="text-xs text-muted-foreground">{timeAgo(comment.createdAt)}</p>
                 </div>
                 {isGif ? (
-                    showGifs ? (
-                        <img src={comment.text} alt="Yorum GIF'i" className="mt-2 rounded-lg max-w-xs" />
-                    ) : (
-                        <div className="mt-2 p-2 border rounded-md bg-secondary text-muted-foreground text-sm flex items-center gap-2">
-                           <Film className="h-4 w-4" /> GIF
-                        </div>
-                    )
+                     <img src={comment.text} alt="Yorum GIF'i" className="mt-2 rounded-lg max-w-xs" />
                 ) : (
                     <p>{comment.text}</p>
                 )}
@@ -150,7 +138,7 @@ const PostContent = ({ post, currentUser, onLike, onComment, isLiked, isSubscrib
     onDelete: () => void;
 }) => {
     if (!post.author) return null;
-    const isOwnPost = currentUser?.id === post.author.id;
+    const isOwnPost = currentUser?.id === post.authorId;
     return (
         <Card className="max-w-3xl mx-auto">
             <CardContent className="p-0">
@@ -217,6 +205,7 @@ function VideoPageClient() {
     const searchParams = useSearchParams();
     const isPost = searchParams.get('type') === 'post';
     const { toast } = useToast();
+    const db = useDatabase();
 
     const [content, setContent] = useState<Video | Post | null>(null);
     const [currentUser, setCurrentUser] = useState<User | null>(null);
@@ -231,36 +220,38 @@ function VideoPageClient() {
 
     // --- Data Fetching ---
     useEffect(() => {
+        if (!db || !params.id) return;
+
         const fetchContent = async () => {
-            if (!params.id) return;
             setLoading(true);
 
-            const [user, allVideos] = await Promise.all([
-                getCurrentUser(),
-                getVideosAction(),
-            ]);
-            
+            const user = await db.getCurrentUser();
             setCurrentUser(user);
 
             let fetchedContent: Video | Post | null = null;
             if (isPost) {
-                fetchedContent = await getPostAction(params.id);
+                fetchedContent = await db.getPost(params.id);
             } else {
-                fetchedContent = await getVideoAction(params.id);
-                // Set recommendations only for videos
-                const recommendations = allVideos
-                    .filter(v => v.id !== params.id && v.author)
-                    .sort(() => 0.5 - Math.random()) // simple random for now
-                    .slice(0, 10);
-                setRecommendedVideos(recommendations);
-                
-                // Track view
-                if(user && fetchedContent) {
-                   await viewContentAction(fetchedContent.id, 'video', user.id);
+                fetchedContent = await db.getVideo(params.id);
+                if (fetchedContent) {
+                    const allVideos = await db.getAllVideos();
+                    const recommendations = allVideos
+                        .filter(v => v.id !== params.id && v.author)
+                        .sort(() => 0.5 - Math.random()) 
+                        .slice(0, 10);
+                    setRecommendedVideos(recommendations);
+                    
+                    if(user) {
+                       const result = await viewContentAction(fetchedContent.id, 'video', user.id);
+                       if (result) {
+                         await db.updateVideo(result.updatedContent as Video);
+                         await db.updateUser(result.updatedUser);
+                       }
+                    }
                 }
             }
 
-            if (!fetchedContent || !fetchedContent.author) {
+            if (!fetchedContent) {
                 toast({ title: "İçerik bulunamadı", variant: "destructive" });
                 router.push('/home');
                 return;
@@ -268,8 +259,8 @@ function VideoPageClient() {
             
             setContent(fetchedContent);
             
-            if (user) {
-                setIsSubscribed((user.subscriptions || []).includes(fetchedContent.author.id));
+            if (user && fetchedContent.author) {
+                setIsSubscribed((user.subscriptions || []).includes(fetchedContent.authorId));
                 const userLikes = isPost ? user.likedPosts : user.likedVideos;
                 setIsLiked((userLikes || []).includes(fetchedContent.id));
             }
@@ -278,37 +269,34 @@ function VideoPageClient() {
         };
 
         fetchContent();
-    }, [params.id, isPost, router, toast]);
+    }, [params.id, isPost, router, toast, db]);
 
     // --- Event Handlers ---
 
     const handleSubscription = async () => {
-        if (!currentUser || !content || !content.author) return;
-        if(currentUser.id === content.author.id) return;
+        if (!currentUser || !content || !content.authorId || !db) return;
+        if(currentUser.id === content.authorId) return;
         
-        const newIsSubscribed = !isSubscribed;
-        setIsSubscribed(newIsSubscribed);
+        const originalSubscribed = isSubscribed;
+        setIsSubscribed(!originalSubscribed);
 
         try {
-          await subscribeAction(currentUser.id, content.author.id);
-          toast({
-            title: newIsSubscribed ? "Abone Olundu!" : "Abonelikten Çıkıldı",
-          });
-          // Optimistically update subscriber count if content has it
-          setContent(prev => {
-              if (prev && prev.author) {
-                  return { ...prev, author: {...prev.author, subscribers: prev.author.subscribers + (newIsSubscribed ? 1 : -1) }};
-              }
-              return prev;
-          });
+          const { updatedCurrentUser, updatedChannelUser } = await subscribeAction(currentUser.id, content.authorId);
+          await db.updateUser(updatedCurrentUser);
+          await db.updateUser(updatedChannelUser);
+          
+          setContent(prev => prev ? { ...prev, author: updatedChannelUser } : null);
+          setCurrentUser(updatedCurrentUser);
+          
+          toast({ title: !originalSubscribed ? "Abone Olundu!" : "Abonelikten Çıkıldı" });
         } catch (error) {
-           setIsSubscribed(!newIsSubscribed); // Revert on failure
+           setIsSubscribed(originalSubscribed); // Revert on failure
            toast({ title: "Hata", description: "İşlem sırasında bir hata oluştu.", variant: "destructive" });
         }
     };
     
     const handleLike = async () => {
-        if (!currentUser || !content) {
+        if (!currentUser || !content || !db) {
             toast({ title: "Giriş Gerekli", variant: "destructive" });
             return;
         }
@@ -318,9 +306,15 @@ function VideoPageClient() {
         setContent(prev => prev ? { ...prev, likes: prev.likes + (newIsLiked ? 1 : -1) } : prev);
 
         try {
-            await likeContentAction(content.id, currentUser.id, isPost ? 'post' : 'video');
+            const { updatedContent, updatedUser } = await likeContentAction(content.id, currentUser.id, isPost ? 'post' : 'video');
+            await db.updateUser(updatedUser);
+             if (isPost) {
+                await db.updatePost(updatedContent as Post);
+             } else {
+                await db.updateVideo(updatedContent as Video);
+             }
+            setCurrentUser(updatedUser);
         } catch (error) {
-            // Revert on failure
             setIsLiked(!newIsLiked);
             setContent(prev => prev ? { ...prev, likes: prev.likes - (newIsLiked ? 1 : -1) } : prev);
             toast({ title: "Hata", description: "Beğenme işlemi başarısız oldu.", variant: "destructive" });
@@ -328,9 +322,10 @@ function VideoPageClient() {
     };
 
     const handleAddComment = async (text: string) => {
-        if (!currentUser || !content) return false;
+        if (!currentUser || !content || !db) return false;
         try {
             const newComment = await addCommentToAction(content.id, isPost ? 'post' : 'video', currentUser.id, text);
+            await db.addCommentToContent(content.id, newComment, isPost ? 'post' : 'video');
             setContent(prev => prev ? { ...prev, comments: [newComment, ...prev.comments] } : prev);
             toast({ title: "Yorum Eklendi" });
             return true;
@@ -354,10 +349,13 @@ function VideoPageClient() {
     };
     
     const handleDeleteContent = async () => {
-        if (!contentToDelete || !currentUser || contentToDelete.id !== content?.id) return;
+        if (!contentToDelete || !currentUser || contentToDelete.id !== content?.id || !db) return;
         
         try {
             await deleteContentAction(contentToDelete.id, contentToDelete.type, currentUser.id);
+            if (contentToDelete.type === 'video') await db.deleteVideo(contentToDelete.id);
+            else await db.deletePost(contentToDelete.id);
+
             toast({ title: "İçerik Silindi" });
             router.push(`/channel/${currentUser.username}`);
         } catch (error) {
@@ -368,22 +366,28 @@ function VideoPageClient() {
     };
     
      const handleDeleteComment = async () => {
-        if (!commentToDelete || !content || !currentUser) return;
+        if (!commentToDelete || !content || !currentUser || !db) return;
         try {
             await deleteCommentAction(content.id, isPost ? 'post' : 'video', commentToDelete.commentId, currentUser.id, commentToDelete.parentCommentId);
             
+            if (commentToDelete.parentCommentId) {
+                 await db.deleteReplyFromComment(commentToDelete.parentCommentId, commentToDelete.commentId);
+            } else {
+                 await db.deleteCommentFromContent(content.id, commentToDelete.commentId, isPost ? 'post' : 'video');
+            }
+           
             setContent(prev => {
                 if (!prev) return null;
                 let updatedComments;
-                if(commentToDelete.parentCommentId) { // It's a reply
+                if(commentToDelete.parentCommentId) { 
                     updatedComments = prev.comments.map(c => {
                        if (c.id === commentToDelete.parentCommentId) {
-                           const filteredReplies = c.replies.filter(r => r.id !== commentToDelete.commentId);
+                           const filteredReplies = (c.replies || []).filter(r => r.id !== commentToDelete.commentId);
                            return {...c, replies: filteredReplies};
                        }
                        return c;
                     });
-                } else { // It's a top-level comment
+                } else {
                     updatedComments = prev.comments.filter(c => c.id !== commentToDelete.commentId);
                 }
                 return { ...prev, comments: updatedComments };
@@ -398,19 +402,19 @@ function VideoPageClient() {
     };
 
 
-    // --- Render Logic ---
-
-    if (loading) {
+    if (loading || !db || !content) {
         return <div className="text-center py-20">İçerik yükleniyor...</div>;
-    }
-
-    if (!content) {
-        return null; // Should be redirected by fetch logic
     }
 
     const video = isPost ? null : content as Video;
     const post = isPost ? content as Post : null;
     const author = content.author;
+
+    if (!author) {
+        toast({ title: "İçerik sahibi bulunamadı", variant: "destructive" });
+        router.push('/home');
+        return null;
+    }
 
     return (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -550,5 +554,3 @@ export default function VideoPage() {
         </Suspense>
     )
 }
-
-    

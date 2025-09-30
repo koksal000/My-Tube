@@ -1,6 +1,6 @@
 "use client"
 
-import { BellRing, ThumbsUp, MessageCircle, UserPlus, GitMerge, Video, MessageSquare, Newspaper } from "lucide-react";
+import { BellRing, ThumbsUp, MessageCircle, UserPlus, GitMerge, Video, MessageSquare, Newspaper, RefreshCw } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -8,10 +8,11 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { useEffect, useState, useMemo } from "react";
 import type { Notification, User } from "@/lib/types";
-import { getCurrentUser } from "@/lib/data";
-import { getNotificationsAction, markNotificationsAsReadAction } from "@/app/actions";
+import { markNotificationsAsReadAction } from "@/app/actions";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useDatabase } from "@/lib/db";
+import { Button } from "@/components/ui/button";
 
 // Helper functions to interact with localStorage
 const getSettingFromStorage = (key: string, defaultValue: boolean): boolean => {
@@ -83,6 +84,11 @@ const NotificationItem = ({ notification }: { notification: Notification }) => {
             icon = <MessageSquare className="h-5 w-5 text-cyan-500" />;
             text = <p><span className="font-semibold">{notification.sender?.displayName}</span> size bir mesaj gönderdi.</p>;
             link = `/messages?to=${notification.sender?.username}`;
+            break;
+        case 'reply':
+             icon = <MessageCircle className="h-5 w-5 text-indigo-500" />;
+            text = <p><span className="font-semibold">{notification.sender?.displayName}</span> yorumunuza yanıt verdi: &quot;{notification.text}&quot;</p>;
+            link = `/video/${notification.contentId}?type=${notification.contentType}`;
             break;
     }
 
@@ -177,42 +183,47 @@ const NotificationSettings = () => {
 
 export default function NotificationsPage() {
     const router = useRouter();
+    const db = useDatabase();
     const [currentUser, setCurrentUser] = useState<User | null>(null);
     const [notifications, setNotifications] = useState<Notification[]>([]);
     const [loading, setLoading] = useState(true);
 
-    // Settings state
     const [showLikes, setShowLikes] = useState(true);
     const [showSubs, setShowSubs] = useState(true);
     const [showMentions, setShowMentions] = useState(true);
 
+     const fetchNotifications = async (user: User) => {
+        if (!db) return;
+        setLoading(true);
+        const userNotifications = await db.getNotifications(user.id);
+        setNotifications(userNotifications.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
+
+        if (userNotifications.some(n => !n.read)) {
+            const updated = await markNotificationsAsReadAction(user.id);
+            await db.updateNotifications(updated);
+            setNotifications(updated.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
+        }
+        setLoading(false);
+     };
+
      useEffect(() => {
-        const fetchUserAndNotifications = async () => {
-            setLoading(true);
-            const user = await getCurrentUser();
+        if (!db) return;
+        const fetchUser = async () => {
+            const user = await db.getCurrentUser();
             if (user) {
                 setCurrentUser(user);
-                const userNotifications = await getNotificationsAction(user.id);
-                setNotifications(userNotifications);
-                
-                // Mark notifications as read
-                if (userNotifications.some(n => !n.read)) {
-                    await markNotificationsAsReadAction(user.id);
-                }
-
+                await fetchNotifications(user);
             } else {
                 router.push('/login');
             }
-            setLoading(false);
         }
-        fetchUserAndNotifications();
+        fetchUser();
 
-        // Load settings from localStorage
         setShowLikes(getSettingFromStorage('myTube-notify-likesAndComments', true));
         setShowSubs(getSettingFromStorage('myTube-notify-subscriptions', true));
         setShowMentions(getSettingFromStorage('myTube-notify-mentions', true));
 
-    }, [router]);
+    }, [router, db]);
     
     const filteredNotifications = useMemo(() => {
         return notifications.filter(n => {
@@ -224,22 +235,31 @@ export default function NotificationsPage() {
         })
     }, [notifications, showLikes, showSubs, showMentions]);
 
-    const mentionsAndReplies = useMemo(() => {
-        return filteredNotifications.filter(n => n.type === 'mention' || n.type === 'reply');
+    const mentions = useMemo(() => {
+        return filteredNotifications.filter(n => n.type === 'mention');
+    }, [filteredNotifications]);
+    
+    const replies = useMemo(() => {
+        return filteredNotifications.filter(n => n.type === 'reply');
     }, [filteredNotifications]);
 
-    if (loading) {
+    if (loading || !db) {
         return <div>Bildirimler yükleniyor...</div>
     }
 
     return (
         <div>
-            <h1 className="text-2xl font-bold mb-6">Bildirimler</h1>
+            <div className="flex justify-between items-center mb-6">
+                <h1 className="text-2xl font-bold">Bildirimler</h1>
+                 <Button variant="ghost" size="icon" onClick={() => currentUser && fetchNotifications(currentUser)}>
+                    <RefreshCw className="h-5 w-5" />
+                </Button>
+            </div>
              <Tabs defaultValue="all" className="w-full">
                 <TabsList className="mb-6 grid w-full grid-cols-4">
                     <TabsTrigger value="all">Tümü</TabsTrigger>
                     <TabsTrigger value="mentions">Bahsedenler</TabsTrigger>
-                    <TabsTrigger value="replies">Yanıtlar</TabsTrigger> {/* This is not a real type yet */}
+                    <TabsTrigger value="replies">Yanıtlar</TabsTrigger>
                     <TabsTrigger value="settings">Ayarlar</TabsTrigger>
                 </TabsList>
                 <TabsContent value="all">
@@ -262,9 +282,9 @@ export default function NotificationsPage() {
                 <TabsContent value="mentions">
                      <Card>
                         <CardContent className="p-2">
-                           {mentionsAndReplies.length > 0 ? (
+                           {mentions.length > 0 ? (
                                <div className="space-y-2">
-                                   {mentionsAndReplies.map(notification => (
+                                   {mentions.map(notification => (
                                        <NotificationItem key={notification.id} notification={notification} />
                                    ))}
                                </div>
@@ -279,9 +299,9 @@ export default function NotificationsPage() {
                  <TabsContent value="replies">
                      <Card>
                         <CardContent className="p-2">
-                           {mentionsAndReplies.length > 0 ? (
+                           {replies.length > 0 ? (
                                <div className="space-y-2">
-                                   {mentionsAndReplies.map(notification => (
+                                   {replies.map(notification => (
                                        <NotificationItem key={notification.id} notification={notification} />
                                    ))}
                                </div>

@@ -23,8 +23,7 @@ import { usePathname } from "next/navigation"
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
 import React, { useEffect, useState } from "react"
 import type { User } from "@/lib/types"
-import { getCurrentUser } from "@/lib/data"
-import { getUserAction } from "@/app/actions"
+import { useDatabase } from "@/lib/db"
 
 const MyTubeLogo = () => (
     <Link href="/home" className="flex items-center gap-2 text-primary font-bold text-xl">
@@ -37,23 +36,31 @@ const MyTubeLogo = () => (
 
 export default function SidebarContentComponent() {
   const pathname = usePathname()
+  const db = useDatabase();
   const isActive = (path: string) => pathname === path
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [subscriptions, setSubscriptions] = useState<User[]>([]);
 
   useEffect(() => {
+    if (!db) return;
+
     const fetchUserAndSubs = async () => {
-      const user = await getCurrentUser();
+      const user = await db.getCurrentUser();
       if (user) {
         setCurrentUser(user);
         if (user.subscriptions && user.subscriptions.length > 0) {
-            const subUsers = await Promise.all(user.subscriptions.map(id => getUserAction(id)));
+            const subUsers = await Promise.all(user.subscriptions.map(id => db.getUser(id)));
             setSubscriptions(subUsers.filter((u): u is User => !!u));
+        } else {
+            setSubscriptions([]);
         }
+      } else {
+          setCurrentUser(null);
+          setSubscriptions([]);
       }
     };
     fetchUserAndSubs();
-  }, [pathname]); // Re-fetch on path change to keep data fresh
+  }, [pathname, db]); // Re-fetch on path change to keep data fresh
 
 
   return (
@@ -87,40 +94,44 @@ export default function SidebarContentComponent() {
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
-          <SidebarMenuItem>
-            <SidebarMenuButton asChild isActive={isActive('/subscriptions')} tooltip="Abonelikler">
-              <Link href="/subscriptions">
-                <Youtube />
-                <span>Abonelikler</span>
-              </Link>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
+           {currentUser && (
+            <SidebarMenuItem>
+                <SidebarMenuButton asChild isActive={isActive('/subscriptions')} tooltip="Abonelikler">
+                <Link href="/subscriptions">
+                    <Youtube />
+                    <span>Abonelikler</span>
+                </Link>
+                </SidebarMenuButton>
+            </SidebarMenuItem>
+           )}
         </SidebarMenu>
 
-        <Separator className="my-4" />
+        {currentUser && <Separator className="my-4" />}
 
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <SidebarMenuButton asChild isActive={isActive('/liked')} tooltip="Beğenilenler">
-              <Link href="/liked">
-                <ThumbsUp />
-                <span>Beğenilenler</span>
-              </Link>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-          <SidebarMenuItem>
-            <SidebarMenuButton asChild isActive={isActive('/history')} tooltip="Geçmiş">
-              <Link href="/history">
-                <History />
-                <span>Geçmiş</span>
-              </Link>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-        </SidebarMenu>
+        {currentUser && (
+            <SidebarMenu>
+                <SidebarMenuItem>
+                    <SidebarMenuButton asChild isActive={isActive('/liked')} tooltip="Beğenilenler">
+                    <Link href="/liked">
+                        <ThumbsUp />
+                        <span>Beğenilenler</span>
+                    </Link>
+                    </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                    <SidebarMenuButton asChild isActive={isActive('/history')} tooltip="Geçmiş">
+                    <Link href="/history">
+                        <History />
+                        <span>Geçmiş</span>
+                    </Link>
+                    </SidebarMenuButton>
+                </SidebarMenuItem>
+            </SidebarMenu>
+        )}
         
-        {subscriptions.length > 0 && <Separator className="my-4" />}
+        {currentUser && subscriptions.length > 0 && <Separator className="my-4" />}
         
-        {subscriptions.length > 0 && (
+        {currentUser && subscriptions.length > 0 && (
           <div className="px-2 mb-2 text-sm font-medium text-muted-foreground group-data-[collapsible=icon]:hidden">
               Abonelikler
           </div>

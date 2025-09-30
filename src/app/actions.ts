@@ -4,9 +4,10 @@ import type { User, Video, Post, Comment, Message, Notification } from '@/lib/ty
 import fs from 'fs/promises';
 import path from 'path';
 
-// --- Data Persistence Layer ---
+// --- Data Persistence Layer (JSON Files) ---
 // This file contains Server Actions that are guaranteed to only run on the server.
-// They handle all data reading and writing to files to ensure persistence across all clients.
+// They handle all data reading and writing to files to ensure persistence.
+// The client-side will interact with this layer via IndexedDB for performance.
 
 const dataPath = path.join(process.cwd(), 'data');
 const usersFilePath = path.join(dataPath, 'users.json');
@@ -28,10 +29,14 @@ const readData = async <T>(filePath: string): Promise<T[]> => {
              return [];
         }
         const jsonData = await fs.readFile(filePath, 'utf-8');
+        // Handle empty file case
+        if (jsonData.trim() === '') {
+            return [];
+        }
         return JSON.parse(jsonData) as T[];
     } catch (error) {
         console.error(`Error reading data from ${filePath}:`, error);
-        throw error;
+        throw new Error(`Failed to read from ${filePath}`);
     }
 };
 
@@ -41,36 +46,46 @@ const writeData = async <T>(filePath: string, data: T[]): Promise<void> => {
         await fs.writeFile(filePath, JSON.stringify(data, null, 4), 'utf-8');
     } catch (error) {
         console.error(`Error writing data to ${filePath}:`, error);
-        throw error;
+        throw new Error(`Failed to write to ${filePath}`);
     }
 };
 
+// This hydration function is now more critical as it prepares data before sending to client DB
 async function hydrateData<T extends (Video | Post | Comment | Notification)>(item: T | Omit<T, 'author' | 'sender' | 'replies'>, allUsers: User[]): Promise<T> {
     if (!item) return item as T;
 
     const hydratedItem = { ...item } as T;
+    
+    const findUser = (userId: string) => {
+        const user = allUsers.find(u => u.id === userId);
+        if (user) {
+            const { password, ...userWithoutPassword } = user;
+            return userWithoutPassword;
+        }
+        return undefined;
+    }
 
     if ('authorId' in hydratedItem && hydratedItem.authorId && !('author' in hydratedItem && hydratedItem.author)) {
-        const author = allUsers.find(u => u.id === (hydratedItem as any).authorId);
-        if (author) (hydratedItem as any).author = { ...author, password: '' };
+       (hydratedItem as any).author = findUser((hydratedItem as any).authorId);
     }
 
     if ('senderId' in hydratedItem && hydratedItem.senderId && !('sender' in hydratedItem && hydratedItem.sender)) {
-        const sender = allUsers.find(u => u.id === (hydratedItem as any).senderId);
-        if (sender) (hydratedItem as any).sender = { ...sender, password: '' };
+        (hydratedItem as any).sender = findUser((hydratedItem as any).senderId);
     }
     
-    if ('comments' in hydratedItem && Array.isArray((hydratedItem as any).comments)) {
+    if ('comments' in hydratedItem && Array.isArray((hydratedItem as any).comments) && (hydratedItem as any).comments.length > 0) {
         (hydratedItem as any).comments = await Promise.all(
             ((hydratedItem as any).comments as (Comment | Omit<Comment, 'author'>)[])
                 .map(c => hydrateData(c as Comment, allUsers))
+                .filter(Boolean) // Filter out any potentially null comments
         );
     }
     
-    if ('replies' in hydratedItem && Array.isArray((hydratedItem as any).replies)) {
+    if ('replies' in hydratedItem && Array.isArray((hydratedItem as any).replies) && (hydratedItem as any).replies.length > 0) {
          (hydratedItem as any).replies = await Promise.all(
             ((hydratedItem as any).replies as (Comment | Omit<Comment, 'author'>)[])
                 .map(r => hydrateData(r as Comment, allUsers))
+                .filter(Boolean)
         );
     }
 
@@ -79,7 +94,7 @@ async function hydrateData<T extends (Video | Post | Comment | Notification)>(it
 
 // --- NOTIFICATION ACTIONS ---
 
-export async function createNotificationAction(notification: Omit<Notification, 'id' | 'createdAt' | 'read'>): Promise<void> {
+export async function createNotificationAction(notification: Omit<Notification, 'id' | 'createdAt' | 'read'>): Promise<Notification> {
     const notifications = await readData<Notification>(notificationsFilePath);
     const newNotification: Notification = {
         ...notification,
@@ -89,6 +104,9 @@ export async function createNotificationAction(notification: Omit<Notification, 
     };
     notifications.unshift(newNotification);
     await writeData(notificationsFilePath, notifications);
+    
+    const allUsers = await readData<User>(usersFilePath);
+    return await hydrateData(newNotification, allUsers);
 }
 
 export async function getNotificationsAction(userId: string): Promise<Notification[]> {
@@ -100,7 +118,7 @@ export async function getNotificationsAction(userId: string): Promise<Notificati
     return Promise.all(userNotifications.map(n => hydrateData(n, allUsers)));
 }
 
-export async function markNotificationsAsReadAction(userId: string): Promise<void> {
+export async function markNotificationsAsReadAction(userId: string): Promise<Notification[]> {
     const notifications = await readData<Notification>(notificationsFilePath);
     const updatedNotifications = notifications.map(n => {
         if (n.recipientId === userId && !n.read) {
@@ -109,6 +127,7 @@ export async function markNotificationsAsReadAction(userId: string): Promise<voi
         return n;
     });
     await writeData(notificationsFilePath, updatedNotifications);
+    return updatedNotifications.filter(n => n.recipientId === userId);
 }
 
 
@@ -119,35 +138,14 @@ export async function getUsersAction(): Promise<User[]> {
     return users.map(({ password, ...user }) => user);
 }
 
-export async function getUserAction(userId: string): Promise<User | null> {
-    const users = await readData<User>(usersFilePath);
-    const user = users.find(u => u.id === userId);
-    if (!user) return null;
-    const { password, ...userWithoutPassword } = user;
-    return userWithoutPassword;
-}
-
-
 export async function getVideosAction(): Promise<Video[]> {
     const [videos, allUsers] = await Promise.all([readData<Video>(videosFilePath), readData<User>(usersFilePath)]);
     return Promise.all(videos.map(v => hydrateData(v, allUsers)));
 }
 
-export async function getVideoAction(videoId: string): Promise<Video | null> {
-    const videos = await getVideosAction();
-    const video = videos.find(v => v.id === videoId);
-    return video || null;
-}
-
 export async function getPostsAction(): Promise<Post[]> {
     const [posts, allUsers] = await Promise.all([readData<Post>(postsFilePath), readData<User>(usersFilePath)]);
     return Promise.all(posts.map(p => hydrateData(p, allUsers)));
-}
-
-export async function getPostAction(postId: string): Promise<Post | null> {
-    const posts = await getPostsAction();
-    const post = posts.find(p => p.id === postId);
-    return post || null;
 }
 
 export async function getMessagesAction(currentUserId: string, otherUserId: string): Promise<Message[]> {
@@ -167,14 +165,14 @@ export async function addUserAction(user: Omit<User, 'id'>): Promise<User> {
   if (existingUser) {
       throw new Error("Username already exists.");
   }
-  const newUser = { ...user, id: `user-${Date.now()}` };
+  const newUser: User = { ...user, id: `user-${Date.now()}` };
   users.push(newUser);
   await writeData(usersFilePath, users);
   const { password, ...userWithoutPassword } = newUser;
   return userWithoutPassword;
 }
 
-export async function updateUserAction(updatedUser: User): Promise<void> {
+export async function updateUserAction(updatedUser: User): Promise<User> {
     const users = await readData<User>(usersFilePath);
     const userIndex = users.findIndex(u => u.id === updatedUser.id);
     if (userIndex !== -1) {
@@ -184,16 +182,19 @@ export async function updateUserAction(updatedUser: User): Promise<void> {
         }
         users[userIndex] = updatedUser;
         await writeData(usersFilePath, users);
+        const { password, ...userWithoutPassword } = updatedUser;
+        return userWithoutPassword;
     }
+    throw new Error("User not found for update");
 }
 
-export async function addVideoAction(video: Omit<Video, 'id' | 'author'>): Promise<Video> {
+export async function addVideoAction(video: Omit<Video, 'id' | 'author' | 'comments'>): Promise<Video> {
     const videos = await readData<Video>(videosFilePath);
     const users = await readData<User>(usersFilePath);
     const author = users.find(u => u.id === video.authorId);
     if (!author) throw new Error("Author not found");
 
-    const newVideo = { ...video, id: `video-${Date.now()}` };
+    const newVideo: Omit<Video, 'author'> = { ...video, id: `video-${Date.now()}`, comments: [] };
     videos.push(newVideo as any); // Pushing unhydrated version
     await writeData(videosFilePath, videos);
 
@@ -208,9 +209,8 @@ export async function addVideoAction(video: Omit<Video, 'id' | 'author'>): Promi
             contentType: 'video',
         });
     }
-
-    const { password, ...authorWithoutPassword } = author;
-    return { ...newVideo, author: authorWithoutPassword };
+    
+    return await hydrateData(newVideo as Video, users);
 }
 
 export async function addPostAction(post: Omit<Post, 'id' | 'author' | 'comments'>): Promise<Post> {
@@ -235,8 +235,7 @@ export async function addPostAction(post: Omit<Post, 'id' | 'author' | 'comments
         });
     }
     
-    const { password, ...authorWithoutPassword } = author;
-    return { ...newPostData, author: authorWithoutPassword };
+    return await hydrateData(newPostData as Post, users);
 }
 
 
@@ -245,24 +244,13 @@ export async function addCommentToAction(contentId: string, contentType: 'video'
     const author = allUsers.find(u => u.id === authorId);
     if (!author) throw new Error("Comment author not found");
 
-    const newComment: Comment = {
+    const newComment: Omit<Comment, 'author'> = {
       id: `comment-${Date.now()}`,
       authorId: authorId,
-      author: { ...author, password: '' }, // Ensure password is not in the returned object
       text: text,
       createdAt: new Date().toISOString(),
       likes: 0,
       replies: [],
-    };
-    
-    // We need to write the un-hydrated comment to the JSON file
-    const commentForDb: Omit<Comment, 'author'> = {
-        id: newComment.id,
-        authorId: newComment.authorId,
-        text: newComment.text,
-        createdAt: newComment.createdAt,
-        likes: 0,
-        replies: [],
     };
     
     let contentAuthorId: string | undefined;
@@ -273,7 +261,7 @@ export async function addCommentToAction(contentId: string, contentType: 'video'
         if (videoIndex !== -1) {
             contentAuthorId = videos[videoIndex].authorId;
             if (!videos[videoIndex].comments) videos[videoIndex].comments = [];
-            videos[videoIndex].comments.unshift(commentForDb as any);
+            videos[videoIndex].comments.unshift(newComment as any);
             await writeData(videosFilePath, videos);
         }
     } else {
@@ -282,12 +270,12 @@ export async function addCommentToAction(contentId: string, contentType: 'video'
         if (postIndex !== -1) {
             contentAuthorId = posts[postIndex].authorId;
             if (!posts[postIndex].comments) posts[postIndex].comments = [];
-            posts[postIndex].comments.unshift(commentForDb as any);
+            posts[postIndex].comments.unshift(newComment as any);
             await writeData(postsFilePath, posts);
         }
     }
 
-    // Create Notification
+    // Create Notification for content author
     if (contentAuthorId && contentAuthorId !== authorId) {
         await createNotificationAction({
             recipientId: contentAuthorId,
@@ -302,12 +290,10 @@ export async function addCommentToAction(contentId: string, contentType: 'video'
     // Handle mentions
     const mentionMatches = text.match(/@(\w+)/g);
     if (mentionMatches) {
-        const mentionedUsernames = mentionMatches.map(m => m.substring(1));
-        const uniqueMentionedUsernames = [...new Set(mentionedUsernames)]; // Remove duplicates
+        const mentionedUsernames = [...new Set(mentionMatches.map(m => m.substring(1)))];
         
-        uniqueMentionedUsernames.forEach(async (username) => {
+        for (const username of mentionedUsernames) {
             const mentionedUser = allUsers.find(u => u.username === username);
-            // Check if user exists and not self-mention
             if (mentionedUser && mentionedUser.id !== authorId) { 
                  await createNotificationAction({
                     recipientId: mentionedUser.id,
@@ -318,13 +304,13 @@ export async function addCommentToAction(contentId: string, contentType: 'video'
                     text: text,
                 });
             }
-        });
+        }
     }
 
-    return newComment;
+    return await hydrateData(newComment as Comment, allUsers);
 }
 
-export async function likeContentAction(contentId: string, userId: string, contentType: 'video' | 'post'): Promise<void> {
+export async function likeContentAction(contentId: string, userId: string, contentType: 'video' | 'post'): Promise<{ updatedContent: Video | Post, updatedUser: User }> {
     const users = await readData<User>(usersFilePath);
     const userIndex = users.findIndex(u => u.id === userId);
     if (userIndex === -1) throw new Error("User not found");
@@ -332,7 +318,6 @@ export async function likeContentAction(contentId: string, userId: string, conte
     const user = users[userIndex];
     let contentList, contentPath;
     let isAlreadyLiked: boolean;
-    let contentAuthorId: string | undefined;
     
     if (contentType === 'video') {
         contentList = await readData<Video>(videosFilePath);
@@ -347,7 +332,7 @@ export async function likeContentAction(contentId: string, userId: string, conte
     const contentIndex = contentList.findIndex(c => c.id === contentId);
     if (contentIndex === -1) throw new Error("Content not found");
     
-    contentAuthorId = contentList[contentIndex].authorId;
+    const contentAuthorId = contentList[contentIndex].authorId;
 
     if (isAlreadyLiked) {
         // Unlike
@@ -384,9 +369,17 @@ export async function likeContentAction(contentId: string, userId: string, conte
         writeData(contentPath, contentList as any[]),
         writeData(usersFilePath, users)
     ]);
+    
+    const allUsers = await readData<User>(usersFilePath);
+    const { password, ...userWithoutPassword } = user;
+
+    return {
+        updatedContent: await hydrateData(contentList[contentIndex], allUsers),
+        updatedUser: userWithoutPassword
+    };
 }
 
-export async function subscribeAction(currentUserId: string, channelUserId: string): Promise<void> {
+export async function subscribeAction(currentUserId: string, channelUserId: string): Promise<{ updatedCurrentUser: User, updatedChannelUser: User }> {
     const users = await readData<User>(usersFilePath);
     
     const currentUserIndex = users.findIndex(u => u.id === currentUserId);
@@ -398,7 +391,6 @@ export async function subscribeAction(currentUserId: string, channelUserId: stri
         if (isSubscribing) {
             users[currentUserIndex].subscriptions = [...(users[currentUserIndex].subscriptions || []), channelUserId];
             users[channelUserIndex].subscribers = (users[channelUserIndex].subscribers || 0) + 1;
-            // Create notification for the channel owner
             await createNotificationAction({
                 recipientId: channelUserId,
                 senderId: currentUserId,
@@ -410,6 +402,14 @@ export async function subscribeAction(currentUserId: string, channelUserId: stri
         }
         
         await writeData(usersFilePath, users);
+        
+        const { password: pw1, ...currentUserWithoutPassword } = users[currentUserIndex];
+        const { password: pw2, ...channelUserWithoutPassword } = users[channelUserIndex];
+        
+        return {
+            updatedCurrentUser: currentUserWithoutPassword,
+            updatedChannelUser: channelUserWithoutPassword
+        };
     } else {
       throw new Error("User or channel not found");
     }
@@ -471,10 +471,10 @@ export async function sendMessageAction(senderId: string, recipientId: string, t
     return newMessage;
 }
 
-export async function viewContentAction(contentId: string, contentType: 'video' | 'post', userId: string): Promise<void> {
+export async function viewContentAction(contentId: string, contentType: 'video' | 'post', userId: string): Promise<{ updatedContent: Video | Post, updatedUser: User } | null> {
     const users = await readData<User>(usersFilePath);
     const userIndex = users.findIndex(u => u.id === userId);
-    if (userIndex === -1) return; // Don't throw error, just exit if user not found for some reason
+    if (userIndex === -1) return null;
 
     const user = users[userIndex];
     let contentList, contentPath;
@@ -483,23 +483,18 @@ export async function viewContentAction(contentId: string, contentType: 'video' 
         contentList = await readData<Video>(videosFilePath);
         contentPath = videosFilePath;
         
-        // Prevent re-counting view for the same session if already in list
-        if (!(user.viewedVideos || []).includes(contentId)) {
-            user.viewedVideos = [...(user.viewedVideos || []), contentId];
-        } else {
-            // If already viewed, don't increment view count again.
-            return;
+        if ((user.viewedVideos || []).includes(contentId)) {
+            return null; // Already viewed, no changes needed
         }
+        user.viewedVideos = [...(user.viewedVideos || []), contentId];
 
-    } else { // 'post'
-        // Posts don't have views, but we can track them if needed in the future.
-        return; 
+    } else { 
+        return null; // Posts don't have views
     }
 
     const contentIndex = contentList.findIndex(c => c.id === contentId);
-    if (contentIndex === -1) return; // Exit if content is not found
+    if (contentIndex === -1) return null; 
 
-    // Increment view count
     if ('views' in contentList[contentIndex]) {
         (contentList[contentIndex] as Video).views = ((contentList[contentIndex] as Video).views || 0) + 1;
     }
@@ -510,6 +505,14 @@ export async function viewContentAction(contentId: string, contentType: 'video' 
         writeData(contentPath, contentList as any[]),
         writeData(usersFilePath, users)
     ]);
+    
+    const allUsers = await readData<User>(usersFilePath);
+    const { password, ...userWithoutPassword } = user;
+
+    return {
+        updatedContent: await hydrateData(contentList[contentIndex], allUsers),
+        updatedUser: userWithoutPassword
+    };
 }
 
 export async function deleteContentAction(contentId: string, contentType: 'video' | 'post', userId: string): Promise<boolean> {
@@ -562,7 +565,6 @@ export async function deleteCommentAction(contentId: string, contentType: 'video
 
     if (!commentToDelete) throw new Error("Comment not found");
 
-    // Check permissions
     const canDelete = (commentToDelete.authorId === userId) || (content.authorId === userId);
     if (!canDelete) throw new Error("User not authorized to delete this comment");
 
@@ -592,30 +594,23 @@ export async function addReplyToAction(contentId: string, contentType: 'video' |
     const contentIndex = contentList.findIndex(c => c.id === contentId);
     if (contentIndex === -1) throw new Error("Content not found");
 
-    const parentComment = contentList[contentIndex].comments.find(c => c.id === parentCommentId);
+    const content = contentList[contentIndex];
+    if (!content.comments) content.comments = [];
+    
+    const parentComment = content.comments.find(c => c.id === parentCommentId);
     if (!parentComment) throw new Error("Parent comment not found");
 
-    const newReply: Comment = {
+    const newReply: Omit<Comment, 'author'> = {
       id: `comment-${Date.now()}`,
       authorId: authorId,
-      author: { ...author, password: '' },
       text: text,
       createdAt: new Date().toISOString(),
       likes: 0,
       replies: [],
     };
     
-    const replyForDb: Omit<Comment, 'author'> = {
-        id: newReply.id,
-        authorId: newReply.authorId,
-        text: newReply.text,
-        createdAt: newReply.createdAt,
-        likes: 0,
-        replies: [],
-    };
-
     if (!parentComment.replies) parentComment.replies = [];
-    parentComment.replies.unshift(replyForDb as any);
+    parentComment.replies.unshift(newReply as any);
     await writeData(contentPath, contentList);
 
     // Create notification for the original comment author
@@ -630,5 +625,5 @@ export async function addReplyToAction(contentId: string, contentType: 'video' |
         });
     }
 
-    return newReply;
+    return await hydrateData(newReply as Comment, allUsers);
 }

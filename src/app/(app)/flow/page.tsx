@@ -9,10 +9,10 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Heart, MessageCircle } from 'lucide-react';
-import { getVideosAction, getPostsAction, likeContentAction } from '@/app/actions';
-import { getCurrentUser } from '@/lib/data';
+import { likeContentAction } from '@/app/actions';
 import { useToast } from '@/hooks/use-toast';
 import { CommentSheet } from '@/components/comment-sheet';
+import { useDatabase } from '@/lib/db';
 
 const FlowPost = ({ post, onCommentClick, onLikeClick, isLiked }: { post: Post, onCommentClick: () => void, onLikeClick: () => void, isLiked: boolean }) => {
     const { ref, inView } = useInView({ threshold: 0.9 });
@@ -54,76 +54,76 @@ export default function FlowPage() {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [selectedContentForComments, setSelectedContentForComments] = useState<Video | Post | null>(null);
   const { toast } = useToast();
+  const db = useDatabase();
 
    useEffect(() => {
+    if (!db) return;
     const fetchContentAndUser = async () => {
       setLoading(true);
       const [user, allVideos, allPosts] = await Promise.all([
-        getCurrentUser(),
-        getVideosAction(),
-        getPostsAction()
+        db.getCurrentUser(),
+        db.getAllVideos(),
+        db.getAllPosts()
       ]);
 
       setCurrentUser(user);
       
-      const flowVideos = allVideos
-        .filter(v => v.author && v.videoUrl && v.author.username !== 'admin');
-      
-      const flowPosts = allPosts.filter(p => p.author && p.imageUrl && p.author.username !== 'admin');
+      const flowVideos = allVideos.filter(v => v.author?.videoUrl && v.author?.username !== 'admin');
+      const flowPosts = allPosts.filter(p => p.author?.imageUrl && p.author?.username !== 'admin');
 
       const combinedContent = [...flowVideos, ...flowPosts];
-      
       const shuffledContent = combinedContent.sort(() => 0.5 - Math.random());
       
       setContent(shuffledContent);
       setLoading(false);
     };
     fetchContentAndUser();
-  }, []);
+  }, [db]);
 
   const handleLike = async (contentItem: Video | Post) => {
-    if (!currentUser) {
+    if (!currentUser || !db) {
         toast({ title: "Giriş Gerekli", description: "Beğenmek için giriş yapmalısınız.", variant: "destructive" });
         return;
     }
 
     const contentId = contentItem.id;
     const contentType = 'videoUrl' in contentItem ? 'video' : 'post';
-    const isLiked = contentType === 'video' 
+    const originalIsLiked = contentType === 'video' 
       ? currentUser.likedVideos?.includes(contentId)
       : currentUser.likedPosts?.includes(contentId);
 
     // Optimistic UI Update
-    const originalContent = [...content];
-    const originalUser = { ...currentUser };
-
     const updatedContent = content.map(item => {
         if (item.id === contentId) {
-            return { ...item, likes: item.likes + (isLiked ? -1 : 1) };
+            return { ...item, likes: item.likes + (originalIsLiked ? -1 : 1) };
         }
         return item;
     });
     setContent(updatedContent);
 
-    const updatedUser: User = { ...currentUser };
+    const updatedUserLikedIds = originalIsLiked
+        ? (contentType === 'video' ? currentUser.likedVideos : currentUser.likedPosts)?.filter(id => id !== contentId)
+        : [...((contentType === 'video' ? currentUser.likedVideos : currentUser.likedPosts) || []), contentId];
+    
     if (contentType === 'video') {
-        updatedUser.likedVideos = isLiked 
-            ? (updatedUser.likedVideos || []).filter(id => id !== contentId)
-            : [...(updatedUser.likedVideos || []), contentId];
+        setCurrentUser(prev => prev ? {...prev, likedVideos: updatedUserLikedIds} : null);
     } else {
-        updatedUser.likedPosts = isLiked
-            ? (updatedUser.likedPosts || []).filter(id => id !== contentId)
-            : [...(updatedUser.likedPosts || []), contentId];
+        setCurrentUser(prev => prev ? {...prev, likedPosts: updatedUserLikedIds} : null);
     }
-    setCurrentUser(updatedUser);
     
     try {
-      await likeContentAction(contentId, currentUser.id, contentType);
+      const { updatedContent, updatedUser } = await likeContentAction(contentId, currentUser.id, contentType);
+      await db.updateUser(updatedUser);
+      if (contentType === 'video') {
+        await db.updateVideo(updatedContent as Video);
+      } else {
+        await db.updatePost(updatedContent as Post);
+      }
     } catch (error) {
       toast({ title: "Hata", description: "Beğenme işlemi sırasında bir sorun oluştu.", variant: "destructive" });
-      // Revert UI on failure
-      setContent(originalContent);
-      setCurrentUser(originalUser);
+      // Revert UI on failure - a more robust implementation would be needed for a real app
+       setContent(content);
+       setCurrentUser(currentUser);
     }
   };
   
@@ -149,7 +149,7 @@ export default function FlowPage() {
   };
 
 
-  if (loading) {
+  if (loading || !db) {
     return (
        <div className="relative h-[calc(100vh-10rem)] w-full max-w-md mx-auto snap-y snap-mandatory overflow-y-scroll scrollbar-hide">
          <div className="flex h-full w-full snap-center items-center justify-center">
@@ -186,10 +186,11 @@ export default function FlowPage() {
         </div>
       ))}
     </div>
-    {selectedContentForComments && currentUser && (
+    {selectedContentForComments && currentUser && db && (
         <CommentSheet 
             content={selectedContentForComments}
             currentUser={currentUser}
+            db={db}
             isOpen={!!selectedContentForComments}
             onClose={handleCloseComments}
             onCommentAdded={handleCommentAdded}

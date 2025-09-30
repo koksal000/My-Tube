@@ -2,32 +2,28 @@
 
 import { VideoCard } from "@/components/video-card";
 import { useState, useEffect } from "react";
-import type { User, Video } from "@/lib/types";
+import type { Video } from "@/lib/types";
 import { useRouter } from "next/navigation";
-import { getCurrentUser } from "@/lib/data";
-import { getUserAction, getVideosAction } from "@/app/actions";
+import { useDatabase } from "@/lib/db";
 
 
 export default function SubscriptionsPage() {
   const router = useRouter();
   const [subscriptionVideos, setSubscriptionVideos] = useState<Video[]>([]);
   const [loading, setLoading] = useState(true);
+  const db = useDatabase();
 
   useEffect(() => {
+    if (!db) return;
     const fetchSubs = async () => {
       setLoading(true);
-      const currentUser = await getCurrentUser();
+      const currentUser = await db.getCurrentUser();
       
       if (currentUser) {
         if (currentUser.subscriptions && currentUser.subscriptions.length > 0) {
-            const subscribedUsers = await Promise.all(currentUser.subscriptions.map(id => getUserAction(id)));
-            const subscribedChannelsUsernames = subscribedUsers
-                .filter((u): u is User => !!u)
-                .map(u => u.username);
-            
-            const allVideos = await getVideosAction();
+            const allVideos = await db.getAllVideos();
             const videos = allVideos.filter(video => 
-              video.author && subscribedChannelsUsernames.includes(video.author.username)
+              video.author && currentUser.subscriptions.includes(video.authorId)
             ).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
             
             setSubscriptionVideos(videos);
@@ -40,9 +36,9 @@ export default function SubscriptionsPage() {
       setLoading(false);
     }
     fetchSubs();
-  }, [router]);
+  }, [router, db]);
 
-  if(loading) {
+  if(loading || !db) {
       return <div>Abonelikler yükleniyor...</div>
   }
 

@@ -1,26 +1,41 @@
 "use client"
 
 import { SplashScreen } from '@/components/splash-screen';
-import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { getCurrentUser } from '@/lib/data';
+import { DatabaseProvider, useDatabase } from '@/lib/db';
+
+function InitialPage() {
+    const router = useRouter();
+    const db = useDatabase();
+
+    const handleVideoEnd = async () => {
+        if (!db) {
+            // This might happen briefly while DB is initializing
+            console.log("DB not ready, retrying...");
+            setTimeout(handleVideoEnd, 100);
+            return;
+        }
+        try {
+            const user = await db.getCurrentUser();
+            if (user) {
+                router.push('/home');
+            } else {
+                router.push('/login');
+            }
+        } catch (error) {
+            console.error("Yönlendirme sırasında hata:", error);
+            router.push('/login');
+        }
+    };
+
+    return <SplashScreen onVideoEnd={handleVideoEnd} />;
+}
+
 
 export default function Home() {
-  const router = useRouter();
-
-  const handleVideoEnd = async () => {
-     try {
-        const user = await getCurrentUser();
-        if (user) {
-          router.push('/home');
-        } else {
-          router.push('/login');
-        }
-      } catch (error) {
-        console.error("Yönlendirme sırasında hata:", error);
-        router.push('/login');
-      }
-  };
-
-  return <SplashScreen onVideoEnd={handleVideoEnd} />;
+  return (
+    <DatabaseProvider>
+        <InitialPage />
+    </DatabaseProvider>
+  )
 }

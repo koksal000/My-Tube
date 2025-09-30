@@ -8,8 +8,8 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useToast } from "@/hooks/use-toast"
 import React from "react"
-import { setCurrentUser } from "@/lib/data"
 import { authenticateUserAction } from "@/app/actions"
+import { useDatabase } from "@/lib/db"
 
 const MyTubeLogo = () => (
     <div className="flex items-center justify-center space-x-2 text-primary font-bold text-2xl mb-4">
@@ -23,9 +23,15 @@ const MyTubeLogo = () => (
 export function LoginForm() {
   const router = useRouter()
   const { toast } = useToast()
+  const db = useDatabase();
 
   const handleLogin = async (event: React.FormEvent) => {
     event.preventDefault()
+    if (!db) {
+        toast({ title: "Veritabanı hazır değil, lütfen bekleyin.", variant: "destructive" });
+        return;
+    }
+
     const formData = new FormData(event.target as HTMLFormElement);
     const username = formData.get("username") as string;
     const password = formData.get("password") as string;
@@ -33,13 +39,13 @@ export function LoginForm() {
     const user = await authenticateUserAction(username, password);
 
     if (user) {
-      setCurrentUser(user);
+      await db.setCurrentUser(user);
       toast({
         title: "Giriş Başarılı!",
         description: "Ana sayfaya yönlendiriliyorsunuz.",
       });
       router.push("/home")
-      router.refresh(); // Force a refresh to update layout with user data
+      router.refresh();
     } else {
       toast({
         title: "Giriş Başarısız",
@@ -70,8 +76,8 @@ export function LoginForm() {
             </div>
             <Input id="password" name="password" type="password" required />
           </div>
-          <Button type="submit" className="w-full">
-            Giriş Yap
+          <Button type="submit" className="w-full" disabled={!db}>
+            { !db ? "Veritabanı Yükleniyor..." : "Giriş Yap" }
           </Button>
         </form>
         <div className="mt-4 text-center text-sm">

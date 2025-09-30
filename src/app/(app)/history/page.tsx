@@ -4,21 +4,22 @@ import { VideoCard } from "@/components/video-card";
 import { useState, useEffect } from "react";
 import type { Video } from "@/lib/types";
 import { useRouter } from "next/navigation";
-import { getCurrentUser } from "@/lib/data";
-import { getVideoAction } from "@/app/actions";
+import { useDatabase } from "@/lib/db";
 
 export default function HistoryPage() {
     const router = useRouter();
     const [viewedVideos, setViewedVideos] = useState<Video[]>([]);
     const [loading, setLoading] = useState(true);
+    const db = useDatabase();
     
     useEffect(() => {
+        if (!db) return;
         const fetchHistory = async () => {
-            const currentUser = await getCurrentUser();
+            const currentUser = await db.getCurrentUser();
             if (currentUser) {
                 if(currentUser.viewedVideos && currentUser.viewedVideos.length > 0) {
-                   const userViewedVideos = await Promise.all(currentUser.viewedVideos.map(id => getVideoAction(id)));
-                   setViewedVideos(userViewedVideos.filter((v): v is Video => !!v));
+                   const userViewedVideos = await Promise.all(currentUser.viewedVideos.map(id => db.getVideo(id)));
+                   setViewedVideos(userViewedVideos.filter((v): v is Video => !!v).reverse());
                 } else {
                     setViewedVideos([]);
                 }
@@ -28,9 +29,9 @@ export default function HistoryPage() {
             setLoading(false);
         }
         fetchHistory();
-    }, [router]);
+    }, [router, db]);
 
-    if(loading) {
+    if(loading || !db) {
         return <div>Geçmiş yükleniyor...</div>
     }
 
