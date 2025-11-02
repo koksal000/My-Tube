@@ -15,7 +15,7 @@ import { addUserAction } from "@/app/actions"
 import { useDatabase } from "@/lib/db-provider"
 import { useAuth } from "@/firebase"
 import { createUserWithEmailAndPassword } from "firebase/auth"
-import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { getStorage, ref, uploadString, getDownloadURL } from "firebase/storage";
 
 const MyTubeLogo = () => (
     <div className="flex items-center justify-center space-x-2 text-primary font-bold text-2xl mb-4">
@@ -25,6 +25,15 @@ const MyTubeLogo = () => (
         <span>My-Tube Reborn</span>
     </div>
 )
+
+const fileToBase64 = (file: File): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = error => reject(error);
+  });
+};
 
 
 export function RegisterForm() {
@@ -52,7 +61,6 @@ export function RegisterForm() {
     const profilePictureFile = formData.get("profile-picture") as File | null;
     const bannerFile = formData.get("banner") as File | null;
     
-    // The username check is useful, but let's also check for existing user by email via Firebase Auth first.
     const existingUserByUsername = await db.getUserByUsername(username);
     if (existingUserByUsername) {
       toast({
@@ -65,29 +73,27 @@ export function RegisterForm() {
     }
     
     try {
-        // 1. Create user in Firebase Auth
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
         const firebaseUser = userCredential.user;
 
-        // 2. Upload files to Firebase Storage
         const storage = getStorage();
-        const uploadFile = async (file: File, folder: string): Promise<string> => {
+        const uploadFileAsBase64 = async (file: File, folder: string): Promise<string> => {
+            const base64Data = await fileToBase64(file);
             const fileRef = ref(storage, `${folder}/${firebaseUser.uid}/${Date.now()}-${file.name}`);
-            const snapshot = await uploadBytes(fileRef, file);
+            const snapshot = await uploadString(fileRef, base64Data, 'data_url');
             return getDownloadURL(snapshot.ref);
         }
         
         let profilePictureUrl = "/uploads/default-avatar.png"; 
         if (profilePictureFile && profilePictureFile.size > 0) {
-          profilePictureUrl = await uploadFile(profilePictureFile, 'avatars');
+          profilePictureUrl = await uploadFileAsBase64(profilePictureFile, 'avatars');
         }
         
         let bannerUrl: string | undefined = undefined;
         if (addBanner && bannerFile && bannerFile.size > 0) {
-            bannerUrl = await uploadFile(bannerFile, 'banners');
+            bannerUrl = await uploadFileAsBase64(bannerFile, 'banners');
         }
 
-        // 3. Create user data object
         const newUser: Omit<User, 'id'> = {
           uid: firebaseUser.uid,
           username,
@@ -103,7 +109,6 @@ export function RegisterForm() {
           viewedVideos: [],
         };
         
-        // 4. Save user data to our DB (via server action)
         const createdUser = await addUserAction(newUser);
         await db.addUser(createdUser);
         await db.setCurrentUser(createdUser);

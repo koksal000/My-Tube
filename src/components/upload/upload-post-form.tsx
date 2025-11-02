@@ -11,7 +11,16 @@ import React from "react"
 import { addPostAction } from "@/app/actions"
 import { useDatabase } from "@/lib/db-provider"
 import { useAuth } from "@/firebase"
-import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { getStorage, ref, uploadString, getDownloadURL } from "firebase/storage";
+
+const fileToBase64 = (file: File): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = error => reject(error);
+  });
+};
 
 export function UploadPostForm() {
   const router = useRouter()
@@ -41,9 +50,15 @@ export function UploadPostForm() {
     }
     
     try {
+        toast({ title: "Yükleme Başladı", description: "Dosyanız işleniyor..." });
+
+        const base64Image = await fileToBase64(imageFile);
+
         const storage = getStorage();
         const imageRef = ref(storage, `posts/${user.uid}/${Date.now()}-${imageFile.name}`);
-        const snapshot = await uploadBytes(imageRef, imageFile);
+        
+        // Upload the Base64 string
+        const snapshot = await uploadString(imageRef, base64Image, 'data_url');
         const imageUrl = await getDownloadURL(snapshot.ref);
         
         const newPostData: Omit<Post, 'id' | 'author' | 'comments'> = {

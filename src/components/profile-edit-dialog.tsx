@@ -19,13 +19,22 @@ import { Textarea } from "./ui/textarea"
 import { Checkbox } from "./ui/checkbox"
 import { updateUserAction } from "@/app/actions"
 import { useDatabase } from "@/lib/db-provider"
-import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage"
+import { getStorage, ref, uploadString, getDownloadURL } from "firebase/storage"
 import { useAuth } from "@/firebase"
 
 interface EditProfileDialogProps {
   user: User;
   onProfileUpdate: (updatedUser: User) => void;
 }
+
+const fileToBase64 = (file: File): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = error => reject(error);
+  });
+};
 
 export function EditProfileDialog({ user, onProfileUpdate }: EditProfileDialogProps) {
     const { toast } = useToast();
@@ -70,22 +79,23 @@ export function EditProfileDialog({ user, onProfileUpdate }: EditProfileDialogPr
         
         try {
             const storage = getStorage();
-            const uploadFile = async (file: File, folder: string): Promise<string> => {
+            const uploadFileAsBase64 = async (file: File, folder: string): Promise<string> => {
+                const base64Data = await fileToBase64(file);
                 const fileRef = ref(storage, `${folder}/${firebaseUser.uid}/${Date.now()}-${file.name}`);
-                const snapshot = await uploadBytes(fileRef, file);
+                const snapshot = await uploadString(fileRef, base64Data, 'data_url');
                 return getDownloadURL(snapshot.ref);
             }
 
             let profilePictureUrl: string = user.profilePicture;
             if (newProfilePicture) {
-                profilePictureUrl = await uploadFile(newProfilePicture, 'avatars');
+                profilePictureUrl = await uploadFileAsBase64(newProfilePicture, 'avatars');
             }
 
             let bannerUrl: string | undefined = user.banner;
             if (removeBanner) {
                 bannerUrl = undefined;
             } else if (newBanner) {
-                bannerUrl = await uploadFile(newBanner, 'banners');
+                bannerUrl = await uploadFileAsBase64(newBanner, 'banners');
             }
             
             const userToUpdate: User = {
