@@ -11,8 +11,11 @@ import { useToast } from "@/hooks/use-toast"
 import type { User } from "@/lib/types"
 import React from "react"
 import { Textarea } from "../ui/textarea"
-import { uploadFileAction, addUserAction, getUsersAction } from "@/app/actions"
+import { addUserAction } from "@/app/actions"
 import { useDatabase } from "@/lib/db-provider"
+import { useAuth } from "@/firebase"
+import { createUserWithEmailAndPassword } from "firebase/auth"
+import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
 
 const MyTubeLogo = () => (
     <div className="flex items-center justify-center space-x-2 text-primary font-bold text-2xl mb-4">
@@ -28,14 +31,14 @@ export function RegisterForm() {
   const router = useRouter()
   const { toast } = useToast();
   const db = useDatabase();
+  const { auth } = useAuth();
   const [addBanner, setAddBanner] = React.useState(false);
   const [isRegistering, setIsRegistering] = React.useState(false);
 
-
   const handleRegister = async (event: React.FormEvent) => {
     event.preventDefault()
-    if (!db) {
-        toast({ title: "Veritabanı hazır değil, lütfen bekleyin.", variant: "destructive" });
+    if (!db || !auth) {
+        toast({ title: "Sistem hazır değil, lütfen bekleyin.", variant: "destructive" });
         return;
     }
     setIsRegistering(true);
@@ -43,6 +46,7 @@ export function RegisterForm() {
     const formData = new FormData(form);
     const username = formData.get("username") as string;
     const displayName = formData.get("displayName") as string;
+    const email = formData.get("email") as string;
     const password = formData.get("password") as string;
     const about = formData.get("about") as string;
     const profilePictureFile = formData.get("profile-picture") as File | null;
@@ -61,24 +65,34 @@ export function RegisterForm() {
     }
     
     try {
+        // 1. Create user in Firebase Auth
+        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+        const firebaseUser = userCredential.user;
+
+        // 2. Upload files to Firebase Storage
+        const storage = getStorage();
+        const uploadFile = async (file: File, folder: string): Promise<string> => {
+            const fileRef = ref(storage, `${folder}/${firebaseUser.uid}/${Date.now()}-${file.name}`);
+            const snapshot = await uploadBytes(fileRef, file);
+            return getDownloadURL(snapshot.ref);
+        }
+        
         let profilePictureUrl = "/uploads/default-avatar.png"; 
         if (profilePictureFile && profilePictureFile.size > 0) {
-          const profileFormData = new FormData();
-          profileFormData.append('fileToUpload', profilePictureFile);
-          profilePictureUrl = await uploadFileAction(profileFormData);
+          profilePictureUrl = await uploadFile(profilePictureFile, 'avatars');
         }
         
         let bannerUrl: string | undefined = undefined;
         if (addBanner && bannerFile && bannerFile.size > 0) {
-            const bannerFormData = new FormData();
-            bannerFormData.append('fileToUpload', bannerFile);
-            bannerUrl = await uploadFileAction(bannerFormData);
+            bannerUrl = await uploadFile(bannerFile, 'banners');
         }
 
+        // 3. Create user data object
         const newUser: Omit<User, 'id'> = {
+          uid: firebaseUser.uid,
           username,
           displayName,
-          password,
+          email,
           about,
           profilePicture: profilePictureUrl,
           banner: bannerUrl,
@@ -89,6 +103,7 @@ export function RegisterForm() {
           viewedVideos: [],
         };
         
+        // 4. Save user data to our DB (via server action)
         const createdUser = await addUserAction(newUser);
         await db.addUser(createdUser);
         await db.setCurrentUser(createdUser);
@@ -100,9 +115,17 @@ export function RegisterForm() {
         router.push("/home");
         router.refresh();
 
-    } catch (error) {
+    } catch (error: any) {
+         let description = "Bir hata oluştu. Lütfen daha sonra tekrar deneyin.";
+         if (error.code === 'auth/email-already-in-use') {
+            description = "Bu e-posta adresi zaten kullanılıyor.";
+         } else if (error.code === 'auth/weak-password') {
+            description = "Şifre çok zayıf. Lütfen en az 6 karakterli bir şifre seçin.";
+         } else if (error.code === 'auth/invalid-email') {
+            description = "Geçersiz e-posta adresi.";
+         }
          console.error("Registration failed", error);
-         toast({ title: "Kayıt Başarısız", description: `Bir hata oluştu: ${error instanceof Error ? error.message : 'Bilinmeyen Hata'}`, variant: "destructive" });
+         toast({ title: "Kayıt Başarısız", description: description, variant: "destructive" });
     } finally {
         setIsRegistering(false);
     }
@@ -126,6 +149,10 @@ export function RegisterForm() {
           <div className="grid gap-2">
             <Label htmlFor="displayName">Görünen Ad</Label>
             <Input id="displayName" name="displayName" placeholder="Adınız" required disabled={isRegistering || !db}/>
+          </div>
+           <div className="grid gap-2">
+            <Label htmlFor="email">E-posta</Label>
+            <Input id="email" name="email" type="email" placeholder="ornek@eposta.com" required disabled={isRegistering || !db}/>
           </div>
           <div className="grid gap-2">
             <Label htmlFor="password">Şifre</Label>
@@ -155,7 +182,7 @@ export function RegisterForm() {
             </div>
            )}
           <Button type="submit" className="w-full" disabled={isRegistering || !db}>
-            { !db ? "Veritabanı Yükleniyor..." : isRegistering ? "Kaydediliyor..." : "Hesap Oluştur" }
+            { !db ? "Sistem Yükleniyor..." : isRegistering ? "Kaydediliyor..." : "Hesap Oluştur" }
           </Button>
         </form>
         <div className="mt-4 text-center text-sm">

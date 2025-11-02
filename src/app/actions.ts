@@ -15,7 +15,6 @@ const videosFilePath = path.join(dataPath, 'videos.json');
 const postsFilePath = path.join(dataPath, 'posts.json');
 const messagesFilePath = path.join(dataPath, 'messages.json');
 const notificationsFilePath = path.join(dataPath, 'notifications.json');
-const uploadsPath = path.join(process.cwd(), 'public', 'uploads');
 
 
 // --- Utility Functions ---
@@ -165,7 +164,7 @@ export async function addUserAction(user: Omit<User, 'id'>): Promise<User> {
   if (existingUser) {
       throw new Error("Username already exists.");
   }
-  const newUser: User = { ...user, id: `user-${Date.now()}` };
+  const newUser: User = { ...user, id: user.uid, ...user };
   users.push(newUser);
   await writeData(usersFilePath, users);
   const { password, ...userWithoutPassword } = newUser;
@@ -425,27 +424,6 @@ export async function authenticateUserAction(username: string, password_provided
         return userWithoutPassword;
     }
     return null;
-}
-
-export async function uploadFileAction(formData: FormData): Promise<string> {
-  const file = formData.get('fileToUpload') as File | null;
-  
-  if (!file) {
-      throw new Error('No file provided.');
-  }
-  
-  await fs.mkdir(uploadsPath, { recursive: true });
-
-  const fileBuffer = Buffer.from(await file.arrayBuffer());
-  const fileExtension = path.extname(file.name);
-  const uniqueFilename = `${Date.now()}-${Math.round(Math.random() * 1E9)}${fileExtension}`;
-  const filePath = path.join(uploadsPath, uniqueFilename);
-  
-  await fs.writeFile(filePath, fileBuffer);
-  
-  const fileUrl = `/uploads/${uniqueFilename}`;
-
-  return fileUrl;
 }
 
 export async function sendMessageAction(senderId: string, recipientId: string, text: string): Promise<Message> {

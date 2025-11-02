@@ -19,11 +19,12 @@ import {
   Flame,
 } from "lucide-react"
 import Link from "next/link"
-import { usePathname } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
 import React, { useEffect, useState } from "react"
 import type { User } from "@/lib/types"
 import { useDatabase } from "@/lib/db-provider"
+import { useAuth } from "@/firebase"
 
 const MyTubeLogo = () => (
     <Link href="/home" className="flex items-center gap-2 text-primary font-bold text-xl">
@@ -35,17 +36,25 @@ const MyTubeLogo = () => (
 )
 
 export default function SidebarContentComponent() {
-  const pathname = usePathname()
+  const pathname = usePathname();
+  const router = useRouter();
   const db = useDatabase();
+  const { user: firebaseUser, loading: authLoading } = useAuth();
   const isActive = (path: string) => pathname === path
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [subscriptions, setSubscriptions] = useState<User[]>([]);
 
   useEffect(() => {
-    if (!db) return;
+    if (authLoading || !db) return;
+    
+    if(!firebaseUser) {
+        setCurrentUser(null);
+        setSubscriptions([]);
+        return;
+    }
 
     const fetchUserAndSubs = async () => {
-      const user = await db.getCurrentUser();
+      const user = await db.getUser(firebaseUser.uid);
       if (user) {
         setCurrentUser(user);
         if (user.subscriptions && user.subscriptions.length > 0) {
@@ -55,12 +64,14 @@ export default function SidebarContentComponent() {
             setSubscriptions([]);
         }
       } else {
+          // This case might happen if auth is ready but DB sync isn't.
+          // Or if user was deleted from DB but not Auth.
           setCurrentUser(null);
           setSubscriptions([]);
       }
     };
     fetchUserAndSubs();
-  }, [pathname, db]); // Re-fetch on path change to keep data fresh
+  }, [pathname, db, firebaseUser, authLoading, router]);
 
 
   return (
@@ -100,7 +111,7 @@ export default function SidebarContentComponent() {
                 <Link href="/subscriptions">
                     <Youtube />
                     <span>Abonelikler</span>
-                </Link>SERIAL_TOOL_OUTPUT
+                </Link>
                 </SidebarMenuButton>
             </SidebarMenuItem>
            )}

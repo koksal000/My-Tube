@@ -1,5 +1,6 @@
 export interface User {
   id: string;
+  uid: string;
   username: string;
   displayName: string;
   profilePicture: string;
@@ -11,6 +12,7 @@ export interface User {
   likedPosts: string[]; // array of post ids
   viewedVideos: string[]; // array of video ids
   password?: string;
+  email?: string;
 }
 
 export interface Content {
@@ -64,4 +66,5 @@ export interface Notification {
     contentType?: 'video' | 'post';
     text?: string;
     read: boolean;
+    createdAt: string;
 }

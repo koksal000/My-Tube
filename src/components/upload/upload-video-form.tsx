@@ -8,18 +8,24 @@ import { Textarea } from "@/components/ui/textarea"
 import { useToast } from "@/hooks/use-toast"
 import type { Video } from "@/lib/types"
 import React from "react"
-import { uploadFileAction, addVideoAction } from "@/app/actions"
+import { addVideoAction } from "@/app/actions"
 import { useDatabase } from "@/lib/db-provider"
+import { useAuth } from "@/firebase"
+import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
 
 export function UploadVideoForm() {
   const router = useRouter()
   const { toast } = useToast();
   const db = useDatabase();
+  const { user } = useAuth();
   const [isUploading, setIsUploading] = React.useState(false);
 
   const handleVideoUpload = async (event: React.FormEvent) => {
     event.preventDefault()
-    if (!db) return;
+    if (!db || !user) {
+        toast({ title: "Hata", description: "Yükleme yapmak için giriş yapmalısınız.", variant: "destructive" });
+        return;
+    }
     setIsUploading(true);
 
     const form = event.target as HTMLFormElement;
@@ -28,13 +34,6 @@ export function UploadVideoForm() {
     const description = formData.get("description") as string;
     const thumbnailFile = formData.get("thumbnail") as File;
     const videoFile = formData.get("video") as File;
-    
-    const currentUser = await db.getCurrentUser();
-    if (!currentUser) {
-        toast({ title: "Hata", description: "Yükleme yapmak için giriş yapmalısınız.", variant: "destructive" });
-        setIsUploading(false);
-        return;
-    }
 
     if (!title || !thumbnailFile || !videoFile || thumbnailFile.size === 0 || videoFile.size === 0) {
         toast({ title: "Eksik alanlar", description: "Lütfen tüm alanları doldurun ve dosyaları seçin.", variant: "destructive" });
@@ -45,15 +44,17 @@ export function UploadVideoForm() {
     try {
       toast({ title: "Yükleme Başladı", description: "Dosyalarınız yükleniyor, bu işlem biraz zaman alabilir..." });
       
-      const thumbnailFormData = new FormData();
-      thumbnailFormData.append('fileToUpload', thumbnailFile);
+      const storage = getStorage();
       
-      const videoFormData = new FormData();
-      videoFormData.append('fileToUpload', videoFile);
+      const uploadFile = async (file: File, folder: string): Promise<string> => {
+        const fileRef = ref(storage, `${folder}/${user.uid}/${Date.now()}-${file.name}`);
+        const snapshot = await uploadBytes(fileRef, file);
+        return await getDownloadURL(snapshot.ref);
+      }
 
       const [thumbnailUrl, videoUrl] = await Promise.all([
-        uploadFileAction(thumbnailFormData),
-        uploadFileAction(videoFormData)
+        uploadFile(thumbnailFile, 'thumbnails'),
+        uploadFile(videoFile, 'videos')
       ]);
       
       const newVideoData: Omit<Video, 'id' | 'author' | 'comments'> = {
@@ -62,7 +63,7 @@ export function UploadVideoForm() {
           thumbnailUrl,
           videoUrl,
           duration: 0, // In a real app, you'd get this from the video file metadata
-          authorId: currentUser.id,
+          authorId: user.uid,
           views: 0,
           likes: 0,
           createdAt: new Date().toISOString(),
@@ -103,7 +104,7 @@ export function UploadVideoForm() {
         <Label htmlFor="video">Video</Label>
         <Input id="video" name="video" type="file" accept="video/*" required disabled={isUploading}/>
       </div>
-      <Button type="submit" className="w-full" disabled={isUploading || !db}>
+      <Button type="submit" className="w-full" disabled={isUploading || !db || !user}>
         {isUploading ? 'Yükleniyor...' : 'Video Yükle'}
       </Button>
     </form>

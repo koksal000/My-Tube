@@ -6,25 +6,34 @@ import React, { useEffect, useState } from "react";
 import type { Video } from "@/lib/types";
 import { useRouter } from "next/navigation";
 import { useDatabase } from "@/lib/db-provider";
+import { useAuth } from "@/firebase";
 
 export default function HomePage() {
   const router = useRouter();
+  const db = useDatabase();
+  const { user: firebaseUser, loading: authLoading } = useAuth();
   const [recommendedVideos, setRecommendedVideos] = useState<Video[]>([]);
   const [loading, setLoading] = useState(true);
-  const db = useDatabase();
 
   useEffect(() => {
-    if (!db) return;
+    if (authLoading || !db) return;
 
     const fetchRecommendations = async () => {
       setLoading(true);
-      const currentUser = await db.getCurrentUser();
       
-      if (!currentUser) {
+      if (!firebaseUser) {
         router.push('/login');
         return;
       }
       
+      const currentUser = await db.getUser(firebaseUser.uid);
+       if (!currentUser) {
+        // This can happen if the user is in Auth but not in our DB yet.
+        // Maybe redirect or show an error. For now, we'll just show nothing.
+        setLoading(false);
+        return;
+      }
+
       const allDBVideos = await db.getAllVideos();
       
       try {
@@ -79,9 +88,9 @@ export default function HomePage() {
     };
 
     fetchRecommendations();
-  }, [router, db]);
+  }, [router, db, firebaseUser, authLoading]);
 
-  if (loading || !db) {
+  if (loading || authLoading || !db) {
     return <div>Öneriler yükleniyor...</div>
   }
   

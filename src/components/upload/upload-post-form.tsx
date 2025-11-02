@@ -8,32 +8,31 @@ import { Textarea } from "@/components/ui/textarea"
 import { useToast } from "@/hooks/use-toast"
 import type { Post } from "@/lib/types"
 import React from "react"
-import { uploadFileAction, addPostAction } from "@/app/actions"
+import { addPostAction } from "@/app/actions"
 import { useDatabase } from "@/lib/db-provider"
+import { useAuth } from "@/firebase"
+import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
 
 export function UploadPostForm() {
   const router = useRouter()
   const { toast } = useToast();
   const db = useDatabase();
+  const { user } = useAuth();
   const [isUploading, setIsUploading] = React.useState(false);
 
 
   const handlePostUpload = async (event: React.FormEvent) => {
     event.preventDefault()
-    if (!db) return;
+    if (!db || !user) {
+        toast({ title: "Hata", description: "Gönderi oluşturmak için giriş yapmalısınız.", variant: "destructive" });
+        return;
+    }
     setIsUploading(true);
 
     const form = event.target as HTMLFormElement;
     const formData = new FormData(form);
     const caption = formData.get("caption") as string;
     const imageFile = formData.get("image") as File;
-    
-    const currentUser = await db.getCurrentUser();
-    if (!currentUser) {
-        toast({ title: "Hata", description: "Gönderi oluşturmak için giriş yapmalısınız.", variant: "destructive" });
-        setIsUploading(false);
-        return;
-    }
 
     if (!imageFile || imageFile.size === 0) {
         toast({ title: "Eksik Resim", description: "Lütfen bir resim dosyası seçin.", variant: "destructive" });
@@ -42,14 +41,15 @@ export function UploadPostForm() {
     }
     
     try {
-        const uploadFormData = new FormData();
-        uploadFormData.append('fileToUpload', imageFile);
-        const imageUrl = await uploadFileAction(uploadFormData);
+        const storage = getStorage();
+        const imageRef = ref(storage, `posts/${user.uid}/${Date.now()}-${imageFile.name}`);
+        const snapshot = await uploadBytes(imageRef, imageFile);
+        const imageUrl = await getDownloadURL(snapshot.ref);
         
         const newPostData: Omit<Post, 'id' | 'author' | 'comments'> = {
             caption,
             imageUrl,
-            authorId: currentUser.id,
+            authorId: user.uid,
             likes: 0,
             createdAt: new Date().toISOString(),
         };
@@ -61,7 +61,12 @@ export function UploadPostForm() {
             title: "Gönderi Oluşturuldu!",
             description: "Yeni gönderiniz şimdi yayında.",
         });
-        router.push(`/channel/${currentUser.username}`);
+        const dbUser = await db.getUser(user.uid);
+        if (dbUser) {
+            router.push(`/channel/${dbUser.username}`);
+        } else {
+            router.push('/home');
+        }
 
     } catch (error) {
         console.error("Upload failed", error);
@@ -81,7 +86,7 @@ export function UploadPostForm() {
         <Label htmlFor="image">Resim</Label>
         <Input id="image" name="image" type="file" accept="image/*" required disabled={isUploading} />
       </div>
-      <Button type="submit" className="w-full" disabled={isUploading || !db}>
+      <Button type="submit" className="w-full" disabled={isUploading || !db || !user}>
         {isUploading ? 'Gönderiliyor...' : 'Gönderi Oluştur'}
       </Button>
     </form>

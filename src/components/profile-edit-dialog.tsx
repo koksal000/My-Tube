@@ -17,8 +17,10 @@ import { useToast } from "@/hooks/use-toast"
 import type { User } from "@/lib/types"
 import { Textarea } from "./ui/textarea"
 import { Checkbox } from "./ui/checkbox"
-import { uploadFileAction, updateUserAction } from "@/app/actions"
+import { updateUserAction } from "@/app/actions"
 import { useDatabase } from "@/lib/db-provider"
+import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage"
+import { useAuth } from "@/firebase"
 
 interface EditProfileDialogProps {
   user: User;
@@ -28,6 +30,7 @@ interface EditProfileDialogProps {
 export function EditProfileDialog({ user, onProfileUpdate }: EditProfileDialogProps) {
     const { toast } = useToast();
     const db = useDatabase();
+    const { user: firebaseUser } = useAuth();
     const [isOpen, setIsOpen] = React.useState(false);
     const [isSaving, setIsSaving] = React.useState(false);
     const [username, setUsername] = React.useState(user.username);
@@ -50,7 +53,7 @@ export function EditProfileDialog({ user, onProfileUpdate }: EditProfileDialogPr
     }, [isOpen, user]);
 
     const handleSaveChanges = async () => {
-        if (!db) return;
+        if (!db || !firebaseUser) return;
         setIsSaving(true);
         if (username !== user.username) {
             const existingUser = await db.getUserByUsername(username);
@@ -66,20 +69,23 @@ export function EditProfileDialog({ user, onProfileUpdate }: EditProfileDialogPr
         }
         
         try {
+            const storage = getStorage();
+            const uploadFile = async (file: File, folder: string): Promise<string> => {
+                const fileRef = ref(storage, `${folder}/${firebaseUser.uid}/${Date.now()}-${file.name}`);
+                const snapshot = await uploadBytes(fileRef, file);
+                return getDownloadURL(snapshot.ref);
+            }
+
             let profilePictureUrl: string = user.profilePicture;
             if (newProfilePicture) {
-                const profileFormData = new FormData();
-                profileFormData.append('fileToUpload', newProfilePicture);
-                profilePictureUrl = await uploadFileAction(profileFormData);
+                profilePictureUrl = await uploadFile(newProfilePicture, 'avatars');
             }
 
             let bannerUrl: string | undefined = user.banner;
             if (removeBanner) {
                 bannerUrl = undefined;
             } else if (newBanner) {
-                const bannerFormData = new FormData();
-                bannerFormData.append('fileToUpload', newBanner);
-                bannerUrl = await uploadFileAction(bannerFormData);
+                bannerUrl = await uploadFile(newBanner, 'banners');
             }
             
             const userToUpdate: User = {
@@ -92,6 +98,7 @@ export function EditProfileDialog({ user, onProfileUpdate }: EditProfileDialogPr
             };
 
             const updatedUser = await updateUserAction(userToUpdate);
+            await db.updateUser(updatedUser);
             onProfileUpdate(updatedUser);
             
             toast({

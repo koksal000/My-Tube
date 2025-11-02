@@ -2,29 +2,32 @@
 
 import { SplashScreen } from '@/components/splash-screen';
 import { useRouter } from 'next/navigation';
-import { DatabaseProvider, useDatabase } from '@/lib/db-provider';
+import { DatabaseProvider } from '@/lib/db-provider';
+import { useAuth } from '@/firebase';
+import { useEffect } from 'react';
 
 function InitialPage() {
     const router = useRouter();
-    const db = useDatabase();
+    const { user, loading } = useAuth();
 
-    const handleVideoEnd = async () => {
-        if (!db) {
-            // This might happen briefly while DB is initializing
-            console.log("DB not ready, retrying...");
-            setTimeout(handleVideoEnd, 100);
-            return;
-        }
-        try {
-            const user = await db.getCurrentUser();
+    useEffect(() => {
+        if (!loading) {
             if (user) {
                 router.push('/home');
             } else {
                 router.push('/login');
             }
-        } catch (error) {
-            console.error("Yönlendirme sırasında hata:", error);
-            router.push('/login');
+        }
+    }, [user, loading, router]);
+
+
+    const handleVideoEnd = () => {
+        if (!loading) {
+            if (user) {
+                router.push('/home');
+            } else {
+                router.push('/login');
+            }
         }
     };
 

@@ -8,8 +8,9 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useToast } from "@/hooks/use-toast"
 import React from "react"
-import { authenticateUserAction } from "@/app/actions"
 import { useDatabase } from "@/lib/db-provider"
+import { useAuth } from "@/firebase"
+import { signInWithEmailAndPassword } from "firebase/auth"
 
 const MyTubeLogo = () => (
     <div className="flex items-center justify-center space-x-2 text-primary font-bold text-2xl mb-4">
@@ -24,34 +25,53 @@ export function LoginForm() {
   const router = useRouter()
   const { toast } = useToast()
   const db = useDatabase();
+  const { auth } = useAuth();
+  const [isLoading, setIsLoading] = React.useState(false);
+
 
   const handleLogin = async (event: React.FormEvent) => {
     event.preventDefault()
-    if (!db) {
-        toast({ title: "Veritabanı hazır değil, lütfen bekleyin.", variant: "destructive" });
+    if (!db || !auth) {
+        toast({ title: "Sistem hazır değil, lütfen bekleyin.", variant: "destructive" });
         return;
     }
+    setIsLoading(true);
 
     const formData = new FormData(event.target as HTMLFormElement);
-    const username = formData.get("username") as string;
+    const email = formData.get("email") as string;
     const password = formData.get("password") as string;
 
-    const user = await authenticateUserAction(username, password);
-
-    if (user) {
-      await db.setCurrentUser(user);
-      toast({
-        title: "Giriş Başarılı!",
-        description: "Ana sayfaya yönlendiriliyorsunuz.",
-      });
-      router.push("/home")
-      router.refresh();
-    } else {
-      toast({
-        title: "Giriş Başarısız",
-        description: "Kullanıcı adı veya şifre hatalı.",
-        variant: "destructive",
-      })
+    try {
+        const userCredential = await signInWithEmailAndPassword(auth, email, password);
+        const firebaseUser = userCredential.user;
+        
+        const user = await db.getUser(firebaseUser.uid);
+        if (user) {
+            await db.setCurrentUser(user);
+             toast({
+                title: "Giriş Başarılı!",
+                description: "Ana sayfaya yönlendiriliyorsunuz.",
+            });
+            router.push("/home")
+            router.refresh();
+        } else {
+             throw new Error("Kullanıcı veritabanında bulunamadı.");
+        }
+    } catch (error: any) {
+        let description = "Kullanıcı adı veya şifre hatalı.";
+        if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
+            description = "E-posta veya şifre hatalı.";
+        } else {
+            console.error("Firebase Auth Error:", error);
+            description = "Giriş sırasında bir hata oluştu. Lütfen daha sonra tekrar deneyin.";
+        }
+        toast({
+            title: "Giriş Başarısız",
+            description: description,
+            variant: "destructive",
+        });
+    } finally {
+        setIsLoading(false);
     }
   }
 
@@ -61,23 +81,23 @@ export function LoginForm() {
         <MyTubeLogo />
         <CardTitle className="text-2xl text-center">Giriş Yap</CardTitle>
         <CardDescription className="text-center">
-          Hesabınıza giriş yapmak için kullanıcı adınızı girin
+          Hesabınıza giriş yapmak için bilgilerinizi girin
         </CardDescription>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleLogin} className="grid gap-4">
           <div className="grid gap-2">
-            <Label htmlFor="username">Kullanıcı Adı</Label>
-            <Input id="username" name="username" type="text" placeholder="kullanıcıadınız" required />
+            <Label htmlFor="email">E-posta</Label>
+            <Input id="email" name="email" type="email" placeholder="ornek@eposta.com" required disabled={isLoading}/>
           </div>
           <div className="grid gap-2">
             <div className="flex items-center">
               <Label htmlFor="password">Şifre</Label>
             </div>
-            <Input id="password" name="password" type="password" required />
+            <Input id="password" name="password" type="password" required disabled={isLoading}/>
           </div>
-          <Button type="submit" className="w-full" disabled={!db}>
-            { !db ? "Veritabanı Yükleniyor..." : "Giriş Yap" }
+          <Button type="submit" className="w-full" disabled={!db || isLoading}>
+            { isLoading ? "Giriş Yapılıyor..." : "Giriş Yap" }
           </Button>
         </form>
         <div className="mt-4 text-center text-sm">

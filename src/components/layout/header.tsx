@@ -19,47 +19,53 @@ import { useRouter } from "next/navigation";
 import React, { useEffect, useState } from "react"
 import type { User } from "@/lib/types"
 import { useDatabase } from "@/lib/db-provider"
+import { useAuth } from "@/firebase"
+import { signOut } from "firebase/auth"
 
 export default function Header() {
   const router = useRouter();
   const db = useDatabase();
+  const { auth, user: firebaseUser, loading: authLoading } = useAuth();
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [unreadNotifications, setUnreadNotifications] = useState(0);
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!db) return;
+    if (authLoading || !db) return;
 
-    const fetchUserAndData = async () => {
-      setLoading(true);
-      const user = await db.getCurrentUser();
-      setCurrentUser(user);
-      if (user) {
-        const notifications = await db.getNotifications(user.id);
-        setUnreadNotifications(notifications.filter(n => !n.read).length);
+    const syncUser = async () => {
+      if (firebaseUser) {
+        const dbUser = await db.getUser(firebaseUser.uid);
+        setCurrentUser(dbUser);
+        if (dbUser) {
+            const notifications = await db.getNotifications(dbUser.id);
+            setUnreadNotifications(notifications.filter(n => !n.read).length);
+        }
+      } else {
+        setCurrentUser(null);
       }
-      setLoading(false);
-    }
-    fetchUserAndData();
+    };
+    syncUser();
 
-    // Polling is less ideal with a local DB, but we keep it for now
-    // A better approach would be custom events or a library like BroadcastChannel
      const interval = setInterval(async () => {
-        if (!db) return;
-        const user = await db.getCurrentUser();
-        if (user) {
-            const notifications = await db.getNotifications(user.id);
-            const newUnreadCount = notifications.filter(n => !n.read).length;
-            setUnreadNotifications(newUnreadCount);
+        if (db && firebaseUser) {
+            const dbUser = await db.getUser(firebaseUser.uid);
+             if (dbUser) {
+                const notifications = await db.getNotifications(dbUser.id);
+                const newUnreadCount = notifications.filter(n => !n.read).length;
+                if (newUnreadCount !== unreadNotifications) {
+                  setUnreadNotifications(newUnreadCount);
+                }
+            }
         }
     }, 5000); 
 
     return () => clearInterval(interval);
 
-  }, [db]);
+  }, [authLoading, firebaseUser, db, unreadNotifications]);
   
   const handleLogout = async () => {
-    if (!db) return;
+    if (!db || !auth) return;
+    await signOut(auth);
     await db.logout();
     setCurrentUser(null);
     router.push('/login');
@@ -75,8 +81,14 @@ export default function Header() {
     }
   };
 
-  if (loading || !currentUser) {
+  if (authLoading || !db) {
     return (
+       <header className="sticky top-0 z-10 flex h-16 shrink-0 items-center gap-4 border-b bg-background/80 px-4 backdrop-blur-sm md:px-6" />
+    )
+  }
+
+  if (!firebaseUser || !currentUser) {
+     return (
        <header className="sticky top-0 z-10 flex h-16 shrink-0 items-center gap-4 border-b bg-background/80 px-4 backdrop-blur-sm md:px-6">
          <SidebarTrigger className="md:hidden" />
           <div className="flex w-full items-center gap-4 md:ml-auto md:gap-2 lg:gap-4 justify-end">

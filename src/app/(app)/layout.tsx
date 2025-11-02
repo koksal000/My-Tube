@@ -1,6 +1,7 @@
 import { SidebarProvider } from "@/components/ui/sidebar"
 import MainLayout from "@/components/layout/main-layout"
 import { DatabaseProvider } from "@/lib/db-provider"
+import { AuthCheck } from "@/firebase/auth-check";
 
 export default function AppLayout({
   children,
@@ -9,9 +10,11 @@ export default function AppLayout({
 }) {
   return (
     <DatabaseProvider>
-      <SidebarProvider>
-        <MainLayout>{children}</MainLayout>
-      </SidebarProvider>
+      <AuthCheck>
+        <SidebarProvider>
+          <MainLayout>{children}</MainLayout>
+        </SidebarProvider>
+      </AuthCheck>
     </DatabaseProvider>
   )
 }
