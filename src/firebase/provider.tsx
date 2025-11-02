@@ -5,7 +5,7 @@ import { initializeFirebase } from './index';
 import type { FirebaseApp } from 'firebase/app';
 import type { Auth } from 'firebase/auth';
 import type { Firestore } from 'firebase/firestore';
-import { AuthProvider } from './auth/use-user';
+import { AuthProvider, AuthContext } from './auth/use-user';
 
 interface FirebaseContextType {
     app: FirebaseApp | null;
@@ -74,6 +74,3 @@ export const useFirestore = () => {
     }
     return firestore;
 }
-
-// Re-exporting AuthContext for use in useAuth hook
-export { AuthContext } from './auth/use-user';
