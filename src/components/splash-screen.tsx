@@ -16,10 +16,18 @@ export function SplashScreen({ onVideoEnd }: SplashScreenProps) {
     if (videoElement) {
       videoElement.addEventListener('ended', onVideoEnd);
       
-      videoElement.play().catch(error => {
-        console.error("Video autoplay failed:", error);
-        onVideoEnd();
-      });
+      // Attempt to play the video
+      const playPromise = videoElement.play();
+
+      if (playPromise !== undefined) {
+        playPromise.catch(error => {
+          // Autoplay was prevented.
+          // This can happen for a variety of reasons, like browser policy.
+          // We'll just end the splash screen and move on.
+          console.error("Video autoplay failed, proceeding to next page:", error);
+          onVideoEnd();
+        });
+      }
     }
     
     return () => {
