@@ -1,7 +1,9 @@
+
 "use client"
 
 import { VideoCard } from "@/components/video-card";
-import { generateVideoRecommendations, VideoRecommendationsInput } from "@/ai/flows/video-recommendations";
+import { generateVideoRecommendationsAction } from "@/app/actions";
+import type { VideoRecommendationsInput } from "@/ai/flows/video-recommendations";
 import React, { useEffect, useState } from "react";
 import type { Video } from "@/lib/types";
 import { useRouter } from "next/navigation";
@@ -28,63 +30,54 @@ export default function HomePage() {
       
       const currentUser = await db.getUser(firebaseUser.uid);
        if (!currentUser) {
-        // This can happen if the user is in Auth but not in our DB yet.
-        // Maybe redirect or show an error. For now, we'll just show nothing.
         setLoading(false);
         return;
       }
 
       const allDBVideos = await db.getAllVideos();
       
-      try {
-        const allVideosForAI = allDBVideos
-          .filter(v => v.author) // Filter out videos without an author
-          .map(v => ({
-            id: v.id,
-            title: v.title,
-            description: v.description,
-            username: v.author.username,
-            views: v.views,
-            likes: v.likes,
-            commentCount: (v.comments || []).length
-        }));
+      const allVideosForAI = allDBVideos
+        .filter(v => v.author)
+        .map(v => ({
+          id: v.id,
+          title: v.title,
+          description: v.description,
+          username: v.author!.username,
+          views: v.views,
+          likes: v.likes,
+          commentCount: (v.comments || []).length
+      }));
 
-        const subscribedUsers = await Promise.all((currentUser.subscriptions || []).map(id => db.getUser(id)));
-        const subscribedUsernames = subscribedUsers.filter(Boolean).map(u => u!.username);
+      const subscribedUsers = await Promise.all((currentUser.subscriptions || []).map(id => db.getUser(id)));
+      const subscribedUsernames = subscribedUsers.filter(Boolean).map(u => u!.username);
 
-        const recommendationInput: VideoRecommendationsInput = {
-          userProfile: {
-            username: currentUser.username,
-            likedVideos: currentUser.likedVideos || [],
-            viewedVideos: currentUser.viewedVideos || [],
-            subscribedChannels: subscribedUsernames,
-          },
-          allVideos: allVideosForAI,
-          boostByViews: 1.2,
-          boostByLikes: 1.5,
-        };
-        
-        const recommendations = await generateVideoRecommendations(recommendationInput);
-        const recommendedVideoIds = recommendations.map(rec => rec.id);
-        const sortedVideos = allDBVideos.filter(v => recommendedVideoIds.includes(v.id))
-                                      .sort((a, b) => recommendedVideoIds.indexOf(a.id) - recommendedVideoIds.indexOf(b.id));
-        
-        if (sortedVideos.length > 0) {
-            setRecommendedVideos(sortedVideos);
-        } else {
-             const allNonAdminVideos = allDBVideos.filter(v => v.author && v.author.username !== 'admin');
-             const shuffledVideos = allNonAdminVideos.sort(() => 0.5 - Math.random());
-             setRecommendedVideos(shuffledVideos);
-        }
-
-      } catch(e) {
-        console.error("AI recommendation failed, falling back to shuffled videos.", e)
-        const allNonAdminVideos = allDBVideos.filter(v => v.author && v.author.username !== 'admin');
-        const shuffledVideos = allNonAdminVideos.sort(() => 0.5 - Math.random());
-        setRecommendedVideos(shuffledVideos);
-      } finally {
-        setLoading(false);
+      const recommendationInput: VideoRecommendationsInput = {
+        userProfile: {
+          username: currentUser.username,
+          likedVideos: currentUser.likedVideos || [],
+          viewedVideos: currentUser.viewedVideos || [],
+          subscribedChannels: subscribedUsernames,
+        },
+        allVideos: allVideosForAI,
+        boostByViews: 1.2,
+        boostByLikes: 1.5,
+      };
+      
+      const recommendations = await generateVideoRecommendationsAction(recommendationInput);
+      
+      if (recommendations && recommendations.length > 0) {
+          const recommendedVideoIds = recommendations.map(rec => rec.id);
+          const sortedVideos = allDBVideos.filter(v => recommendedVideoIds.includes(v.id))
+                                        .sort((a, b) => recommendedVideoIds.indexOf(a.id) - recommendedVideoIds.indexOf(b.id));
+          setRecommendedVideos(sortedVideos);
+      } else {
+           // Fallback if AI fails or returns no recommendations
+           const allNonAdminVideos = allDBVideos.filter(v => v.author && v.author.username !== 'admin');
+           const shuffledVideos = allNonAdminVideos.sort(() => 0.5 - Math.random());
+           setRecommendedVideos(shuffledVideos);
       }
+
+      setLoading(false);
     };
 
     fetchRecommendations();

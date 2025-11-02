@@ -1,8 +1,11 @@
+
 'use server';
 
 import type { User, Video, Post, Comment, Message, Notification } from '@/lib/types';
 import fs from 'fs/promises';
 import path from 'path';
+import { generateVideoRecommendations, type VideoRecommendationsInput } from '@/ai/flows/video-recommendations';
+
 
 // --- Data Persistence Layer (JSON Files) ---
 // This file contains Server Actions that are guaranteed to only run on the server.
@@ -90,6 +93,18 @@ async function hydrateData<T extends (Video | Post | Comment | Notification)>(it
 
     return hydratedItem;
 }
+
+// --- AI ACTIONS ---
+export async function generateVideoRecommendationsAction(input: VideoRecommendationsInput) {
+    try {
+        const recommendations = await generateVideoRecommendations(input);
+        return recommendations;
+    } catch (error) {
+        console.error("AI recommendation failed in server action:", error);
+        return null; // Return null on error to be handled by the client
+    }
+}
+
 
 // --- NOTIFICATION ACTIONS ---
 
