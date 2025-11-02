@@ -18,28 +18,27 @@ export function SplashScreen({ onVideoEnd }: SplashScreenProps) {
       onVideoEnd();
     };
 
+    videoElement.addEventListener('ended', handleVideoEnd, { once: true });
+
     const playVideo = async () => {
       try {
+        // Ensure video is muted before playing, as most browsers require this for autoplay.
+        videoElement.muted = true;
         await videoElement.play();
       } catch (error) {
-        console.error("Video autoplay failed, proceeding to next page:", error);
-        // If autoplay fails for any reason, immediately trigger the end event.
+        console.error("Video autoplay was prevented:", error);
+        // If autoplay fails, we should still proceed to the app.
         onVideoEnd();
       }
     };
-    
-    // Add the event listener for when the video finishes playing.
-    videoElement.addEventListener('ended', handleVideoEnd);
-    
-    // Check if the video is already ready to play.
-    if (videoElement.readyState >= 3) { // HAVE_FUTURE_DATA or more
+
+    // Check if the video is ready, if not, wait for the 'canplay' event.
+    if (videoElement.readyState >= 3) {
       playVideo();
     } else {
-      // Otherwise, wait for the 'canplay' event.
       videoElement.addEventListener('canplay', playVideo, { once: true });
     }
 
-    // Cleanup function to remove event listeners.
     return () => {
       videoElement.removeEventListener('ended', handleVideoEnd);
       videoElement.removeEventListener('canplay', playVideo);
@@ -52,8 +51,8 @@ export function SplashScreen({ onVideoEnd }: SplashScreenProps) {
         <video
           ref={videoRef}
           src={introVideoUrl}
-          muted
           playsInline
+          muted
           className="w-full h-auto object-contain"
         />
       </div>
