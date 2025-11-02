@@ -4,24 +4,29 @@ import { SplashScreen } from '@/components/splash-screen';
 import { useRouter } from 'next/navigation';
 import { DatabaseProvider } from '@/lib/db-provider';
 import { useAuth } from '@/firebase';
+import { useEffect, useState } from 'react';
 
 function InitialPage() {
     const router = useRouter();
     const { user, loading } = useAuth();
+    const [isReadyForRedirect, setIsReadyForRedirect] = useState(false);
 
+    // This function will be called when the video has completely finished.
     const handleVideoEnd = () => {
-        // This function will only be called when the video has completely finished.
-        if (!loading) {
+        setIsReadyForRedirect(true);
+    };
+
+    useEffect(() => {
+        // This effect will only run when the video has ended AND auth state is determined.
+        if (isReadyForRedirect && !loading) {
             if (user) {
                 router.push('/home');
             } else {
                 router.push('/login');
             }
         }
-    };
+    }, [isReadyForRedirect, user, loading, router]);
 
-    // The useEffect that was causing premature navigation has been removed.
-    // Navigation now solely depends on the onVideoEnd callback from SplashScreen.
 
     return <SplashScreen onVideoEnd={handleVideoEnd} />;
 }
