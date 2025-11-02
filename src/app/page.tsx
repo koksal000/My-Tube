@@ -9,23 +9,21 @@ import { useEffect, useState } from 'react';
 function InitialPage() {
     const router = useRouter();
     const { user, loading } = useAuth();
-    const [isReadyForRedirect, setIsReadyForRedirect] = useState(false);
+    const [videoHasEnded, setVideoHasEnded] = useState(false);
 
-    // This function will be called when the video has completely finished.
     const handleVideoEnd = () => {
-        setIsReadyForRedirect(true);
+        setVideoHasEnded(true);
     };
 
     useEffect(() => {
-        // This effect will only run when the video has ended AND auth state is determined.
-        if (isReadyForRedirect && !loading) {
+        if (videoHasEnded && !loading) {
             if (user) {
                 router.push('/home');
             } else {
                 router.push('/login');
             }
         }
-    }, [isReadyForRedirect, user, loading, router]);
+    }, [videoHasEnded, user, loading, router]);
 
 
     return <SplashScreen onVideoEnd={handleVideoEnd} />;
