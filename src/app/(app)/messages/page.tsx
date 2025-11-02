@@ -1,3 +1,4 @@
+
 "use client"
 
 import { Button } from "@/components/ui/button";
@@ -5,13 +6,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
 import { Send, AlertCircle } from "lucide-react";
-import { useState, useEffect, useRef, Suspense } from "react";
+import { useState, useEffect, useRef, Suspense, useMemo } from "react";
 import { useSearchParams } from "next/navigation";
 import type { User, Message } from "@/lib/types";
-import { useToast } from "@/hooks/use-toast";
 import { getMessagesAction, sendMessageAction } from "@/app/actions";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useDatabase } from "@/lib/db-provider";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 const ChatMessage = ({ msg, isOwnMessage, author }: { msg: Message; isOwnMessage: boolean, author?: User }) => (
   <div className={`flex items-end gap-2 ${isOwnMessage ? 'justify-end' : ''}`}>
@@ -22,7 +23,7 @@ const ChatMessage = ({ msg, isOwnMessage, author }: { msg: Message; isOwnMessage
       </Avatar>
     )}
     <div className={`max-w-xs rounded-lg px-3 py-2 ${isOwnMessage ? 'rounded-br-none bg-primary text-primary-foreground' : 'rounded-bl-none bg-secondary'}`}>
-      <p>{msg.text}</p>
+      <p className="break-words">{msg.text}</p>
       <p className="text-xs text-right mt-1 opacity-70">{new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
     </div>
   </div>
@@ -43,9 +44,40 @@ function MessagesChat({ currentUser }: { currentUser: User }) {
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    }, [messages]);
+    
+    const allMessages = useMemo(() => messages, [messages]);
+    
+    const sortedConversations = useMemo(() => {
+      const userLastMessageTime: { [userId: string]: number } = {};
+      const participantUserIds = new Set<string>();
+
+      allMessages.forEach(msg => {
+          const otherUserId = msg.senderId === currentUser.id ? msg.recipientId : msg.senderId;
+          participantUserIds.add(otherUserId);
+          const messageTime = new Date(msg.createdAt).getTime();
+          if (!userLastMessageTime[otherUserId] || messageTime > userLastMessageTime[otherUserId]) {
+              userLastMessageTime[otherUserId] = messageTime;
+          }
+      });
+      
+      const sortedParticipantIds = Array.from(participantUserIds).sort((a, b) => {
+        return (userLastMessageTime[b] || 0) - (userLastMessageTime[a] || 0);
+      });
+
+      return sortedParticipantIds.map(userId => conversations.find(c => c.id === userId)).filter((u): u is User => !!u);
+
+    }, [allMessages, conversations, currentUser.id]);
+
+    useEffect(() => {
         if (!db) return;
         const initConversations = async () => {
-            const allUsers = await db.getAllUsers();
+            const [allUsers, allMsgs] = await Promise.all([
+              db.getAllUsers(),
+              getMessagesAction(currentUser.id)
+            ]);
+            setMessages(allMsgs);
             const conversationUsers = allUsers.filter(u => u.id !== currentUser.id && u.username !== 'admin');
             setConversations(conversationUsers);
             
@@ -60,18 +92,14 @@ function MessagesChat({ currentUser }: { currentUser: User }) {
     }, [routerUser, currentUser.id, db]);
 
     useEffect(() => {
-        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-    }, [messages]);
-    
-    useEffect(() => {
         if (!selectedUser) return;
 
         const interval = setInterval(async () => {
-            const allMessages = await getMessagesAction(currentUser.id, selectedUser.id);
-            if(allMessages.length !== messages.length) {
-                setMessages(allMessages);
+            const allMessagesFromServer = await getMessagesAction(currentUser.id);
+            if(allMessagesFromServer.length !== messages.length) {
+                setMessages(allMessagesFromServer);
             }
-        }, 3000); // Poll for new messages every 3 seconds
+        }, 5000); // Poll for new messages every 5 seconds
 
         return () => clearInterval(interval);
 
@@ -88,11 +116,16 @@ function MessagesChat({ currentUser }: { currentUser: User }) {
 
     const handleSelectConversation = async (user: User) => {
         setSelectedUser(user);
-        setLoadingMessages(true);
-        const allMessages = await getMessagesAction(currentUser.id, user.id);
-        setMessages(allMessages);
-        setLoadingMessages(false);
     }
+    
+    const currentConversationMessages = useMemo(() => {
+        if (!selectedUser) return [];
+        return allMessages.filter(msg =>
+            (msg.senderId === currentUser.id && msg.recipientId === selectedUser.id) ||
+            (msg.senderId === selectedUser.id && msg.recipientId === currentUser.id)
+        );
+    }, [allMessages, selectedUser, currentUser.id]);
+
 
     if (!db) return null;
 
@@ -103,24 +136,26 @@ function MessagesChat({ currentUser }: { currentUser: User }) {
                     <CardHeader>
                         <CardTitle>Sohbetler</CardTitle>
                     </CardHeader>
-                    <CardContent className="p-0 flex-grow overflow-y-auto">
-                        <div className="space-y-1">
-                           {conversations.map(convoUser => (
-                                <div 
-                                    key={convoUser.id} 
-                                    onClick={() => handleSelectConversation(convoUser)}
-                                    className={`flex items-center gap-3 p-3 cursor-pointer border-b transition-colors ${selectedUser?.id === convoUser.id ? 'bg-secondary' : 'hover:bg-secondary/50'}`}>
-                                    <Avatar className="h-10 w-10">
-                                        <AvatarImage src={convoUser.profilePicture} alt={convoUser.displayName || convoUser.username} data-ai-hint="person face" />
-                                        <AvatarFallback>{(convoUser.displayName || convoUser.username || 'U').charAt(0)}</AvatarFallback>
-                                    </Avatar>
-                                    <div className="flex-grow overflow-hidden">
-                                        <p className="font-semibold">{convoUser.displayName || convoUser.username}</p>
-                                        <p className="text-sm text-muted-foreground truncate">@{convoUser.username}</p>
-                                    </div>
-                                </div>
-                           ))}
-                        </div>
+                    <CardContent className="p-0 flex-grow">
+                        <ScrollArea className="h-full">
+                          <div className="space-y-1">
+                            {sortedConversations.map(convoUser => (
+                                  <div 
+                                      key={convoUser.id} 
+                                      onClick={() => handleSelectConversation(convoUser)}
+                                      className={`flex items-center gap-3 p-3 cursor-pointer border-b transition-colors ${selectedUser?.id === convoUser.id ? 'bg-secondary' : 'hover:bg-secondary/50'}`}>
+                                      <Avatar className="h-10 w-10">
+                                          <AvatarImage src={convoUser.profilePicture} alt={convoUser.displayName || convoUser.username} data-ai-hint="person face" />
+                                          <AvatarFallback>{(convoUser.displayName || convoUser.username || 'U').charAt(0)}</AvatarFallback>
+                                      </Avatar>
+                                      <div className="flex-grow overflow-hidden">
+                                          <p className="font-semibold">{convoUser.displayName || convoUser.username}</p>
+                                          <p className="text-sm text-muted-foreground truncate">@{convoUser.username}</p>
+                                      </div>
+                                  </div>
+                            ))}
+                          </div>
+                        </ScrollArea>
                     </CardContent>
                 </Card>
             </div>
@@ -142,15 +177,19 @@ function MessagesChat({ currentUser }: { currentUser: User }) {
                                     </div>
                                 </div>
                             </CardHeader>
-                            <CardContent className="flex-grow p-4 space-y-4 overflow-y-auto">
-                               {loadingMessages ? (
-                                 <div className="text-center">Mesajlar yükleniyor...</div>
-                               ) : (
-                                <>
-                                  {messages.map((msg, index) => <ChatMessage key={`${msg.id}-${index}`} msg={msg} isOwnMessage={msg.senderId === currentUser.id} author={selectedUser} />)}
-                                  <div ref={messagesEndRef} />
-                                </>
-                               )}
+                            <CardContent className="flex-grow p-4">
+                                <ScrollArea className="h-full">
+                                  <div className="space-y-4 pr-4">
+                                    {loadingMessages ? (
+                                      <div className="text-center">Mesajlar yükleniyor...</div>
+                                    ) : (
+                                      <>
+                                        {currentConversationMessages.map((msg) => <ChatMessage key={msg.id} msg={msg} isOwnMessage={msg.senderId === currentUser.id} author={selectedUser} />)}
+                                        <div ref={messagesEndRef} />
+                                      </>
+                                    )}
+                                  </div>
+                                </ScrollArea>
                             </CardContent>
                             <div className="p-4 border-t">
                                 <div className="relative">

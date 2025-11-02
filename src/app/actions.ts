@@ -162,11 +162,10 @@ export async function getPostsAction(): Promise<Post[]> {
     return Promise.all(posts.map(p => hydrateData(p, allUsers)));
 }
 
-export async function getMessagesAction(currentUserId: string, otherUserId: string): Promise<Message[]> {
+export async function getMessagesAction(userId: string): Promise<Message[]> {
     const allMessages = await readData<Message>(messagesFilePath);
     return allMessages.filter(msg => 
-        (msg.senderId === currentUserId && msg.recipientId === otherUserId) ||
-        (msg.senderId === otherUserId && msg.recipientId === currentUserId)
+        msg.senderId === userId || msg.recipientId === userId
     ).sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
 }
 
