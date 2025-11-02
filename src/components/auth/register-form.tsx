@@ -52,9 +52,9 @@ export function RegisterForm() {
     const profilePictureFile = formData.get("profile-picture") as File | null;
     const bannerFile = formData.get("banner") as File | null;
     
-    const existingUser = await db.getUserByUsername(username);
-
-    if (existingUser) {
+    // The username check is useful, but let's also check for existing user by email via Firebase Auth first.
+    const existingUserByUsername = await db.getUserByUsername(username);
+    if (existingUserByUsername) {
       toast({
         title: "Kayıt Başarısız",
         description: "Bu kullanıcı adı zaten alınmış. Lütfen başka bir tane deneyin.",
@@ -123,8 +123,9 @@ export function RegisterForm() {
             description = "Şifre çok zayıf. Lütfen en az 6 karakterli bir şifre seçin.";
          } else if (error.code === 'auth/invalid-email') {
             description = "Geçersiz e-posta adresi.";
+         } else {
+            console.error("Registration failed", error);
          }
-         console.error("Registration failed", error);
          toast({ title: "Kayıt Başarısız", description: description, variant: "destructive" });
     } finally {
         setIsRegistering(false);
